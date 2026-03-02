@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Collaborative Math Nets</title>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+
+    <style>
+        /* CSS for the folding logic */
+        .is-folded .c-front { transform: rotateX(-90deg); }
+        .is-folded .c-back { transform: rotateX(90deg); }
+        .is-folded .c-left { transform: rotateY(-90deg); }
+        .is-folded .c-right { transform: rotateY(90deg); }
+        .is-folded .c-top { transform: rotateX(90deg); } 
+        
+        #foldBtn:active {
+            transform: translateY(4px);
+            box-shadow: 0 2px 0 #3730a3, 0 4px 6px rgba(0,0,0,0.2) !important;
+        }
+        
+        /* Progress Bar Styles */
+        .progress-container {
+            width: 80%;
+            background-color: #e2e8f0;
+            border-radius: 20px;
+            margin: 20px auto;
+            overflow: hidden;
+            border: 2px solid #cbd5e1;
+        }
+        .progress-bar {
+            width: 0%;
+            height: 30px;
+            background-color: #f59e0b;
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body style="margin: 0; padding: 20px; background-color: #e2e8f0;">
+
+<div style="max-width: 900px; margin: 0 auto 10px auto; display: flex; justify-content: space-between; font-family: sans-serif;">
+    <div style="background: #3b82f6; color: white; padding: 5px 15px; border-radius: 20px; font-weight: bold;">
+        🧑‍🤝‍🧑 Classmates Online: <span id="onlineCount">0</span>
+    </div>
+    <div style="background: #10b981; color: white; padding: 5px 15px; border-radius: 20px; font-weight: bold;">
+        My Name: <span id="myNameDisplay">Loading...</span> <span id="leaderBadge" style="display:none;">👑 (Leader)</span>
+    </div>
+</div>
+
+<div class="iws-container" style="font-family: 'Comic Sans MS', 'Chalkboard SE', 'Inter', sans-serif; color: #334155; max-width: 900px; margin: 0 auto; background: #f8fafc; padding: 20px; border-radius: 16px; border: 3px solid #cbd5e1; position: relative;">
+    
+    <div style="background-color: #6366f1; color: white; padding: 30px; border-radius: 12px 12px 0 0; position: relative; overflow: hidden; text-align: center;">
+        <h2 style="color: #c7d2fe; font-size: 1.2em; text-transform: uppercase; letter-spacing: 2px; margin: 0;">Step 4 (Multiplayer)</h2>
+        <h1 style="margin: 10px 0 0 0; font-size: 2.5em; text-shadow: 2px 2px 0px #4f46e5;">Unfolding the Magic</h1>
+    </div>
+
+    <div style="background-color: #ffffff; padding: 40px; border: 3px solid #e2e8f0; border-top: none; border-radius: 0 0 12px 12px;">
+        
+        <div id="phase-waiting" style="text-align: center; display: none;">
+            <h2>Waiting Room 🚪</h2>
+            <p>Waiting for everyone to gather before we begin...</p>
+            <button id="startActivityBtn" onclick="startGame()" style="display:none; background: #4f46e5; color: white; border: none; padding: 15px 30px; font-size: 1.2em; border-radius: 50px; cursor: pointer;">👑 Start Activity for Everyone!</button>
+        </div>
+
+        <div id="phase-magic" style="display: none;">
+            <p style="font-size: 1.2em; text-align: center;">Work together! Click the button to add magic power.</p>
+            <div style="perspective: 1000px; display: flex; flex-direction: column; align-items: center; margin: 40px 0; background: #f1f5f9; padding: 40px; border-radius: 16px; border: 2px dashed #cbd5e1;">
+                
+                <div id="cube-scene" style="width: 200px; height: 200px; position: relative; transform-style: preserve-3d; transform: rotateX(-20deg) rotateY(-30deg); transition: transform 1s ease-in-out;">
+                    <div class="c-face c-base" style="width: 100px; height: 100px; background: rgba(239, 68, 68, 0.8); border: 2px solid white; position: absolute; top: 50px; left: 50px; transform-style: preserve-3d; display: flex; align-items: center; justify-content: center; font-size: 2em; color: white; font-weight: bold; border-radius: 4px;">1
+                        <div class="c-face c-front" style="width: 100px; height: 100px; background: rgba(59, 130, 246, 0.8); border: 2px solid white; position: absolute; top: 100%; left: -2px; transform-origin: top; transition: transform 1.5s cubic-bezier(0.4, 0, 0.2, 1); display: flex; align-items: center; justify-content: center; font-size: 1em; color: white; border-radius: 4px;">2</div>
+                        <div class="c-face c-back" style="width: 100px; height: 100px; background: rgba(16, 185, 129, 0.8); border: 2px solid white; position: absolute; bottom: 100%; left: -2px; transform-origin: bottom; transition: transform 1.5s cubic-bezier(0.4, 0, 0.2, 1); transform-style: preserve-3d; display: flex; align-items: center; justify-content: center; font-size: 1em; color: white; border-radius: 4px;">3
+                            <div class="c-face c-top" style="width: 100px; height: 100px; background: rgba(245, 158, 11, 0.8); border: 2px solid white; position: absolute; bottom: 100%; left: -2px; transform-origin: bottom; transition: transform 1.5s cubic-bezier(0.4, 0, 0.2, 1) 0.2s; display: flex; align-items: center; justify-content: center; font-size: 1em; color: white; border-radius: 4px;">4</div>
+                        </div>
+                        <div class="c-face c-left" style="width: 100px; height: 100px; background: rgba(139, 92, 246, 0.8); border: 2px solid white; position: absolute; top: -2px; right: 100%; transform-origin: right; transition: transform 1.5s cubic-bezier(0.4, 0, 0.2, 1); display: flex; align-items: center; justify-content: center; font-size: 1em; color: white; border-radius: 4px;">5</div>
+                        <div class="c-face c-right" style="width: 100px; height: 100px; background: rgba(236, 72, 153, 0.8); border: 2px solid white; position: absolute; top: -2px; left: 100%; transform-origin: left; transition: transform 1.5s cubic-bezier(0.4, 0, 0.2, 1); display: flex; align-items: center; justify-content: center; font-size: 1em; color: white; border-radius: 4px;">6</div>
+                    </div>
+                </div>
+
+                <div style="width: 100%; text-align: center; margin-top: 50px;">
+                    <h4 style="margin: 0; color: #64748b;">Class Power: <span id="powerText">0</span>%</h4>
+                    <div class="progress-container"><div class="progress-bar" id="magicBar"></div></div>
+                </div>
+
+                <button id="foldBtn" onclick="addMagicPower()" style="background: #4f46e5; color: white; border: none; padding: 15px 30px; font-size: 1.3em; font-weight: bold; border-radius: 50px; cursor: pointer; box-shadow: 0 6px 0 #3730a3;">🪄 Add Magic Power! (<span id="myClicks">0</span>/3)</button>
+            </div>
+        </div>
+
+        <div id="phase-poll" style="display: none;">
+            <h3 style="color: #4f46e5; font-size: 1.8em; text-align: center;">Live Class Poll! 🧠</h3>
+            <p style="text-align: center; font-size: 1.1em; color: #475569;">Which of these arrangements perfectly folds into a box without overlapping sides?</p>
+
+            <div id="readyArea" style="text-align: center; margin: 30px 0;">
+                <button id="readyBtn" onclick="toggleReady()" style="background: #10b981; color: white; border: none; padding: 15px 30px; font-size: 1.2em; border-radius: 50px; cursor: pointer;">I'm Ready!</button>
+                <p>Class Ready: <span id="readyCount">0</span>%</p>
+                <button id="startTimerBtn" onclick="startVotingTimer()" style="display:none; background: #ef4444; color: white; border: none; padding: 10px 20px; font-size: 1.1em; border-radius: 8px; cursor: pointer; margin-top:10px;">👑 Start 30s Timer</button>
+            </div>
+
+            <h1 id="timerDisplay" style="text-align: center; color: #ef4444; font-size: 3em; display: none;">30</h1>
+
+            <div id="votingArea" style="display: none; gap: 20px; flex-wrap: wrap; justify-content: center; margin-top: 30px;">
+                <div style="background: #f8fafc; border: 2px solid #cbd5e1; padding: 20px; border-radius: 12px; text-align: center; width: 220px;">
+                    <svg width="120" height="120" viewBox="0 0 100 100">
+                        <rect x="40" y="0" width="20" height="20" fill="#fca5a5" stroke="#ef4444" stroke-width="2"/><rect x="40" y="20" width="20" height="20" fill="#fca5a5" stroke="#ef4444" stroke-width="2"/><rect x="40" y="40" width="20" height="20" fill="#fca5a5" stroke="#ef4444" stroke-width="2"/><rect x="40" y="60" width="20" height="20" fill="#fca5a5" stroke="#ef4444" stroke-width="2"/><rect x="60" y="20" width="20" height="20" fill="#fca5a5" stroke="#ef4444" stroke-width="2"/><rect x="80" y="20" width="20" height="20" fill="#fca5a5" stroke="#ef4444" stroke-width="2"/>
+                    </svg><br>
+                    <button onclick="castVote('A')" style="margin-top: 15px; padding: 10px; width: 100%; cursor: pointer;">Vote A</button>
+                    <div style="margin-top: 10px; font-weight: bold;"><span id="votesA">0</span> Votes</div>
+                </div>
+                <div style="background: #f8fafc; border: 2px solid #cbd5e1; padding: 20px; border-radius: 12px; text-align: center; width: 220px;">
+                    <svg width="120" height="120" viewBox="0 0 100 100">
+                        <rect x="40" y="0" width="20" height="20" fill="#93c5fd" stroke="#3b82f6" stroke-width="2"/><rect x="40" y="20" width="20" height="20" fill="#93c5fd" stroke="#3b82f6" stroke-width="2"/><rect x="20" y="20" width="20" height="20" fill="#93c5fd" stroke="#3b82f6" stroke-width="2"/><rect x="60" y="20" width="20" height="20" fill="#93c5fd" stroke="#3b82f6" stroke-width="2"/><rect x="40" y="40" width="20" height="20" fill="#93c5fd" stroke="#3b82f6" stroke-width="2"/><rect x="40" y="60" width="20" height="20" fill="#93c5fd" stroke="#3b82f6" stroke-width="2"/>
+                    </svg><br>
+                    <button onclick="castVote('B')" style="margin-top: 15px; padding: 10px; width: 100%; cursor: pointer;">Vote B</button>
+                    <div style="margin-top: 10px; font-weight: bold;"><span id="votesB">0</span> Votes</div>
+                </div>
+                <div style="background: #f8fafc; border: 2px solid #cbd5e1; padding: 20px; border-radius: 12px; text-align: center; width: 220px;">
+                    <svg width="120" height="120" viewBox="0 0 100 100">
+                        <rect x="40" y="0" width="20" height="20" fill="#d8b4fe" stroke="#a855f7" stroke-width="2"/><rect x="40" y="20" width="20" height="20" fill="#d8b4fe" stroke="#a855f7" stroke-width="2"/><rect x="40" y="40" width="20" height="20" fill="#d8b4fe" stroke="#a855f7" stroke-width="2"/><rect x="40" y="60" width="20" height="20" fill="#d8b4fe" stroke="#a855f7" stroke-width="2"/><rect x="60" y="20" width="20" height="20" fill="#d8b4fe" stroke="#a855f7" stroke-width="2"/><rect x="60" y="40" width="20" height="20" fill="#d8b4fe" stroke="#a855f7" stroke-width="2"/>
+                    </svg><br>
+                    <button onclick="castVote('C')" style="margin-top: 15px; padding: 10px; width: 100%; cursor: pointer;">Vote C</button>
+                    <div style="margin-top: 10px; font-weight: bold;"><span id="votesC">0</span> Votes</div>
+                </div>
+            </div>
+
+            <div id="resultsArea" style="display:none; text-align: center; margin-top: 30px; background: #dcfce7; padding: 20px; border-radius: 12px; border: 2px solid #22c55e;">
+                <h2 style="color: #15803d;">Time's Up! The correct answer is B! 🎉</h2>
+                <p>Genius Classmates who got it right:</p>
+                <div id="winnersList" style="font-weight: bold; color: #166534; display: flex; flex-wrap: wrap; gap: 10px; justify-content: center;"></div>
+            </div>
+        </div>
+
+        <button onclick="emergencyReset()" style="margin-top: 50px; background: transparent; color: #cbd5e1; border: 1px solid #cbd5e1; padding: 5px; font-size: 10px;">Teacher Reset</button>
+    </div>
+</div>
+
+<script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyBOwZR379GqjVLubAEuT75nfOhK4nyDgwk",
+      authDomain: "symmetry-and-nets.firebaseapp.com",
+      databaseURL: "https://symmetry-and-nets-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "symmetry-and-nets",
+      storageBucket: "symmetry-and-nets.firebasestorage.app",
+      messagingSenderId: "250211420064",
+      appId: "1:250211420064:web:fe4a064715042bedf546c5"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    // Funny Names List (40)
+    const namesList = ["Awesome Alpaca", "Brave Bear", "Clever Cat", "Daring Dog", "Eager Elephant", "Fast Fox", "Giant Giraffe", "Happy Hippo", "Incredible Iguana", "Jolly Jellyfish", "Kind Kangaroo", "Lucky Lion", "Mighty Monkey", "Ninja Newt", "Outstanding Owl", "Playful Penguin", "Quick Quail", "Radical Rhino", "Super Sloth", "Terrific Tiger", "Unique Unicorn", "Valiant Vulture", "Wild Wolf", "X-traordinary Xerus", "Yellow Yak", "Zippy Zebra", "Bouncy Bunny", "Cosmic Cow", "Dancing Dolphin", "Epic Eagle", "Famous Flamingo", "Groovy Goat", "Heroic Hamster", "Icey Impala", "Jumping Jaguar", "Koala King", "Laughing Llama", "Magical Moose", "Noble Narwhal", "Party Parrot"];
+
+    // Globals
+    let myUID = null;
+    let myName = namesList[Math.floor(Math.random() * namesList.length)];
+    let isLeader = false;
+    let onlineUsersCount = 1;
+    let myMagicClicks = 0;
+    let amIReady = false;
+
+    // References
+    const stateRef = db.ref('gameState');
+    const presenceRef = db.ref('presence');
+    const clicksRef = db.ref('totalClicks');
+    const usersRef = db.ref('users');
+
+    // 1. Authentication & Presence
+    firebase.auth().signInAnonymously().then((userCred) => {
+        myUID = userCred.user.uid;
+        document.getElementById('myNameDisplay').innerText = myName;
+
+        // Setup Presence (If user disconnects, remove them)
+        const myPresence = presenceRef.child(myUID);
+        db.ref('.info/connected').on('value', (snap) => {
+            if (snap.val() === true) {
+                myPresence.set({ name: myName, joinedAt: firebase.database.ServerValue.TIMESTAMP });
+                myPresence.onDisconnect().remove();
+                usersRef.child(myUID).onDisconnect().remove(); // Clean up votes
+            }
+        });
+    });
+
+    // 2. Leader Election & User Counting
+    presenceRef.on('value', (snap) => {
+        const users = snap.val() || {};
+        const entries = Object.entries(users);
+        onlineUsersCount = entries.length;
+        document.getElementById('onlineCount').innerText = onlineUsersCount;
+
+        // Sort by joinedAt. Oldest connection is leader.
+        entries.sort((a, b) => a[1].joinedAt - b[1].joinedAt);
+        if (entries.length > 0 && entries[0][0] === myUID) {
+            isLeader = true;
+            document.getElementById('leaderBadge').style.display = 'inline';
+            document.getElementById('startActivityBtn').style.display = 'inline-block';
+        } else {
+            isLeader = false;
+            document.getElementById('leaderBadge').style.display = 'none';
+            document.getElementById('startActivityBtn').style.display = 'none';
+        }
+    });
+
+    // 3. State Machine Control
+    stateRef.on('value', (snap) => {
+        const state = snap.val() || { phase: 'waiting', timerEnd: 0 };
+        
+        // Hide all first
+        document.getElementById('phase-waiting').style.display = 'none';
+        document.getElementById('phase-magic').style.display = 'none';
+        document.getElementById('phase-poll').style.display = 'none';
+
+        if (state.phase === 'waiting') {
+            document.getElementById('phase-waiting').style.display = 'block';
+        } 
+        else if (state.phase === 'magic') {
+            document.getElementById('phase-magic').style.display = 'block';
+        } 
+        else if (state.phase === 'ready' || state.phase === 'voting' || state.phase === 'results') {
+            document.getElementById('phase-poll').style.display = 'block';
+            
+            if (state.phase === 'ready') {
+                document.getElementById('readyArea').style.display = 'block';
+                document.getElementById('votingArea').style.display = 'none';
+                document.getElementById('resultsArea').style.display = 'none';
+                document.getElementById('timerDisplay').style.display = 'none';
+            } 
+            else if (state.phase === 'voting') {
+                document.getElementById('readyArea').style.display = 'none';
+                document.getElementById('votingArea').style.display = 'flex';
+                document.getElementById('timerDisplay').style.display = 'block';
+                checkTimer(state.timerEnd);
+            }
+            else if (state.phase === 'results') {
+                document.getElementById('readyArea').style.display = 'none';
+                document.getElementById('votingArea').style.display = 'flex';
+                document.getElementById('timerDisplay').style.display = 'none';
+                document.getElementById('resultsArea').style.display = 'block';
+            }
+        }
+    });
+
+    function startGame() {
+        if(isLeader) stateRef.update({ phase: 'magic' });
+    }
+
+    // 4. Dynamic Magic Logic
+    function addMagicPower() {
+        if (myMagicClicks >= 3) return; // Max 3 clicks per person
+        myMagicClicks++;
+        document.getElementById('myClicks').innerText = myMagicClicks;
+        clicksRef.transaction((current) => (current || 0) + 1);
+    }
+
+    clicksRef.on('value', (snap) => {
+        const totalClicks = snap.val() || 0;
+        // Formula: Need 2 clicks per person.
+        const clicksNeeded = onlineUsersCount * 2;
+        let power = Math.floor((totalClicks / clicksNeeded) * 100);
+        
+        if (power > 100) power = 100;
+        
+        document.getElementById('magicBar').style.width = power + '%';
+        document.getElementById('powerText').innerText = power;
+
+        const scene = document.getElementById('cube-scene');
+        if (power >= 100) {
+            scene.classList.add('is-folded');
+            scene.style.transform = 'rotateX(-20deg) rotateY(40deg)';
+            // If leader, move to next phase automatically after 3 seconds
+            if (isLeader) {
+                setTimeout(() => { stateRef.update({ phase: 'ready' }) }, 3000);
+            }
+        } else {
+            scene.classList.remove('is-folded');
+            scene.style.transform = 'rotateX(-20deg) rotateY(-30deg)';
+        }
+    });
+
+    // 5. Voting & Ready Logic
+    function toggleReady() {
+        amIReady = !amIReady;
+        usersRef.child(myUID).update({ ready: amIReady });
+        document.getElementById('readyBtn').innerText = amIReady ? "Ready! ✅" : "I'm Ready!";
+        document.getElementById('readyBtn').style.background = amIReady ? "#059669" : "#10b981";
+    }
+
+    usersRef.on('value', (snap) => {
+        const users = snap.val() || {};
+        let readyCount = 0;
+        let votes = { A: 0, B: 0, C: 0 };
+        let winners = [];
+
+        Object.keys(users).forEach(uid => {
+            if (users[uid].ready) readyCount++;
+            if (users[uid].vote) votes[users[uid].vote]++;
+            if (users[uid].vote === 'B' && users[uid].name) winners.push(users[uid].name);
+        });
+
+        // Update Ready Percentage
+        const readyPercent = Math.floor((readyCount / onlineUsersCount) * 100);
+        document.getElementById('readyCount').innerText = readyPercent;
+
+        // Show leader start button if 60% ready
+        if (isLeader && readyPercent >= 60) {
+            document.getElementById('startTimerBtn').style.display = 'inline-block';
+        } else {
+            document.getElementById('startTimerBtn').style.display = 'none';
+        }
+
+        // Update Vote Displays
+        document.getElementById('votesA').innerText = votes.A;
+        document.getElementById('votesB').innerText = votes.B;
+        document.getElementById('votesC').innerText = votes.C;
+
+        // Update Winners list
+        document.getElementById('winnersList').innerHTML = winners.map(n => `<span>🏆 ${n}</span>`).join('');
+    });
+
+    function startVotingTimer() {
+        if (isLeader) {
+            // Set end time 33 seconds into future (3s get ready + 30s vote)
+            const endTime = new Date().getTime() + 33000;
+            stateRef.update({ phase: 'voting', timerEnd: endTime });
+        }
+    }
+
+    function checkTimer(endTime) {
+        const interval = setInterval(() => {
+            const now = new Date().getTime();
+            const distance = endTime - now;
+
+            if (distance < 0) {
+                clearInterval(interval);
+                document.getElementById('timerDisplay').innerText = "0";
+                if (isLeader) stateRef.update({ phase: 'results' });
+            } else {
+                let seconds = Math.floor((distance % (1000 * 60)) / 1000);
+                document.getElementById('timerDisplay').innerText = seconds;
+            }
+        }, 1000);
+    }
+
+    function castVote(option) {
+        // Users can overwrite their previous vote!
+        usersRef.child(myUID).update({ vote: option, name: myName });
+    }
+
+    function emergencyReset() {
+        stateRef.set({ phase: 'waiting', timerEnd: 0 });
+        clicksRef.set(0);
+        usersRef.remove();
+        myMagicClicks = 0;
+        amIReady = false;
+        document.getElementById('myClicks').innerText = "0";
+        document.getElementById('readyBtn').innerText = "I'm Ready!";
+    }
+</script>
+</body>
+</html>
