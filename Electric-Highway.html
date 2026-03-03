@@ -7,7 +7,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;800&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
     <style>
         body { margin: 0; overflow: hidden; background: #0b0f19; color: white; font-family: 'Roboto', sans-serif; }
-        
+
         /* Overlays */
         .overlay {
             position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
@@ -27,11 +27,11 @@
         /* Game UI */
         #game-ui { position: absolute; top: 10px; left: 10px; z-index: 10; pointer-events: none; width: 98vw; display: flex; justify-content: space-between;}
         .hud-panel { background: rgba(0,0,0,0.8); padding: 15px; border-radius: 8px; border: 1px solid #333; }
-        
+
         #top-center-ui { display: flex; flex-direction: column; align-items: center; background: rgba(0,0,0,0.8); padding: 10px 30px; border-radius: 0 0 15px 15px; border: 2px solid #00ffcc; border-top: none; }
         #timer-display { font-family: 'Orbitron'; font-size: 2.5rem; color: #00ffcc; }
-        #role-banner { font-weight: bold; font-size: 1.5rem; margin-top: 5px; text-transform: uppercase; }
-        
+        #role-banner { font-weight: bold; font-size: 1.2rem; margin-top: 5px; text-transform: uppercase; text-align:center; max-width: 70vw; }
+
         #scoreboard { font-family: 'Orbitron'; font-size: 1.2rem; display: flex; gap: 20px; }
         .score-pos { color: #ff3366; }
         .score-neg { color: #33ccff; }
@@ -40,7 +40,7 @@
         .team-neg { color: #33ccff; text-shadow: 0 0 5px #33ccff; }
 
         #teacher-controls { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 50; display: none; }
-        
+
         canvas { display: block; }
     </style>
 </head>
@@ -58,7 +58,7 @@
     <div id="lobby" class="overlay" style="display:none;">
         <h1 id="lobby-title">LOBBY</h1>
         <div id="player-identity-card" style="margin: 20px 0; font-size: 1.5rem;"></div>
-        
+
         <div id="host-start-area" style="display:none; margin-top: 30px; padding: 20px; border: 1px dashed #555; border-radius: 10px;">
             <p style="color: #00ffcc;">TEACHER CONTROLS</p>
             <p>Wait for students to join, then begin Round 1.</p>
@@ -70,8 +70,9 @@
     <div id="round-screen" class="overlay" style="display:none;">
         <h1 id="round-title" style="font-size: 4rem;">ROUND OVER</h1>
         <div id="round-scores" style="font-size: 2rem; margin: 20px; font-family: 'Orbitron';"></div>
-        <p id="round-summary" style="color:#aaa; max-width: 600px;"></p>
-        
+        <div id="round-winner" style="font-size: 1.6rem; margin-top: 5px; font-family: 'Orbitron'; color:#00ffcc;"></div>
+        <p id="round-summary" style="color:#aaa; max-width: 700px; line-height:1.4;"></p>
+
         <div id="host-next-area" style="display:none; margin-top: 30px;">
             <button class="btn" id="next-round-btn" onclick="startNextRound()">START NEXT ROUND</button>
         </div>
@@ -86,7 +87,8 @@
                 <span style="color:#b87333">🟧 Copper (Fast Conductor)</span><br>
                 <span style="color:#2b7fb8">🟦 Tap Water (Conductor)</span><br>
                 <span style="color:#5c4033">🟫 Wood (Insulator - SLOW)</span><br>
-                <span style="color:#333333">⬛ Rubber (Insulator - STOP)</span>
+                <span style="color:#333333">⬛ Rubber (Insulator - STOP)</span><br>
+                <span style="color:#777">⬜ Rubber boundary (can't leave)</span>
             </div>
         </div>
 
@@ -131,32 +133,144 @@
         let myId, myName, myTeam, myRole;
         let isHost = false;
         let players = {};
-        let session = { state: 'lobby', round: 0, timer: 60, scores: { Positive: 0, Negative: 0 }, catchers: 'Positive' };
-        
+        let session = {
+            state: 'lobby',
+            round: 0,
+            timer: 60,
+            scores: { Positive: 0, Negative: 0 },
+            catchers: 'Positive',
+            mapId: 1,
+            roundStartScores: { Positive: 0, Negative: 0 },
+            roundResults: {} // {1:{delta:{}, winner:"Positive|Negative|Draw"}, ...}
+        };
+
         let me = { x: 0, y: 0, caught: false };
         const keys = { w:false, a:false, s:false, d:false };
 
         // Host Timer Interval
         let hostTimer;
 
-        // --- MAP DESIGN ---
-        const mapZones = [
-            { type: 'base', x: 0, y: 0, w: 2000, h: 2000, color: '#111' },
-            { type: 'conductor', x: 100, y: 100, w: 800, h: 80, color: '#b87333' },
-            { type: 'conductor', x: 100, y: 100, w: 80, h: 600, color: '#b87333' },
-            { type: 'conductor', x: 100, y: 620, w: 800, h: 80, color: '#b87333' },
-            { type: 'conductor', x: 820, y: 100, w: 80, h: 600, color: '#b87333' },
-            { type: 'conductor', x: 300, y: 300, w: 150, h: 150, color: 'rgba(43, 127, 184, 0.5)' },
-            { type: 'conductor', x: 600, y: 400, w: 120, h: 120, color: 'rgba(43, 127, 184, 0.5)' },
-            { type: 'slow', x: 250, y: 80, w: 100, h: 120, color: '#5c4033' },
-            { type: 'slow', x: 650, y: 600, w: 100, h: 120, color: '#5c4033' },
-            { type: 'stop', x: 450, y: 250, w: 50, h: 300, color: '#222' }
-        ];
+        // --- MAPS + BOUNDARY ---
+        // Play area bounds (rubber boundary). Sized just outside the copper highway (outer copper is 100..900 x 100..700).
+        const PLAY_BOUNDS = { minX: 0, minY: 0, maxX: 1100, maxY: 900 }; // "not too far away" from the highway
+
+        function clampToBounds(pos) {
+            pos.x = Math.max(PLAY_BOUNDS.minX, Math.min(PLAY_BOUNDS.maxX, pos.x));
+            pos.y = Math.max(PLAY_BOUNDS.minY, Math.min(PLAY_BOUNDS.maxY, pos.y));
+        }
+
+        function buildBoundaryZones() {
+            // Draw a rubber ring outside the bounds so it's visually obvious.
+            const padding = 500; // how far the dark base extends beyond the playable area for camera
+            const base = { type: 'base', x: PLAY_BOUNDS.minX - padding, y: PLAY_BOUNDS.minY - padding, w: (PLAY_BOUNDS.maxX - PLAY_BOUNDS.minX) + padding*2, h: (PLAY_BOUNDS.maxY - PLAY_BOUNDS.minY) + padding*2, color: '#111' };
+
+            const thick = 80; // boundary thickness
+            const left   = { type: 'stop', x: PLAY_BOUNDS.minX - thick, y: PLAY_BOUNDS.minY - thick, w: thick, h: (PLAY_BOUNDS.maxY - PLAY_BOUNDS.minY) + thick*2, color: '#222' };
+            const right  = { type: 'stop', x: PLAY_BOUNDS.maxX,        y: PLAY_BOUNDS.minY - thick, w: thick, h: (PLAY_BOUNDS.maxY - PLAY_BOUNDS.minY) + thick*2, color: '#222' };
+            const top    = { type: 'stop', x: PLAY_BOUNDS.minX,        y: PLAY_BOUNDS.minY - thick, w: (PLAY_BOUNDS.maxX - PLAY_BOUNDS.minX), h: thick, color: '#222' };
+            const bottom = { type: 'stop', x: PLAY_BOUNDS.minX,        y: PLAY_BOUNDS.maxY,         w: (PLAY_BOUNDS.maxX - PLAY_BOUNDS.minX), h: thick, color: '#222' };
+
+            return { base, boundary: [left, right, top, bottom] };
+        }
+
+        // Map 1 (Rounds 1–2): original layout
+        function buildMap1Zones() {
+            const b = buildBoundaryZones();
+            return [
+                b.base,
+                ...b.boundary,
+
+                // Copper highway rectangle loop
+                { type: 'conductor', x: 100, y: 100, w: 800, h: 80,  color: '#b87333' },
+                { type: 'conductor', x: 100, y: 100, w: 80,  h: 600, color: '#b87333' },
+                { type: 'conductor', x: 100, y: 620, w: 800, h: 80,  color: '#b87333' },
+                { type: 'conductor', x: 820, y: 100, w: 80,  h: 600, color: '#b87333' },
+
+                // Water "boost pads"
+                { type: 'conductor', x: 300, y: 300, w: 150, h: 150, color: 'rgba(43, 127, 184, 0.5)' },
+                { type: 'conductor', x: 600, y: 400, w: 120, h: 120, color: 'rgba(43, 127, 184, 0.5)' },
+
+                // Wood slow zones
+                { type: 'slow', x: 250, y: 80,  w: 100, h: 120, color: '#5c4033' },
+                { type: 'slow', x: 650, y: 600, w: 100, h: 120, color: '#5c4033' },
+
+                // Rubber wall
+                { type: 'stop', x: 450, y: 250, w: 50,  h: 300, color: '#222' }
+            ];
+        }
+
+        // Map 2 (Rounds 3–4): new layout (used for both rounds)
+        function buildMap2Zones() {
+            const b = buildBoundaryZones();
+            return [
+                b.base,
+                ...b.boundary,
+
+                // Copper highway "S-bends" inside the same bounds
+                { type: 'conductor', x: 120, y: 140, w: 860, h: 70,  color: '#b87333' },
+                { type: 'conductor', x: 120, y: 140, w: 70,  h: 620, color: '#b87333' },
+                { type: 'conductor', x: 120, y: 690, w: 430, h: 70,  color: '#b87333' },
+                { type: 'conductor', x: 480, y: 330, w: 70,  h: 430, color: '#b87333' },
+                { type: 'conductor', x: 480, y: 330, w: 500, h: 70,  color: '#b87333' },
+
+                // Water boosts in different positions
+                { type: 'conductor', x: 260, y: 450, w: 160, h: 120, color: 'rgba(43, 127, 184, 0.5)' },
+                { type: 'conductor', x: 720, y: 520, w: 180, h: 120, color: 'rgba(43, 127, 184, 0.5)' },
+
+                // Wood slow zones
+                { type: 'slow', x: 650, y: 140, w: 140, h: 120, color: '#5c4033' },
+                { type: 'slow', x: 250, y: 690, w: 140, h: 120, color: '#5c4033' },
+
+                // Extra rubber obstacles
+                { type: 'stop', x: 360, y: 250, w: 60, h: 260, color: '#222' },
+                { type: 'stop', x: 660, y: 430, w: 60, h: 260, color: '#222' }
+            ];
+        }
+
+        let mapZones = buildMap1Zones();
+
+        function setActiveMapFromSession() {
+            const id = Number(session.mapId || 1);
+            mapZones = (id === 2) ? buildMap2Zones() : buildMap1Zones();
+        }
+
+        // --- HELPERS ---
+        function formatTime(seconds) {
+            const s = Math.max(0, Number(seconds || 0));
+            const m = Math.floor(s / 60);
+            const r = s % 60;
+            return `${m}:${String(r).padStart(2, '0')}`;
+        }
+
+        function winnerFromDelta(delta) {
+            if (!delta) return { winner: 'Draw', text: 'Round result: DRAW' };
+            if (delta.Positive > delta.Negative) return { winner: 'Positive', text: `Round winner: POSITIVE (+${delta.Positive} vs +${delta.Negative})` };
+            if (delta.Negative > delta.Positive) return { winner: 'Negative', text: `Round winner: NEGATIVE (+${delta.Negative} vs +${delta.Positive})` };
+            return { winner: 'Draw', text: `Round result: DRAW (+${delta.Positive} each)` };
+        }
+
+        function overallWinnerFromScores(scores) {
+            const p = Number(scores?.Positive || 0);
+            const n = Number(scores?.Negative || 0);
+            if (p > n) return { winner: 'Positive', text: `Overall winner: POSITIVE (${p}–${n})` };
+            if (n > p) return { winner: 'Negative', text: `Overall winner: NEGATIVE (${n}–${p})` };
+            return { winner: 'Draw', text: `Overall result: DRAW (${p}–${n})` };
+        }
+
+        function countTeams(playersObj) {
+            let p = 0, n = 0;
+            Object.values(playersObj || {}).forEach(pl => {
+                if (pl?.team === 'Positive') p++;
+                if (pl?.team === 'Negative') n++;
+            });
+            return { Positive: p, Negative: n };
+        }
 
         // --- INITIALIZATION ---
-        function joinGame(roleSelected) {
+        async function joinGame(roleSelected) {
             myRole = roleSelected;
             myId = "user_" + Math.random().toString(36).substr(2, 9);
+
             document.getElementById('role-select').style.display = 'none';
             document.getElementById('lobby').style.display = 'flex';
 
@@ -165,29 +279,45 @@
                 myName = "Teacher (Host)";
                 myTeam = "Spectator";
                 me.x = 500; me.y = 500; // Camera start center
-                
+
                 document.getElementById('player-identity-card').innerHTML = `<span style="color:#00ffcc">Teacher Mode Active</span><br><span style="font-size:1rem; color:#aaa">You will control the game flow and spectate.</span>`;
                 document.getElementById('host-start-area').style.display = 'block';
                 document.getElementById('waiting-msg').style.display = 'none';
-                
+
                 // Reset session when teacher joins
-                db.ref('electricLab/session').set({ state: 'lobby', round: 0, timer: 60, scores: { Positive: 0, Negative: 0 }, catchers: 'Positive' });
+                await db.ref('electricLab/session').set({
+                    state: 'lobby',
+                    round: 0,
+                    timer: 60,
+                    scores: { Positive: 0, Negative: 0 },
+                    catchers: 'Positive',
+                    mapId: 1,
+                    roundStartScores: { Positive: 0, Negative: 0 },
+                    roundResults: {}
+                });
+
             } else {
                 const first = ["Sparky", "Zappy", "Volt", "Amp", "Flash", "Jolt"];
                 const last = ["Proton", "Electron", "Circuit", "Wire", "Battery"];
                 myName = first[Math.floor(Math.random()*first.length)] + " " + last[Math.floor(Math.random()*last.length)];
-                myTeam = Math.random() > 0.5 ? "Positive" : "Negative";
-                
-                // Spawn locations based on team
+
+                // --- Proper team allocation (even distribution) ---
+                const snap = await db.ref('electricLab/players').once('value');
+                const currentPlayers = snap.val() || {};
+                const counts = countTeams(currentPlayers);
+                myTeam = (counts.Positive <= counts.Negative) ? "Positive" : "Negative";
+
+                // Spawn locations based on team (inside bounds)
                 me.x = myTeam === 'Positive' ? 140 : 860;
                 me.y = myTeam === 'Positive' ? 140 : 660;
+                clampToBounds(me);
 
                 const teamColor = myTeam === 'Positive' ? 'team-pos' : 'team-neg';
                 document.getElementById('player-identity-card').innerHTML = `${myName}<br><span class="${teamColor}">Team ${myTeam}</span>`;
-                
+
                 document.getElementById('my-identity').innerHTML = `<span class="${teamColor}">${myName}</span>`;
-                
-                db.ref('electricLab/players/' + myId).set({ x: me.x, y: me.y, team: myTeam, name: myName, caught: false });
+
+                await db.ref('electricLab/players/' + myId).set({ x: me.x, y: me.y, team: myTeam, name: myName, caught: false });
                 db.ref('electricLab/players/' + myId).onDisconnect().remove();
             }
 
@@ -206,31 +336,36 @@
                 if(!data) return;
                 session = data;
 
+                // Pick correct map for this round
+                setActiveMapFromSession();
+
                 // Update UI Scores & Timer
                 document.getElementById('score-p').innerText = session.scores.Positive;
                 document.getElementById('score-n').innerText = session.scores.Negative;
-                document.getElementById('timer-display').innerText = session.timer;
+                document.getElementById('timer-display').innerText = formatTime(session.timer);
 
                 // State Management
                 if(session.state === 'playing') {
                     document.getElementById('lobby').style.display = 'none';
                     document.getElementById('round-screen').style.display = 'none';
                     document.getElementById('game-ui').style.display = 'flex';
-                    
+
                     if(myRole === 'teacher') document.getElementById('teacher-controls').style.display = 'block';
 
                     // Update Role Banner
                     if(myRole === 'player') {
                         const banner = document.getElementById('role-banner');
                         if(session.catchers === myTeam) {
-                            banner.innerText = "⚡ YOU ARE CATCHERS! (Tag the others)";
+                            banner.innerText = `⚡ YOU ARE CATCHERS! (Tag the others)\nMap: ${session.mapId === 2 ? 'NEW' : 'CLASSIC'}`;
+                            banner.style.whiteSpace = "pre-line";
                             banner.style.color = "#ff3366";
                         } else {
-                            banner.innerText = "🏃 YOU ARE RUNNERS! (Survive!)";
+                            banner.innerText = `🏃 YOU ARE RUNNERS! (Survive!)\nMap: ${session.mapId === 2 ? 'NEW' : 'CLASSIC'}`;
+                            banner.style.whiteSpace = "pre-line";
                             banner.style.color = "#33ccff";
                         }
                     } else {
-                        document.getElementById('role-banner').innerText = `ROUND ${session.round} (Catchers: ${session.catchers})`;
+                        document.getElementById('role-banner').innerText = `ROUND ${session.round} (Catchers: ${session.catchers}) | Map: ${session.mapId === 2 ? 'NEW' : 'CLASSIC'}`;
                         document.getElementById('role-banner').style.color = "white";
                     }
 
@@ -238,17 +373,52 @@
                         document.getElementById('gameCanvas').dataset.active = "true";
                         initCanvas();
                     }
-                } 
+                }
                 else if (session.state === 'round_end' || session.state === 'game_over') {
                     document.getElementById('game-ui').style.display = 'none';
                     document.getElementById('teacher-controls').style.display = 'none';
                     document.getElementById('round-screen').style.display = 'flex';
-                    
-                    document.getElementById('round-title').innerText = session.state === 'game_over' ? "GAME OVER!" : `END OF ROUND ${session.round}`;
-                    document.getElementById('round-scores').innerHTML = `<span class="score-pos">Positive: ${session.scores.Positive}</span> | <span class="score-neg">Negative: ${session.scores.Negative}</span>`;
-                    
+
+                    const isGameOver = (session.state === 'game_over');
+                    document.getElementById('round-title').innerText = isGameOver ? "GAME OVER!" : `END OF ROUND ${session.round}`;
+
+                    document.getElementById('round-scores').innerHTML =
+                        `<span class="score-pos">Positive: ${session.scores.Positive}</span> | <span class="score-neg">Negative: ${session.scores.Negative}</span>`;
+
+                    // Round winner (delta this round)
+                    const rr = session.roundResults?.[String(session.round)] || session.roundResults?.[session.round];
+                    let winnerText = "";
+                    if (!isGameOver && rr?.delta) {
+                        const w = winnerFromDelta(rr.delta);
+                        winnerText = w.text;
+                    } else if (isGameOver) {
+                        const ow = overallWinnerFromScores(session.scores);
+                        winnerText = ow.text;
+                    }
+                    document.getElementById('round-winner').innerText = winnerText;
+
+                    // Summary message
+                    let summary = "";
+                    if (!isGameOver) {
+                        const mapName = (Number(session.mapId) === 2) ? "NEW map (Rounds 3–4)" : "CLASSIC map";
+                        summary = `Catchers this round: ${session.catchers}. ${mapName}. Scores shown above are the running total across all rounds.`;
+                        if (rr?.delta) summary += `\nThis round: Positive +${rr.delta.Positive || 0}, Negative +${rr.delta.Negative || 0}.`;
+                    } else {
+                        summary = `Four rounds complete. Final totals decide the winner (or a draw).`;
+                        // Add a compact recap of all round winners if present
+                        const results = session.roundResults || {};
+                        const recap = [1,2,3,4].map(r => {
+                            const item = results[String(r)] || results[r];
+                            if (!item?.delta) return `R${r}: (no data)`;
+                            const w = winnerFromDelta(item.delta).winner;
+                            return `R${r}: ${w}`;
+                        }).join("  |  ");
+                        summary += `\n\nRound recap: ${recap}`;
+                    }
+                    document.getElementById('round-summary').innerText = summary;
+
                     if(isHost) {
-                        if(session.state === 'game_over') {
+                        if(isGameOver) {
                             document.getElementById('next-round-btn').innerText = "PLAY NEW GAME";
                         } else {
                             document.getElementById('next-round-btn').innerText = `START ROUND ${session.round + 1}`;
@@ -261,25 +431,39 @@
         }
 
         // --- HOST LOGIC ---
-        function startNextRound() {
+        async function startNextRound() {
+            if(!isHost) return;
+
             let nextRound = session.round + 1;
-            let nextCatchers = session.catchers;
-            
+
+            // Reset game if it ended
             if(session.state === 'game_over') {
-                nextRound = 1; // reset game
-                db.ref('electricLab/session/scores').set({ Positive: 0, Negative: 0 });
+                nextRound = 1;
+                await db.ref('electricLab/session/scores').set({ Positive: 0, Negative: 0 });
+                await db.ref('electricLab/session/roundResults').set({});
             }
 
-            // Alternate catchers every round
-            if(nextRound % 2 === 0) nextCatchers = (session.catchers === 'Positive') ? 'Negative' : 'Positive';
+            // Alternate catchers every round (start is Positive)
+            let nextCatchers = session.catchers;
+            if(nextRound === 1) nextCatchers = 'Positive';
+            else if(nextRound % 2 === 0) nextCatchers = (session.catchers === 'Positive') ? 'Negative' : 'Positive';
+
+            // Map changes: rounds 3 & 4 use map 2
+            const nextMapId = (nextRound >= 3) ? 2 : 1;
+
+            // Snapshot scores at start of round (for delta / round-winner)
+            const startScoresSnap = await db.ref('electricLab/session/scores').once('value');
+            const startScores = startScoresSnap.val() || { Positive: 0, Negative: 0 };
 
             // Reset all players 'caught' status and position
             Object.keys(players).forEach(id => {
                 const t = players[id].team;
-                db.ref('electricLab/players/' + id).update({ 
+                const startX = t === 'Positive' ? 140 : 860;
+                const startY = t === 'Positive' ? 140 : 660;
+                db.ref('electricLab/players/' + id).update({
                     caught: false,
-                    x: t === 'Positive' ? 140 : 860,
-                    y: t === 'Positive' ? 140 : 660 
+                    x: Math.max(PLAY_BOUNDS.minX, Math.min(PLAY_BOUNDS.maxX, startX)),
+                    y: Math.max(PLAY_BOUNDS.minY, Math.min(PLAY_BOUNDS.maxY, startY))
                 });
             });
 
@@ -287,48 +471,73 @@
                 me.caught = false;
                 me.x = myTeam === 'Positive' ? 140 : 860;
                 me.y = myTeam === 'Positive' ? 140 : 660;
+                clampToBounds(me);
             }
 
-            db.ref('electricLab/session').update({
+            await db.ref('electricLab/session').update({
                 state: 'playing',
                 round: nextRound,
                 timer: 60,
-                catchers: nextCatchers
+                catchers: nextCatchers,
+                mapId: nextMapId,
+                roundStartScores: startScores
             });
 
             // Start Clock
             clearInterval(hostTimer);
-            hostTimer = setInterval(() => {
-                db.ref('electricLab/session/timer').once('value', snap => {
-                    let t = snap.val() - 1;
-                    if(t <= 0) {
-                        clearInterval(hostTimer);
-                        processRoundEnd();
-                    } else {
-                        db.ref('electricLab/session/timer').set(t);
-                    }
-                });
+            hostTimer = setInterval(async () => {
+                const tSnap = await db.ref('electricLab/session/timer').once('value');
+                let t = Number(tSnap.val() || 0) - 1;
+                if(t <= 0) {
+                    clearInterval(hostTimer);
+                    processRoundEnd();
+                } else {
+                    db.ref('electricLab/session/timer').set(t);
+                }
             }, 1000);
         }
 
         function endRoundEarly() {
+            if(!isHost) return;
             clearInterval(hostTimer);
             processRoundEnd();
         }
 
-        function processRoundEnd() {
+        async function processRoundEnd() {
+            if(!isHost) return;
+
             // Give points to surviving runners
             let survivors = 0;
             const runnerTeam = session.catchers === 'Positive' ? 'Negative' : 'Positive';
-            
+
             Object.values(players).forEach(p => {
                 if(p.team === runnerTeam && !p.caught) survivors++;
             });
 
-            db.ref('electricLab/session/scores/' + runnerTeam).transaction(currentScore => (currentScore || 0) + survivors);
+            // Apply survivor points
+            await db.ref('electricLab/session/scores/' + runnerTeam)
+                .transaction(currentScore => (currentScore || 0) + survivors);
+
+            // Compute delta this round and store winner
+            const scoresSnap = await db.ref('electricLab/session/scores').once('value');
+            const scoresNow = scoresSnap.val() || { Positive: 0, Negative: 0 };
+            const start = session.roundStartScores || { Positive: 0, Negative: 0 };
+
+            const delta = {
+                Positive: Math.max(0, Number(scoresNow.Positive || 0) - Number(start.Positive || 0)),
+                Negative: Math.max(0, Number(scoresNow.Negative || 0) - Number(start.Negative || 0))
+            };
+            const win = winnerFromDelta(delta);
+
+            await db.ref('electricLab/session/roundResults/' + session.round).set({
+                delta,
+                winner: win.winner,
+                catchers: session.catchers,
+                mapId: session.mapId
+            });
 
             const isGameOver = session.round >= 4;
-            db.ref('electricLab/session/state').set(isGameOver ? 'game_over' : 'round_end');
+            await db.ref('electricLab/session/state').set(isGameOver ? 'game_over' : 'round_end');
         }
 
         // --- PLAYER CONTROLS & PHYSICS ---
@@ -350,9 +559,9 @@
             for(let i=mapZones.length-1; i>=0; i--) {
                 const z = mapZones[i];
                 if(me.x > z.x && me.x < z.x+z.w && me.y > z.y && me.y < z.y+z.h) {
-                    if(z.type === 'conductor') maxSpeed = 7;     
-                    if(z.type === 'slow') maxSpeed = 0.5;        
-                    if(z.type === 'stop') maxSpeed = 0;          
+                    if(z.type === 'conductor') maxSpeed = 7;
+                    if(z.type === 'slow') maxSpeed = 0.5;
+                    if(z.type === 'stop') maxSpeed = 0;
                     break;
                 }
             }
@@ -370,7 +579,7 @@
                     const dx = me.x - p.x;
                     const dy = me.y - p.y;
                     const dist = Math.sqrt(dx*dx + dy*dy);
-                    
+
                     if(dist < 30) { // Tag distance
                         db.ref('electricLab/players/' + id).update({ caught: true });
                         // Give point to catcher team
@@ -380,7 +589,7 @@
             });
         }
 
-        // Send Pos
+        // Send position
         setInterval(() => {
             if(myRole === 'player' && session.state === 'playing') {
                 db.ref('electricLab/players/' + myId).update({ x: me.x, y: me.y });
@@ -390,7 +599,7 @@
         // --- RENDER ---
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
-        
+
         function initCanvas() {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
@@ -415,13 +624,18 @@
                 if(keys.s) me.y += speed;
                 if(keys.a) me.x -= speed;
                 if(keys.d) me.x += speed;
+
+                // Rubber boundary (can't leave central area)
+                clampToBounds(me);
+
                 checkTags();
             } else if (myRole === 'teacher') {
-                // Teacher Free Cam
+                // Teacher Free Cam (also clamp so camera doesn't fly off forever)
                 if(keys.w) me.y -= 10;
                 if(keys.s) me.y += 10;
                 if(keys.a) me.x -= 10;
                 if(keys.d) me.x += 10;
+                clampToBounds(me);
             }
 
             const cx = me.x - canvas.width/2;
@@ -443,11 +657,17 @@
                 }
             });
 
+            // Draw boundary edge (white outline)
+            ctx.strokeStyle = "rgba(255,255,255,0.35)";
+            ctx.lineWidth = 3;
+            ctx.strokeRect(PLAY_BOUNDS.minX, PLAY_BOUNDS.minY, PLAY_BOUNDS.maxX - PLAY_BOUNDS.minX, PLAY_BOUNDS.maxY - PLAY_BOUNDS.minY);
+            ctx.lineWidth = 1;
+
             // Draw Players
             Object.values(players).forEach(p => {
                 ctx.beginPath();
                 ctx.arc(p.x, p.y, 15, 0, Math.PI*2);
-                
+
                 if(p.caught) {
                     ctx.fillStyle = "rgba(100, 100, 100, 0.5)"; // Ghosted if caught
                     ctx.shadowBlur = 0;
@@ -461,9 +681,9 @@
                     }
                     ctx.shadowBlur = 15;
                 }
-                
+
                 ctx.fill();
-                ctx.shadowBlur = 0; 
+                ctx.shadowBlur = 0;
 
                 // Draw Name Tag
                 ctx.fillStyle = p.caught ? "#666" : "white";
