@@ -1,61 +1,40 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Mr. Stopford's Science Lab</title>
+    <title>Mr. Stopford's Classroom Hub</title>
     <style>
-        body { 
-            background: #0b1426; 
-            color: white; 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-            text-align: center; 
-            padding: 50px; 
-            margin: 0;
-        }
-        .container { max-width: 800px; margin: 0 auto; }
-        h1 { font-size: 3em; color: #00ffcc; text-shadow: 0 0 20px rgba(0,255,204,0.5); }
+        body { background: #0b1426; color: white; font-family: 'Segoe UI', sans-serif; text-align: center; padding: 50px; }
+        .hub-container { display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; margin-top: 40px; }
         .card { 
-            background: #1a2233; 
-            border: 2px solid #3b82f6; 
-            border-radius: 20px; 
-            padding: 40px; 
-            margin-top: 30px;
-            transition: 0.3s;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            background: #1a2233; border: 2px solid #3b82f6; border-radius: 15px; 
+            padding: 20px; width: 280px; transition: 0.3s; 
         }
-        .card:hover { border-color: #00ffcc; transform: translateY(-5px); }
+        .card:hover { transform: translateY(-10px); border-color: #00ffcc; }
         .btn { 
-            background: #00ffcc; 
-            color: #0b1426; 
-            padding: 20px 40px; 
-            text-decoration: none; 
-            font-weight: bold; 
-            font-size: 1.5em;
-            border-radius: 50px; 
-            display: inline-block; 
-            margin-top: 25px; 
-            transition: 0.3s;
+            background: #00ffcc; color: #0b1426; padding: 12px 20px; 
+            text-decoration: none; font-weight: bold; border-radius: 5px; 
+            display: inline-block; margin-top: 15px; 
         }
-        .btn:hover { background: #ffffff; box-shadow: 0 0 25px #00ffcc; }
-        .tag { background: #3b82f6; padding: 5px 15px; border-radius: 15px; font-size: 0.9em; margin-bottom: 10px; display: inline-block; }
+        .math-card { border-color: #f59e0b; }
+        .math-btn { background: #f59e0b; color: white; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <p style="letter-spacing: 3px; color: #3b82f6;">IWS INTERACTIVE LAB</p>
-        <h1>Welcome, Scientists!</h1>
-        
+    <h1>Welcome to the Interactive Lab</h1>
+    <p>Select today's activity:</p>
+
+    <div class="hub-container">
         <div class="card">
-            <div class="tag">Topic: Physical Science</div>
-            <h2>⚡ The Electric Highway ⚡</h2>
-            <p>Can you identify which materials allow electricity to flow? <br>
-            Use <b>Conductors</b> to speed up and avoid <b>Insulators</b>!</p>
-            
-            <a href="Electric-Highway.html" class="btn">START MISSION</a>
+            <h2>⚡ Science Lab</h2>
+            <p>Activity: Electric Highway<br>(Conductors & Insulators)</p>
+            <a href="Electric-Highway.html" class="btn">ENTER LAB</a>
         </div>
 
-        <p style="margin-top: 50px; color: #4b5563; font-size: 0.8em;">
-            Teacher Note: Ensure your Firebase Realtime Database rules are set to "true" for multiplayer.
-        </p>
+        <div class="card math-card">
+            <h2>📐 Math Room</h2>
+            <p>Activity: Unfolding Magic<br>(3D Shape Nets)</p>
+            <a href="math-nets.html" class="btn math-btn">ENTER ROOM</a>
+        </div>
     </div>
 </body>
 </html>
