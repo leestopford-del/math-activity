@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Electric Highway: Conductor Lab</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;800&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body { margin: 0; overflow: hidden; background: #0b0f19; color: white; font-family: 'Roboto', sans-serif; }
+        
+        /* Lobby Styles */
+        #lobby {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(11, 15, 25, 0.95); z-index: 100;
+            display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center;
+        }
+        h1 { font-family: 'Orbitron', sans-serif; color: #00ffcc; font-size: 3rem; margin-bottom: 10px; text-shadow: 0 0 15px rgba(0,255,204,0.5); }
+        .btn {
+            background: #00ffcc; color: #0b0f19; border: none; padding: 15px 30px; font-size: 1.2rem;
+            font-family: 'Orbitron', sans-serif; font-weight: bold; border-radius: 5px; cursor: pointer;
+            margin-top: 20px; transition: 0.2s;
+        }
+        .btn:hover { background: #fff; box-shadow: 0 0 20px #00ffcc; }
+        
+        /* Game UI */
+        #game-ui { position: absolute; top: 10px; left: 10px; z-index: 10; pointer-events: none; }
+        .hud-panel { background: rgba(0,0,0,0.7); padding: 15px; border-radius: 8px; border: 1px solid #333; margin-bottom: 10px; }
+        #my-team { font-weight: bold; font-size: 1.2rem; margin-bottom: 5px; }
+        .team-pos { color: #ff3366; text-shadow: 0 0 5px #ff3366; }
+        .team-neg { color: #33ccff; text-shadow: 0 0 5px #33ccff; }
+        
+        /* Canvas */
+        canvas { display: block; }
+    </style>
+</head>
+<body>
+
+    <div id="lobby">
+        <h1>THE ELECTRIC HIGHWAY</h1>
+        <p style="max-width: 500px; line-height: 1.5; color: #aaa;">
+            Welcome to the Circuit! Move using <b>W, A, S, D</b> or <b>Arrow Keys</b>.<br><br>
+            <b>Conductors (Copper/Water)</b> let you move fast. <br>
+            <b>Insulators (Wood/Rubber)</b> will trap your energy and slow you down!
+        </p>
+        <h2 id="player-identity" style="color: #fff; margin-top: 30px;">Generating Identity...</h2>
+        
+        <div id="host-controls" style="display:none;">
+            <button class="btn" onclick="startGame()">START LAB SIMULATION</button>
+        </div>
+        <p id="waiting-msg" style="color: #666; font-style: italic; margin-top: 20px;">Waiting for Host to start...</p>
+    </div>
+
+    <div id="game-ui" style="display:none;">
+        <div class="hud-panel">
+            <div id="my-team">Team: Loading...</div>
+            <div id="my-name" style="color: #aaa; font-size: 0.9rem;">Identity</div>
+        </div>
+        <div class="hud-panel" style="font-size: 0.8rem;">
+            <b>Materials Map:</b><br>
+            <span style="color:#b87333">🟧 Copper (Fast Conductor)</span><br>
+            <span style="color:#2b7fb8">🟦 Tap Water (Conductor)</span><br>
+            <span style="color:#5c4033">🟫 Wood (Insulator - SLOW)</span><br>
+            <span style="color:#333333">⬛ Rubber (Insulator - STOP)</span>
+        </div>
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-database-compat.js"></script>
+
+    <script>
+        // --- YOUR REAL FIREBASE CONFIG ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyBpf5wi0wShnatqUhcmPhSOdnd0NdBL65A",
+            authDomain: "symmetry-and-nets.firebaseapp.com",
+            databaseURL: "https://symmetry-and-nets-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "symmetry-and-nets",
+            storageBucket: "symmetry-and-nets.firebasestorage.app",
+            messagingSenderId: "250211420064",
+            appId: "1:250211420064:web:fe4a064715042bedf546c5"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        // --- GAME SETUP & IDENTITY ---
+        const firstNames = ["Sparky", "Zappy", "Buzzy", "Volt", "Amp", "Flash", "Shock"];
+        const lastNames = ["Proton", "Electron", "Neutron", "Circuit", "Wire", "Battery"];
+        const myName = firstNames[Math.floor(Math.random()*firstNames.length)] + " " + lastNames[Math.floor(Math.random()*lastNames.length)];
+        const myId = "player_" + Math.random().toString(36).substr(2, 9);
+        const myTeam = Math.random() > 0.5 ? "Positive" : "Negative";
+        
+        let isHost = false;
+        let players = {};
+        
+        // Initial setup
+        document.getElementById('player-identity').innerHTML = `${myName} <br><span class="${myTeam === 'Positive' ? 'team-pos' : 'team-neg'}">(${myTeam} Charge)</span>`;
+        document.getElementById('my-name').innerText = myName;
+        document.getElementById('my-team').innerText = `Team ${myTeam}`;
+        document.getElementById('my-team').className = myTeam === 'Positive' ? 'team-pos' : 'team-neg';
+
+        // --- MAP DESIGN (Materials) ---
+        const mapZones = [
+            { type: 'base', x: 0, y: 0, w: 2000, h: 2000, color: '#111' },
+            // Copper Highways
+            { type: 'conductor', x: 100, y: 100, w: 800, h: 80, color: '#b87333' },
+            { type: 'conductor', x: 100, y: 100, w: 80, h: 600, color: '#b87333' },
+            { type: 'conductor', x: 100, y: 620, w: 800, h: 80, color: '#b87333' },
+            { type: 'conductor', x: 820, y: 100, w: 80, h: 600, color: '#b87333' },
+            // Water Puddles (Conductors)
+            { type: 'conductor', x: 300, y: 300, w: 150, h: 150, color: 'rgba(43, 127, 184, 0.5)' },
+            { type: 'conductor', x: 600, y: 400, w: 120, h: 120, color: 'rgba(43, 127, 184, 0.5)' },
+            // Wood Blocks (Slow Insulators)
+            { type: 'slow', x: 250, y: 80, w: 100, h: 120, color: '#5c4033' },
+            { type: 'slow', x: 650, y: 600, w: 100, h: 120, color: '#5c4033' },
+            // Rubber Barriers (Stop Insulators)
+            { type: 'stop', x: 450, y: 250, w: 50, h: 300, color: '#222' }
+        ];
+
+        // --- PLAYER PHYSICS ---
+        let me = { x: 140, y: 140, vx: 0, vy: 0, team: myTeam, name: myName };
+        const keys = { w:false, a:false, s:false, d:false };
+        
+        window.addEventListener('keydown', e => {
+            if(e.key === 'w' || e.key === 'ArrowUp') keys.w = true;
+            if(e.key === 'a' || e.key === 'ArrowLeft') keys.a = true;
+            if(e.key === 's' || e.key === 'ArrowDown') keys.s = true;
+            if(e.key === 'd' || e.key === 'ArrowRight') keys.d = true;
+        });
+        window.addEventListener('keyup', e => {
+            if(e.key === 'w' || e.key === 'ArrowUp') keys.w = false;
+            if(e.key === 'a' || e.key === 'ArrowLeft') keys.a = false;
+            if(e.key === 's' || e.key === 'ArrowDown') keys.s = false;
+            if(e.key === 'd' || e.key === 'ArrowRight') keys.d = false;
+        });
+
+        function checkMaterialSpeed() {
+            let maxSpeed = 1; // Default walking speed on dark floor
+            for(let i=mapZones.length-1; i>=0; i--) {
+                const z = mapZones[i];
+                if(me.x > z.x && me.x < z.x+z.w && me.y > z.y && me.y < z.y+z.h) {
+                    if(z.type === 'conductor') maxSpeed = 6;     // Zooming on copper/water
+                    if(z.type === 'slow') maxSpeed = 0.5;        // Trapped in wood
+                    if(z.type === 'stop') maxSpeed = 0;          // Blocked by rubber
+                    break;
+                }
+            }
+            return maxSpeed;
+        }
+
+        // --- NETWORKING ---
+        db.ref('electricLab/players/' + myId).set({ x: me.x, y: me.y, team: me.team, name: me.name });
+        db.ref('electricLab/players/' + myId).onDisconnect().remove();
+
+        // Listen for others
+        db.ref('electricLab/players').on('value', snap => {
+            players = snap.val() || {};
+            const pIds = Object.keys(players).sort();
+            
+            if(pIds[0] === myId && document.getElementById('lobby').style.display !== 'none') {
+                isHost = true;
+                document.getElementById('host-controls').style.display = 'block';
+                document.getElementById('waiting-msg').style.display = 'none';
+            }
+        });
+
+        // Start Sync
+        function startGame() { db.ref('electricLab/state').set('active'); }
+        
+        db.ref('electricLab/state').on('value', snap => {
+            if(snap.val() === 'active') {
+                document.getElementById('lobby').style.display = 'none';
+                document.getElementById('game-ui').style.display = 'block';
+                initCanvas();
+            }
+        });
+
+        // Send my position to Firebase every 50ms
+        setInterval(() => {
+            if(document.getElementById('lobby').style.display === 'none') {
+                db.ref('electricLab/players/' + myId).update({ x: me.x, y: me.y });
+            }
+        }, 50);
+
+        // --- RENDER & GAME LOOP ---
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        function initCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            requestAnimationFrame(gameLoop);
+        }
+
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+
+        function gameLoop() {
+            let speed = checkMaterialSpeed();
+            
+            if(keys.w) me.y -= speed;
+            if(keys.s) me.y += speed;
+            if(keys.a) me.x -= speed;
+            if(keys.d) me.x += speed;
+
+            const cx = me.x - canvas.width/2;
+            const cy = me.y - canvas.height/2;
+
+            ctx.fillStyle = "#0b0f19";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.save();
+            ctx.translate(-cx, -cy);
+
+            mapZones.forEach(z => {
+                ctx.fillStyle = z.color;
+                ctx.fillRect(z.x, z.y, z.w, z.h);
+                if(z.type === 'conductor') {
+                    ctx.strokeStyle = "rgba(255, 255, 255, 0.2)";
+                    ctx.strokeRect(z.x, z.y, z.w, z.h);
+                }
+            });
+
+            Object.values(players).forEach(p => {
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 15, 0, Math.PI*2);
+                
+                if(p.team === 'Positive') {
+                    ctx.fillStyle = "#ff3366";
+                    ctx.shadowColor = "#ff3366";
+                } else {
+                    ctx.fillStyle = "#33ccff";
+                    ctx.shadowColor = "#33ccff";
+                }
+                
+                ctx.shadowBlur = 15;
+                ctx.fill();
+                ctx.shadowBlur = 0; 
+
+                ctx.fillStyle = "white";
+                ctx.font = "12px Orbitron";
+                ctx.textAlign = "center";
+                ctx.fillText(p.name, p.x, p.y - 25);
+            });
+
+            ctx.restore();
+            requestAnimationFrame(gameLoop);
+        }
+    </script>
+</body>
+</html>
