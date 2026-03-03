@@ -8,8 +8,8 @@
     <style>
         body { margin: 0; overflow: hidden; background: #0b0f19; color: white; font-family: 'Roboto', sans-serif; }
         
-        /* Lobby Styles */
-        #lobby {
+        /* Overlays */
+        .overlay {
             position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
             background: rgba(11, 15, 25, 0.95); z-index: 100;
             display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center;
@@ -18,50 +18,93 @@
         .btn {
             background: #00ffcc; color: #0b0f19; border: none; padding: 15px 30px; font-size: 1.2rem;
             font-family: 'Orbitron', sans-serif; font-weight: bold; border-radius: 5px; cursor: pointer;
-            margin-top: 20px; transition: 0.2s;
+            margin: 10px; transition: 0.2s;
         }
-        .btn:hover { background: #fff; box-shadow: 0 0 20px #00ffcc; }
-        
+        .btn:hover { background: #fff; box-shadow: 0 0 20px #00ffcc; transform: translateY(-2px); }
+        .btn-alt { background: #ff3366; color: white; }
+        .btn-alt:hover { box-shadow: 0 0 20px #ff3366; }
+
         /* Game UI */
-        #game-ui { position: absolute; top: 10px; left: 10px; z-index: 10; pointer-events: none; }
-        .hud-panel { background: rgba(0,0,0,0.7); padding: 15px; border-radius: 8px; border: 1px solid #333; margin-bottom: 10px; }
-        #my-team { font-weight: bold; font-size: 1.2rem; margin-bottom: 5px; }
+        #game-ui { position: absolute; top: 10px; left: 10px; z-index: 10; pointer-events: none; width: 98vw; display: flex; justify-content: space-between;}
+        .hud-panel { background: rgba(0,0,0,0.8); padding: 15px; border-radius: 8px; border: 1px solid #333; }
+        
+        #top-center-ui { display: flex; flex-direction: column; align-items: center; background: rgba(0,0,0,0.8); padding: 10px 30px; border-radius: 0 0 15px 15px; border: 2px solid #00ffcc; border-top: none; }
+        #timer-display { font-family: 'Orbitron'; font-size: 2.5rem; color: #00ffcc; }
+        #role-banner { font-weight: bold; font-size: 1.5rem; margin-top: 5px; text-transform: uppercase; }
+        
+        #scoreboard { font-family: 'Orbitron'; font-size: 1.2rem; display: flex; gap: 20px; }
+        .score-pos { color: #ff3366; }
+        .score-neg { color: #33ccff; }
+
         .team-pos { color: #ff3366; text-shadow: 0 0 5px #ff3366; }
         .team-neg { color: #33ccff; text-shadow: 0 0 5px #33ccff; }
+
+        #teacher-controls { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 50; display: none; }
         
-        /* Canvas */
         canvas { display: block; }
     </style>
 </head>
 <body>
 
-    <div id="lobby">
+    <div id="role-select" class="overlay">
         <h1>THE ELECTRIC HIGHWAY</h1>
-        <p style="max-width: 500px; line-height: 1.5; color: #aaa;">
-            Welcome to the Circuit! Move using <b>W, A, S, D</b> or <b>Arrow Keys</b>.<br><br>
-            <b>Conductors (Copper/Water)</b> let you move fast. <br>
-            <b>Insulators (Wood/Rubber)</b> will trap your energy and slow you down!
-        </p>
-        <h2 id="player-identity" style="color: #fff; margin-top: 30px;">Generating Identity...</h2>
-        
-        <div id="host-controls" style="display:none;">
-            <button class="btn" onclick="startGame()">START LAB SIMULATION</button>
+        <p style="color: #aaa; margin-bottom: 30px;">Choose your role for this session.</p>
+        <div>
+            <button class="btn" onclick="joinGame('player')">Join as Student (Player)</button>
+            <button class="btn btn-alt" onclick="joinGame('teacher')">Join as Teacher (Host / Spectator)</button>
         </div>
-        <p id="waiting-msg" style="color: #666; font-style: italic; margin-top: 20px;">Waiting for Host to start...</p>
+    </div>
+
+    <div id="lobby" class="overlay" style="display:none;">
+        <h1 id="lobby-title">LOBBY</h1>
+        <div id="player-identity-card" style="margin: 20px 0; font-size: 1.5rem;"></div>
+        
+        <div id="host-start-area" style="display:none; margin-top: 30px; padding: 20px; border: 1px dashed #555; border-radius: 10px;">
+            <p style="color: #00ffcc;">TEACHER CONTROLS</p>
+            <p>Wait for students to join, then begin Round 1.</p>
+            <button class="btn" onclick="startNextRound()">START ROUND 1</button>
+        </div>
+        <p id="waiting-msg" style="color: #666; font-style: italic;">Waiting for Teacher to start the round...</p>
+    </div>
+
+    <div id="round-screen" class="overlay" style="display:none;">
+        <h1 id="round-title" style="font-size: 4rem;">ROUND OVER</h1>
+        <div id="round-scores" style="font-size: 2rem; margin: 20px; font-family: 'Orbitron';"></div>
+        <p id="round-summary" style="color:#aaa; max-width: 600px;"></p>
+        
+        <div id="host-next-area" style="display:none; margin-top: 30px;">
+            <button class="btn" id="next-round-btn" onclick="startNextRound()">START NEXT ROUND</button>
+        </div>
+        <p id="waiting-next-msg" style="color: #666; font-style: italic;">Waiting for Teacher to proceed...</p>
     </div>
 
     <div id="game-ui" style="display:none;">
         <div class="hud-panel">
-            <div id="my-team">Team: Loading...</div>
-            <div id="my-name" style="color: #aaa; font-size: 0.9rem;">Identity</div>
+            <div id="my-identity" style="font-weight:bold; font-size:1.1rem; margin-bottom:10px;"></div>
+            <div style="font-size: 0.8rem; color:#aaa;">
+                <b>Materials Map:</b><br>
+                <span style="color:#b87333">🟧 Copper (Fast Conductor)</span><br>
+                <span style="color:#2b7fb8">🟦 Tap Water (Conductor)</span><br>
+                <span style="color:#5c4033">🟫 Wood (Insulator - SLOW)</span><br>
+                <span style="color:#333333">⬛ Rubber (Insulator - STOP)</span>
+            </div>
         </div>
-        <div class="hud-panel" style="font-size: 0.8rem;">
-            <b>Materials Map:</b><br>
-            <span style="color:#b87333">🟧 Copper (Fast Conductor)</span><br>
-            <span style="color:#2b7fb8">🟦 Tap Water (Conductor)</span><br>
-            <span style="color:#5c4033">🟫 Wood (Insulator - SLOW)</span><br>
-            <span style="color:#333333">⬛ Rubber (Insulator - STOP)</span>
+
+        <div id="top-center-ui">
+            <div id="scoreboard">
+                <span class="score-pos">POS: <span id="score-p">0</span></span>
+                <span style="color:#555">|</span>
+                <span class="score-neg">NEG: <span id="score-n">0</span></span>
+            </div>
+            <div id="timer-display">1:00</div>
+            <div id="role-banner">WAITING...</div>
         </div>
+
+        <div class="hud-panel" style="visibility: hidden;">Spacer</div>
+    </div>
+
+    <div id="teacher-controls">
+        <button class="btn btn-alt" onclick="endRoundEarly()">Force End Round</button>
     </div>
 
     <canvas id="gameCanvas"></canvas>
@@ -70,7 +113,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-database-compat.js"></script>
 
     <script>
-        // --- YOUR REAL FIREBASE CONFIG ---
+        // --- REAL FIREBASE CONFIG ---
         const firebaseConfig = {
             apiKey: "AIzaSyBpf5wi0wShnatqUhcmPhSOdnd0NdBL65A",
             authDomain: "symmetry-and-nets.firebaseapp.com",
@@ -81,48 +124,214 @@
             appId: "1:250211420064:web:fe4a064715042bedf546c5"
         };
 
-        // Initialize Firebase
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        // --- GAME SETUP & IDENTITY ---
-        const firstNames = ["Sparky", "Zappy", "Buzzy", "Volt", "Amp", "Flash", "Shock"];
-        const lastNames = ["Proton", "Electron", "Neutron", "Circuit", "Wire", "Battery"];
-        const myName = firstNames[Math.floor(Math.random()*firstNames.length)] + " " + lastNames[Math.floor(Math.random()*lastNames.length)];
-        const myId = "player_" + Math.random().toString(36).substr(2, 9);
-        const myTeam = Math.random() > 0.5 ? "Positive" : "Negative";
-        
+        // --- GAME VARIABLES ---
+        let myId, myName, myTeam, myRole;
         let isHost = false;
         let players = {};
+        let session = { state: 'lobby', round: 0, timer: 60, scores: { Positive: 0, Negative: 0 }, catchers: 'Positive' };
         
-        // Initial setup
-        document.getElementById('player-identity').innerHTML = `${myName} <br><span class="${myTeam === 'Positive' ? 'team-pos' : 'team-neg'}">(${myTeam} Charge)</span>`;
-        document.getElementById('my-name').innerText = myName;
-        document.getElementById('my-team').innerText = `Team ${myTeam}`;
-        document.getElementById('my-team').className = myTeam === 'Positive' ? 'team-pos' : 'team-neg';
+        let me = { x: 0, y: 0, caught: false };
+        const keys = { w:false, a:false, s:false, d:false };
 
-        // --- MAP DESIGN (Materials) ---
+        // Host Timer Interval
+        let hostTimer;
+
+        // --- MAP DESIGN ---
         const mapZones = [
             { type: 'base', x: 0, y: 0, w: 2000, h: 2000, color: '#111' },
-            // Copper Highways
             { type: 'conductor', x: 100, y: 100, w: 800, h: 80, color: '#b87333' },
             { type: 'conductor', x: 100, y: 100, w: 80, h: 600, color: '#b87333' },
             { type: 'conductor', x: 100, y: 620, w: 800, h: 80, color: '#b87333' },
             { type: 'conductor', x: 820, y: 100, w: 80, h: 600, color: '#b87333' },
-            // Water Puddles (Conductors)
             { type: 'conductor', x: 300, y: 300, w: 150, h: 150, color: 'rgba(43, 127, 184, 0.5)' },
             { type: 'conductor', x: 600, y: 400, w: 120, h: 120, color: 'rgba(43, 127, 184, 0.5)' },
-            // Wood Blocks (Slow Insulators)
             { type: 'slow', x: 250, y: 80, w: 100, h: 120, color: '#5c4033' },
             { type: 'slow', x: 650, y: 600, w: 100, h: 120, color: '#5c4033' },
-            // Rubber Barriers (Stop Insulators)
             { type: 'stop', x: 450, y: 250, w: 50, h: 300, color: '#222' }
         ];
 
-        // --- PLAYER PHYSICS ---
-        let me = { x: 140, y: 140, vx: 0, vy: 0, team: myTeam, name: myName };
-        const keys = { w:false, a:false, s:false, d:false };
-        
+        // --- INITIALIZATION ---
+        function joinGame(roleSelected) {
+            myRole = roleSelected;
+            myId = "user_" + Math.random().toString(36).substr(2, 9);
+            document.getElementById('role-select').style.display = 'none';
+            document.getElementById('lobby').style.display = 'flex';
+
+            if(myRole === 'teacher') {
+                isHost = true;
+                myName = "Teacher (Host)";
+                myTeam = "Spectator";
+                me.x = 500; me.y = 500; // Camera start center
+                
+                document.getElementById('player-identity-card').innerHTML = `<span style="color:#00ffcc">Teacher Mode Active</span><br><span style="font-size:1rem; color:#aaa">You will control the game flow and spectate.</span>`;
+                document.getElementById('host-start-area').style.display = 'block';
+                document.getElementById('waiting-msg').style.display = 'none';
+                
+                // Reset session when teacher joins
+                db.ref('electricLab/session').set({ state: 'lobby', round: 0, timer: 60, scores: { Positive: 0, Negative: 0 }, catchers: 'Positive' });
+            } else {
+                const first = ["Sparky", "Zappy", "Volt", "Amp", "Flash", "Jolt"];
+                const last = ["Proton", "Electron", "Circuit", "Wire", "Battery"];
+                myName = first[Math.floor(Math.random()*first.length)] + " " + last[Math.floor(Math.random()*last.length)];
+                myTeam = Math.random() > 0.5 ? "Positive" : "Negative";
+                
+                // Spawn locations based on team
+                me.x = myTeam === 'Positive' ? 140 : 860;
+                me.y = myTeam === 'Positive' ? 140 : 660;
+
+                const teamColor = myTeam === 'Positive' ? 'team-pos' : 'team-neg';
+                document.getElementById('player-identity-card').innerHTML = `${myName}<br><span class="${teamColor}">Team ${myTeam}</span>`;
+                
+                document.getElementById('my-identity').innerHTML = `<span class="${teamColor}">${myName}</span>`;
+                
+                db.ref('electricLab/players/' + myId).set({ x: me.x, y: me.y, team: myTeam, name: myName, caught: false });
+                db.ref('electricLab/players/' + myId).onDisconnect().remove();
+            }
+
+            listenToDatabase();
+        }
+
+        function listenToDatabase() {
+            // Listen for Players
+            db.ref('electricLab/players').on('value', snap => {
+                players = snap.val() || {};
+            });
+
+            // Listen for Session State
+            db.ref('electricLab/session').on('value', snap => {
+                const data = snap.val();
+                if(!data) return;
+                session = data;
+
+                // Update UI Scores & Timer
+                document.getElementById('score-p').innerText = session.scores.Positive;
+                document.getElementById('score-n').innerText = session.scores.Negative;
+                document.getElementById('timer-display').innerText = session.timer;
+
+                // State Management
+                if(session.state === 'playing') {
+                    document.getElementById('lobby').style.display = 'none';
+                    document.getElementById('round-screen').style.display = 'none';
+                    document.getElementById('game-ui').style.display = 'flex';
+                    
+                    if(myRole === 'teacher') document.getElementById('teacher-controls').style.display = 'block';
+
+                    // Update Role Banner
+                    if(myRole === 'player') {
+                        const banner = document.getElementById('role-banner');
+                        if(session.catchers === myTeam) {
+                            banner.innerText = "⚡ YOU ARE CATCHERS! (Tag the others)";
+                            banner.style.color = "#ff3366";
+                        } else {
+                            banner.innerText = "🏃 YOU ARE RUNNERS! (Survive!)";
+                            banner.style.color = "#33ccff";
+                        }
+                    } else {
+                        document.getElementById('role-banner').innerText = `ROUND ${session.round} (Catchers: ${session.catchers})`;
+                        document.getElementById('role-banner').style.color = "white";
+                    }
+
+                    if(!document.getElementById('gameCanvas').dataset.active) {
+                        document.getElementById('gameCanvas').dataset.active = "true";
+                        initCanvas();
+                    }
+                } 
+                else if (session.state === 'round_end' || session.state === 'game_over') {
+                    document.getElementById('game-ui').style.display = 'none';
+                    document.getElementById('teacher-controls').style.display = 'none';
+                    document.getElementById('round-screen').style.display = 'flex';
+                    
+                    document.getElementById('round-title').innerText = session.state === 'game_over' ? "GAME OVER!" : `END OF ROUND ${session.round}`;
+                    document.getElementById('round-scores').innerHTML = `<span class="score-pos">Positive: ${session.scores.Positive}</span> | <span class="score-neg">Negative: ${session.scores.Negative}</span>`;
+                    
+                    if(isHost) {
+                        if(session.state === 'game_over') {
+                            document.getElementById('next-round-btn').innerText = "PLAY NEW GAME";
+                        } else {
+                            document.getElementById('next-round-btn').innerText = `START ROUND ${session.round + 1}`;
+                        }
+                        document.getElementById('host-next-area').style.display = 'block';
+                        document.getElementById('waiting-next-msg').style.display = 'none';
+                    }
+                }
+            });
+        }
+
+        // --- HOST LOGIC ---
+        function startNextRound() {
+            let nextRound = session.round + 1;
+            let nextCatchers = session.catchers;
+            
+            if(session.state === 'game_over') {
+                nextRound = 1; // reset game
+                db.ref('electricLab/session/scores').set({ Positive: 0, Negative: 0 });
+            }
+
+            // Alternate catchers every round
+            if(nextRound % 2 === 0) nextCatchers = (session.catchers === 'Positive') ? 'Negative' : 'Positive';
+
+            // Reset all players 'caught' status and position
+            Object.keys(players).forEach(id => {
+                const t = players[id].team;
+                db.ref('electricLab/players/' + id).update({ 
+                    caught: false,
+                    x: t === 'Positive' ? 140 : 860,
+                    y: t === 'Positive' ? 140 : 660 
+                });
+            });
+
+            if(myRole === 'player') {
+                me.caught = false;
+                me.x = myTeam === 'Positive' ? 140 : 860;
+                me.y = myTeam === 'Positive' ? 140 : 660;
+            }
+
+            db.ref('electricLab/session').update({
+                state: 'playing',
+                round: nextRound,
+                timer: 60,
+                catchers: nextCatchers
+            });
+
+            // Start Clock
+            clearInterval(hostTimer);
+            hostTimer = setInterval(() => {
+                db.ref('electricLab/session/timer').once('value', snap => {
+                    let t = snap.val() - 1;
+                    if(t <= 0) {
+                        clearInterval(hostTimer);
+                        processRoundEnd();
+                    } else {
+                        db.ref('electricLab/session/timer').set(t);
+                    }
+                });
+            }, 1000);
+        }
+
+        function endRoundEarly() {
+            clearInterval(hostTimer);
+            processRoundEnd();
+        }
+
+        function processRoundEnd() {
+            // Give points to surviving runners
+            let survivors = 0;
+            const runnerTeam = session.catchers === 'Positive' ? 'Negative' : 'Positive';
+            
+            Object.values(players).forEach(p => {
+                if(p.team === runnerTeam && !p.caught) survivors++;
+            });
+
+            db.ref('electricLab/session/scores/' + runnerTeam).transaction(currentScore => (currentScore || 0) + survivors);
+
+            const isGameOver = session.round >= 4;
+            db.ref('electricLab/session/state').set(isGameOver ? 'game_over' : 'round_end');
+        }
+
+        // --- PLAYER CONTROLS & PHYSICS ---
         window.addEventListener('keydown', e => {
             if(e.key === 'w' || e.key === 'ArrowUp') keys.w = true;
             if(e.key === 'a' || e.key === 'ArrowLeft') keys.a = true;
@@ -137,54 +346,48 @@
         });
 
         function checkMaterialSpeed() {
-            let maxSpeed = 1; // Default walking speed on dark floor
+            let maxSpeed = 2; // Base speed
             for(let i=mapZones.length-1; i>=0; i--) {
                 const z = mapZones[i];
                 if(me.x > z.x && me.x < z.x+z.w && me.y > z.y && me.y < z.y+z.h) {
-                    if(z.type === 'conductor') maxSpeed = 6;     // Zooming on copper/water
-                    if(z.type === 'slow') maxSpeed = 0.5;        // Trapped in wood
-                    if(z.type === 'stop') maxSpeed = 0;          // Blocked by rubber
+                    if(z.type === 'conductor') maxSpeed = 7;     
+                    if(z.type === 'slow') maxSpeed = 0.5;        
+                    if(z.type === 'stop') maxSpeed = 0;          
                     break;
                 }
             }
             return maxSpeed;
         }
 
-        // --- NETWORKING ---
-        db.ref('electricLab/players/' + myId).set({ x: me.x, y: me.y, team: me.team, name: me.name });
-        db.ref('electricLab/players/' + myId).onDisconnect().remove();
+        // Collision & Tag Logic
+        function checkTags() {
+            if(myRole !== 'player' || session.state !== 'playing') return;
+            if(session.catchers !== myTeam) return; // Only catchers can tag
 
-        // Listen for others
-        db.ref('electricLab/players').on('value', snap => {
-            players = snap.val() || {};
-            const pIds = Object.keys(players).sort();
-            
-            if(pIds[0] === myId && document.getElementById('lobby').style.display !== 'none') {
-                isHost = true;
-                document.getElementById('host-controls').style.display = 'block';
-                document.getElementById('waiting-msg').style.display = 'none';
-            }
-        });
+            Object.keys(players).forEach(id => {
+                const p = players[id];
+                if(p.team !== myTeam && !p.caught) {
+                    const dx = me.x - p.x;
+                    const dy = me.y - p.y;
+                    const dist = Math.sqrt(dx*dx + dy*dy);
+                    
+                    if(dist < 30) { // Tag distance
+                        db.ref('electricLab/players/' + id).update({ caught: true });
+                        // Give point to catcher team
+                        db.ref('electricLab/session/scores/' + myTeam).transaction(current => (current || 0) + 1);
+                    }
+                }
+            });
+        }
 
-        // Start Sync
-        function startGame() { db.ref('electricLab/state').set('active'); }
-        
-        db.ref('electricLab/state').on('value', snap => {
-            if(snap.val() === 'active') {
-                document.getElementById('lobby').style.display = 'none';
-                document.getElementById('game-ui').style.display = 'block';
-                initCanvas();
-            }
-        });
-
-        // Send my position to Firebase every 50ms
+        // Send Pos
         setInterval(() => {
-            if(document.getElementById('lobby').style.display === 'none') {
+            if(myRole === 'player' && session.state === 'playing') {
                 db.ref('electricLab/players/' + myId).update({ x: me.x, y: me.y });
             }
         }, 50);
 
-        // --- RENDER & GAME LOOP ---
+        // --- RENDER ---
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         
@@ -200,12 +403,26 @@
         });
 
         function gameLoop() {
-            let speed = checkMaterialSpeed();
-            
-            if(keys.w) me.y -= speed;
-            if(keys.s) me.y += speed;
-            if(keys.a) me.x -= speed;
-            if(keys.d) me.x += speed;
+            if(session.state !== 'playing') {
+                requestAnimationFrame(gameLoop);
+                return;
+            }
+
+            // Movement
+            if(myRole === 'player' && !me.caught) {
+                let speed = checkMaterialSpeed();
+                if(keys.w) me.y -= speed;
+                if(keys.s) me.y += speed;
+                if(keys.a) me.x -= speed;
+                if(keys.d) me.x += speed;
+                checkTags();
+            } else if (myRole === 'teacher') {
+                // Teacher Free Cam
+                if(keys.w) me.y -= 10;
+                if(keys.s) me.y += 10;
+                if(keys.a) me.x -= 10;
+                if(keys.d) me.x += 10;
+            }
 
             const cx = me.x - canvas.width/2;
             const cy = me.y - canvas.height/2;
@@ -216,6 +433,7 @@
             ctx.save();
             ctx.translate(-cx, -cy);
 
+            // Draw Map
             mapZones.forEach(z => {
                 ctx.fillStyle = z.color;
                 ctx.fillRect(z.x, z.y, z.w, z.h);
@@ -225,26 +443,35 @@
                 }
             });
 
+            // Draw Players
             Object.values(players).forEach(p => {
                 ctx.beginPath();
                 ctx.arc(p.x, p.y, 15, 0, Math.PI*2);
                 
-                if(p.team === 'Positive') {
-                    ctx.fillStyle = "#ff3366";
-                    ctx.shadowColor = "#ff3366";
+                if(p.caught) {
+                    ctx.fillStyle = "rgba(100, 100, 100, 0.5)"; // Ghosted if caught
+                    ctx.shadowBlur = 0;
                 } else {
-                    ctx.fillStyle = "#33ccff";
-                    ctx.shadowColor = "#33ccff";
+                    if(p.team === 'Positive') {
+                        ctx.fillStyle = "#ff3366";
+                        ctx.shadowColor = "#ff3366";
+                    } else {
+                        ctx.fillStyle = "#33ccff";
+                        ctx.shadowColor = "#33ccff";
+                    }
+                    ctx.shadowBlur = 15;
                 }
                 
-                ctx.shadowBlur = 15;
                 ctx.fill();
                 ctx.shadowBlur = 0; 
 
-                ctx.fillStyle = "white";
+                // Draw Name Tag
+                ctx.fillStyle = p.caught ? "#666" : "white";
                 ctx.font = "12px Orbitron";
                 ctx.textAlign = "center";
-                ctx.fillText(p.name, p.x, p.y - 25);
+                let nametag = p.name;
+                if(p.caught) nametag = "CAUGHT!";
+                ctx.fillText(nametag, p.x, p.y - 25);
             });
 
             ctx.restore();
