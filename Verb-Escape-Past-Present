@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Verb Escape: Past → Present (Shared Game)</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    body { margin:0; overflow:hidden; background:#0b0f19; color:#fff; font-family:Roboto, sans-serif; }
+    canvas { display:block; }
+    .overlay{
+      position:fixed; inset:0; z-index:100;
+      background:rgba(11,15,25,.95);
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      text-align:center; padding:24px;
+    }
+    h1{ font-family:Orbitron, sans-serif; color:#00ffcc; margin:0 0 8px; text-shadow:0 0 15px rgba(0,255,204,.45); }
+    .sub{ color:#aab; max-width:820px; line-height:1.4; margin:0 0 18px; }
+    .btn{
+      font-family:Orbitron, sans-serif; font-weight:800;
+      border:none; border-radius:10px;
+      padding:14px 22px; margin:8px;
+      cursor:pointer; transition:.15s;
+      background:#00ffcc; color:#0b0f19;
+    }
+    .btn:hover{ transform:translateY(-1px); box-shadow:0 0 16px rgba(0,255,204,.55); }
+    .btn-alt{ background:#ff3366; color:#fff; }
+    .btn-alt:hover{ box-shadow:0 0 16px rgba(255,51,102,.55); }
+
+    .card{
+      border:1px solid rgba(255,255,255,.12);
+      border-radius:14px; padding:16px 18px; max-width:860px; width:min(860px, 95vw);
+      background:rgba(0,0,0,.35);
+    }
+    .row{ display:flex; gap:12px; flex-wrap:wrap; justify-content:center; }
+    .pill{
+      display:inline-block; padding:6px 10px; border-radius:999px;
+      background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.12);
+      font-size:.9rem; color:#dde;
+    }
+
+    #hud{
+      position:absolute; top:12px; left:12px; right:12px; z-index:10;
+      display:none; align-items:flex-start; justify-content:space-between;
+      pointer-events:none;
+    }
+    .hudBox{
+      pointer-events:none;
+      background:rgba(0,0,0,.6);
+      border:1px solid rgba(255,255,255,.12);
+      border-radius:12px;
+      padding:12px 14px;
+      backdrop-filter: blur(6px);
+      max-width:min(520px, 46vw);
+    }
+    .hudTitle{ font-family:Orbitron, sans-serif; color:#00ffcc; margin:0 0 6px; }
+    .hudSmall{ color:#bbc; font-size:.92rem; line-height:1.35; white-space:pre-line; }
+    #timer{ font-family:Orbitron, sans-serif; font-size:2rem; color:#00ffcc; }
+    #statusLine{ font-family:Orbitron, sans-serif; margin-top:6px; color:#fff; white-space:pre-line; }
+
+    #teacherControls{
+      position:absolute; bottom:14px; left:50%; transform:translateX(-50%);
+      z-index:50; display:none;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="roleSelect" class="overlay">
+    <h1>VERB ESCAPE</h1>
+    <p class="sub">
+      Year 6 shared activity: Past Simple verbs have escaped! Work together to catch them and return each one to the correct Present Simple enclosure.
+    </p>
+    <div class="row">
+      <button class="btn" onclick="join('student')">Join as Student</button>
+      <button class="btn btn-alt" onclick="join('teacher')">Join as Teacher (Host)</button>
+    </div>
+    <p class="sub" style="margin-top:10px; font-size:.95rem;">
+      Tip: One teacher host per session. Students can join from any device.
+    </p>
+  </div>
+
+  <div id="lobby" class="overlay" style="display:none;">
+    <h1>LOBBY</h1>
+    <div class="card">
+      <div id="whoAmI" style="font-size:1.2rem; margin-bottom:10px;"></div>
+      <div class="row" style="margin-bottom:10px;">
+        <span class="pill" id="playerCountPill">Players: 0</span>
+        <span class="pill" id="hostPill">Host: Not connected</span>
+        <span class="pill" id="speedPill">Verb speed: —</span>
+      </div>
+      <div class="hudSmall">
+        <b>How to play</b>
+        • Catch a past verb by getting close to it (you will carry it).<br>
+        • Take it to the matching present enclosure.<br>
+        • If you take it to the wrong enclosure, it escapes again!<br>
+        • When all 4 are returned correctly, you win.
+      </div>
+
+      <div id="hostStartArea" style="display:none; margin-top:14px;">
+        <p class="hudSmall" style="color:#00ffcc; margin:0 0 10px;"><b>Teacher controls</b></p>
+        <div class="row">
+          <button class="btn" onclick="hostStartGame()">Start Game</button>
+          <button class="btn btn-alt" onclick="hostResetGame()">Reset Session</button>
+        </div>
+      </div>
+
+      <p id="waitingMsg" class="sub" style="margin:14px 0 0; color:#889; font-style:italic;">
+        Waiting for the teacher host to start the game…
+      </p>
+    </div>
+  </div>
+
+  <div id="endScreen" class="overlay" style="display:none;">
+    <h1 id="endTitle">YOU WIN!</h1>
+    <div class="card">
+      <div id="endSummary" class="hudSmall"></div>
+      <div id="hostEndArea" style="display:none; margin-top:14px;">
+        <div class="row">
+          <button class="btn" onclick="hostStartGame()">Play Again</button>
+          <button class="btn btn-alt" onclick="hostResetGame()">Reset Session</button>
+        </div>
+      </div>
+      <p id="endWait" class="sub" style="margin-top:14px; color:#889; font-style:italic;">
+        Waiting for the teacher host…
+      </p>
+    </div>
+  </div>
+
+  <div id="hud">
+    <div class="hudBox">
+      <div class="hudTitle">Your info</div>
+      <div id="meLine" class="hudSmall">—</div>
+      <div id="carryLine" class="hudSmall" style="margin-top:6px;">—</div>
+    </div>
+
+    <div class="hudBox" style="text-align:center; max-width:min(320px, 40vw);">
+      <div id="timer">0:00</div>
+      <div id="statusLine">WAITING…</div>
+    </div>
+
+    <div class="hudBox">
+      <div class="hudTitle">Returned verbs</div>
+      <div id="progress" class="hudSmall">—</div>
+    </div>
+  </div>
+
+  <div id="teacherControls">
+    <button class="btn btn-alt" onclick="hostForceWin()">Force Win</button>
+  </div>
+
+  <canvas id="c"></canvas>
+
+  <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-database-compat.js"></script>
+
+  <script>
+    // =========================
+    // Firebase configuration (your existing project)
+    // =========================
+    const firebaseConfig = {
+      apiKey: "AIzaSyBpf5wi0wShnatqUhcmPhSOdnd0NdBL65A",
+      authDomain: "symmetry-and-nets.firebaseapp.com",
+      databaseURL: "https://symmetry-and-nets-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "symmetry-and-nets",
+      storageBucket: "symmetry-and-nets.firebasestorage.app",
+      messagingSenderId: "250211420064",
+      appId: "1:250211420064:web:fe4a064715042bedf546c5"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    // =========================
+    // Game constants / layout
+    // =========================
+    const ROOT = "verbEscape";
+    const PLAY_BOUNDS = { minX: 0, minY: 0, maxX: 1200, maxY: 900 };
+
+    const PLAYER_RADIUS = 14;
+    const VERB_RADIUS = 16;
+    const CATCH_DIST = 34;
+
+    const BASE_PLAYER_SPEED = 2.2;
+    const OBSTACLE_COLOR = "#222";
+    const FIELD_BG = "#0b0f19";
+
+    const VERB_PAIRS = [
+      { id:"go",   present:"go",   past:"went"  },
+      { id:"eat",  present:"eat",  past:"ate"   },
+      { id:"see",  present:"see",  past:"saw"   },
+      { id:"play", present:"play", past:"played"}
+    ];
+
+    const ENCLOSURES = [
+      { id:"go",   x:  90, y: 740, w: 240, h: 120 },
+      { id:"eat",  x: 360, y: 740, w: 240, h: 120 },
+      { id:"see",  x: 630, y: 740, w: 240, h: 120 },
+      { id:"play", x: 900, y: 740, w: 240, h: 120 }
+    ];
+
+    const OBSTACLES = [
+      { x: 220, y: 180, w: 120, h: 260 },
+      { x: 520, y: 120, w: 70,  h: 340 },
+      { x: 780, y: 260, w: 140, h: 120 },
+      { x: 920, y: 120, w: 100, h: 220 },
+      { x: 330, y: 520, w: 220, h: 60  },
+      { x: 680, y: 520, w: 220, h: 60  }
+    ];
+
+    // =========================
+    // Local state
+    // =========================
+    let myId = null;
+    let myRole = null; // student|teacher
+    let isHost = false;
+    let myName = null;
+
+    let session = null;
+    let players = {};
+    let verbs = {};
+
+    let me = { x: 200, y: 200 };
+    const keys = { w:false, a:false, s:false, d:false };
+
+    let lastHostTick = 0;
+    let hostInterval = null;
+    let hostTimerInterval = null;
+
+    // =========================
+    // Helpers
+    // =========================
+    function rnd(a,b){ return a + Math.random()*(b-a); }
+    function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
+    function now(){ return Date.now(); }
+
+    function formatTime(sec){
+      const s = Math.max(0, Math.floor(sec));
+      const m = Math.floor(s/60);
+      const r = s%60;
+      return `${m}:${String(r).padStart(2,"0")}`;
+    }
+
+    function validPlayer(p){
+      return p && (p.role === "student" || p.role === "teacher") &&
+             typeof p.x === "number" && typeof p.y === "number" &&
+             typeof p.name === "string" && p.name.length > 0;
+    }
+
+    function inRect(px, py, r){
+      return px >= r.x && px <= r.x + r.w && py >= r.y && py <= r.y + r.h;
+    }
+
+    function studentCount(){
+      return Object.values(players).filter(p => validPlayer(p) && p.role === "student").length;
+    }
+
+    function verbSpeed(nPlayers){
+      const n = Math.max(1, nPlayers);
+      return clamp(1.8 + 0.25*(n-1), 1.8, 5.2);
+    }
+
+    // =========================
+    // Join flow
+    // =========================
+    async function join(role){
+      myRole = role;
+      myId = "u_" + Math.random().toString(36).slice(2,10);
+
+      if (role === "teacher"){
+        myName = "Teacher (Host)";
+        isHost = true;
+      } else {
+        const first = ["Bright","Curious","Swift","Brave","Smart","Kind","Super","Mega"];
+        const last  = ["Reader","Writer","Explorer","Scholar","Student","Detective","Reporter","Hero"];
+        myName = first[Math.floor(Math.random()*first.length)] + " " + last[Math.floor(Math.random()*last.length)];
+      }
+
+      document.getElementById("roleSelect").style.display = "none";
+      document.getElementById("lobby").style.display = "flex";
+
+      document.getElementById("whoAmI").innerHTML =
+        `<b>${myName}</b><br><span style="color:#aab">${role === "teacher" ? "Teacher Host" : "Student Player"}</span>`;
+
+      if (isHost){
+        document.getElementById("hostStartArea").style.display = "block";
+        document.getElementById("waitingMsg").style.display = "none";
+        await ensureSession();
+      }
+
+      const spawn = (role === "teacher")
+        ? { x: 600, y: 450 }
+        : { x: rnd(220, 980), y: rnd(220, 620) };
+
+      me.x = spawn.x; me.y = spawn.y;
+
+      await db.ref(`${ROOT}/players/${myId}`).set({
+        name: myName,
+        role: role,
+        x: me.x,
+        y: me.y,
+        carry: null,
+        joinedAt: now()
+      });
+
+      db.ref(`${ROOT}/players/${myId}`).onDisconnect().remove();
+
+      listen();
+    }
+
+    async function ensureSession(){
+      const snap = await db.ref(`${ROOT}/session`).once("value");
+      if (!snap.exists()){
+        await db.ref(`${ROOT}/session`).set({
+          state: "lobby",
+          timer: 0,
+          startedAt: 0,
+          hostId: myId,
+          message: "Waiting in lobby…"
+        });
+        await db.ref(`${ROOT}/verbs`).set(null);
+      } else {
+        const s = snap.val();
+        if (!s.hostId){
+          await db.ref(`${ROOT}/session/hostId`).set(myId);
+        }
+      }
+    }
+
+    // =========================
+    // Listeners
+    // =========================
+    function listen(){
+      db.ref(`${ROOT}/players`).on("value", snap => {
+        players = snap.val() || {};
+
+        const count = studentCount();
+        document.getElementById("playerCountPill").innerText = `Players: ${count}`;
+        document.getElementById("speedPill").innerText = `Verb speed: ${verbSpeed(count).toFixed(1)}`;
+        document.getElementById("hostPill").innerText = (session && session.hostId) ? "Host: connected" : "Host: not connected";
+
+        if (isHost){
+          const updates = {};
+          Object.entries(players).forEach(([id,p]) => {
+            if (!validPlayer(p)) updates[`${ROOT}/players/${id}`] = null;
+          });
+          if (Object.keys(updates).length) db.ref().update(updates);
+        }
+      });
+
+      db.ref(`${ROOT}/verbs`).on("value", snap => {
+        verbs = snap.val() || {};
+      });
+
+      db.ref(`${ROOT}/session`).on("value", snap => {
+        session = snap.val() || null;
+        if (!session) return;
+
+        if (session.state === "playing"){
+          document.getElementById("lobby").style.display = "none";
+          document.getElementById("endScreen").style.display = "none";
+          document.getElementById("hud").style.display = "flex";
+          document.getElementById("teacherControls").style.display = isHost ? "block" : "none";
+          if (!canvas.dataset.active){
+            canvas.dataset.active = "true";
+            initCanvas();
+          }
+        } else if (session.state === "won"){
+          document.getElementById("hud").style.display = "none";
+          document.getElementById("teacherControls").style.display = "none";
+          document.getElementById("endScreen").style.display = "flex";
+          document.getElementById("endTitle").innerText = "YOU WIN!";
+          document.getElementById("endSummary").innerText =
+            `All 4 past verbs are safely back with their present enclosures.\nTime: ${formatTime(session.timer || 0)}\nGreat teamwork!`;
+
+          if (isHost){
+            document.getElementById("hostEndArea").style.display = "block";
+            document.getElementById("endWait").style.display = "none";
+          } else {
+            document.getElementById("hostEndArea").style.display = "none";
+            document.getElementById("endWait").style.display = "block";
+          }
+          stopHostLoops();
+        } else {
+          document.getElementById("hud").style.display = "none";
+          document.getElementById("teacherControls").style.display = "none";
+          document.getElementById("endScreen").style.display = "none";
+          document.getElementById("lobby").style.display = "flex";
+        }
+      });
+    }
+
+    // =========================
+    // Host controls
+    // =========================
+    async function hostResetGame(){
+      if (!isHost) return;
+
+      const ps = (await db.ref(`${ROOT}/players`).once("value")).val() || {};
+      const updates = {};
+
+      Object.entries(ps).forEach(([id,p]) => {
+        if (!validPlayer(p)) return;
+        updates[`${ROOT}/players/${id}/carry`] = null;
+        if (p.role === "student"){
+          updates[`${ROOT}/players/${id}/x`] = rnd(220, 980);
+          updates[`${ROOT}/players/${id}/y`] = rnd(220, 620);
+        }
+      });
+
+      updates[`${ROOT}/verbs`] = null;
+      updates[`${ROOT}/session`] = {
+        state: "lobby",
+        timer: 0,
+        startedAt: 0,
+        hostId: myId,
+        message: "Waiting in lobby…"
+      };
+
+      await db.ref().update(updates);
+      stopHostLoops();
+    }
+
+    async function hostStartGame(){
+      if (!isHost) return;
+      await ensureSession();
+
+      const startVerbs = {};
+      VERB_PAIRS.forEach(vp => {
+        startVerbs[vp.id] = {
+          id: vp.id,
+          present: vp.present,
+          past: vp.past,
+          x: rnd(220, 980),
+          y: rnd(180, 620),
+          vx: rnd(-1,1),
+          vy: rnd(-1,1),
+          state: "loose",     // loose|carried|delivered
+          carriedBy: null,
+          deliveredAt: 0
+        };
+      });
+
+      await db.ref(`${ROOT}/verbs`).set(startVerbs);
+      await db.ref(`${ROOT}/session`).update({
+        state: "playing",
+        timer: 0,
+        startedAt: now(),
+        hostId: myId,
+        message: "Catch the past verbs and deliver them!"
+      });
+
+      startHostLoops();
+    }
+
+    async function hostForceWin(){
+      if (!isHost) return;
+      await db.ref(`${ROOT}/session/state`).set("won");
+      stopHostLoops();
+    }
+
+    // =========================
+    // Host loops (authoritative verb movement)
+    // =========================
+    function startHostLoops(){
+      stopHostLoops();
+      lastHostTick = now();
+
+      hostInterval = setInterval(hostTick, 50);
+
+      hostTimerInterval = setInterval(async () => {
+        if (!isHost) return;
+        if (!session || session.state !== "playing") return;
+        await db.ref(`${ROOT}/session/timer`).set(Number(session.timer || 0) + 1);
+      }, 1000);
+    }
+
+    function stopHostLoops(){
+      if (hostInterval) clearInterval(hostInterval);
+      if (hostTimerInterval) clearInterval(hostTimerInterval);
+      hostInterval = null;
+      hostTimerInterval = null;
+    }
+
+    function hostTick(){
+      if (!isHost) return;
+      if (!session || session.state !== "playing") return;
+
+      const t = now();
+      const dt = Math.min(0.06, (t - lastHostTick) / 1000);
+      lastHostTick = t;
+
+      const n = studentCount();
+      const spd = verbSpeed(n);
+
+      const vcopy = JSON.parse(JSON.stringify(verbs || {}));
+      const pcopy = players || {};
+
+      // Move verbs / catch
+      for (const [id, v] of Object.entries(vcopy)){
+        if (!v) continue;
+
+        if (v.state === "delivered"){
+          const enc = ENCLOSURES.find(e => e.id === id);
+          if (enc){ v.x = enc.x + enc.w/2; v.y = enc.y + enc.h/2; }
+          continue;
+        }
+
+        if (v.state === "carried"){
+          const carrier = pcopy[v.carriedBy];
+          if (!validPlayer(carrier) || carrier.role !== "student" || carrier.carry !== id){
+            v.state = "loose";
+            v.carriedBy = null;
+          } else {
+            v.x = carrier.x + 18;
+            v.y = carrier.y - 18;
+          }
+          continue;
+        }
+
+        // loose wandering
+        if (typeof v.vx !== "number" || typeof v.vy !== "number"){ v.vx = rnd(-1,1); v.vy = rnd(-1,1); }
+        v.vx += rnd(-0.35, 0.35) * dt;
+        v.vy += rnd(-0.35, 0.35) * dt;
+
+        const mag = Math.max(0.001, Math.sqrt(v.vx*v.vx + v.vy*v.vy));
+        const ux = v.vx / mag, uy = v.vy / mag;
+
+        let nx = v.x + ux * spd * 60 * dt;
+        let ny = v.y + uy * spd * 60 * dt;
+
+        // bounds bounce (keep away from enclosure strip)
+        if (nx < PLAY_BOUNDS.minX + 40 || nx > PLAY_BOUNDS.maxX - 40) v.vx *= -1;
+        if (ny < PLAY_BOUNDS.minY + 40 || ny > PLAY_BOUNDS.maxY - 200) v.vy *= -1;
+
+        nx = clamp(nx, PLAY_BOUNDS.minX + 30, PLAY_BOUNDS.maxX - 30);
+        ny = clamp(ny, PLAY_BOUNDS.minY + 30, PLAY_BOUNDS.maxY - 190);
+
+        // obstacle bounce
+        for (const o of OBSTACLES){
+          if (nx > o.x-10 && nx < o.x+o.w+10 && ny > o.y-10 && ny < o.y+o.h+10){
+            v.vx *= -1; v.vy *= -1;
+            nx = v.x; ny = v.y;
+            break;
+          }
+        }
+
+        v.x = nx; v.y = ny;
+
+        // catch check
+        for (const [pid, p] of Object.entries(pcopy)){
+          if (!validPlayer(p) || p.role !== "student") continue;
+          if (p.carry) continue;
+          const d = Math.sqrt((p.x - v.x)**2 + (p.y - v.y)**2);
+          if (d <= CATCH_DIST){
+            v.state = "carried";
+            v.carriedBy = pid;
+            db.ref(`${ROOT}/players/${pid}/carry`).set(id);
+            break;
+          }
+        }
+      }
+
+      // Delivery check (wrong enclosure -> escape)
+      for (const [id, v] of Object.entries(vcopy)){
+        if (!v || v.state !== "carried") continue;
+        const carrierId = v.carriedBy;
+        const carrier = pcopy[carrierId];
+        if (!validPlayer(carrier) || carrier.role !== "student") continue;
+
+        for (const enc of ENCLOSURES){
+          if (inRect(carrier.x, carrier.y, enc)){
+            if (enc.id === id){
+              v.state = "delivered";
+              v.deliveredAt = now();
+              v.carriedBy = null;
+              db.ref(`${ROOT}/players/${carrierId}/carry`).set(null);
+            } else {
+              v.state = "loose";
+              v.carriedBy = null;
+              v.vx = rnd(-1,1); v.vy = rnd(-1,1);
+              db.ref(`${ROOT}/players/${carrierId}/carry`).set(null);
+            }
+            break;
+          }
+        }
+      }
+
+      // Ensure carry fields are consistent
+      for (const [pid, p] of Object.entries(pcopy)){
+        if (!validPlayer(p) || p.role !== "student") continue;
+        const carry = p.carry;
+        if (!carry) continue;
+        const v = vcopy[carry];
+        if (!v || v.state !== "carried" || v.carriedBy !== pid){
+          db.ref(`${ROOT}/players/${pid}/carry`).set(null);
+        }
+      }
+
+      db.ref(`${ROOT}/verbs`).set(vcopy);
+
+      // Win check
+      const delivered = Object.values(vcopy).filter(v => v && v.state === "delivered").length;
+      if (delivered >= 4){
+        db.ref(`${ROOT}/session/state`).set("won");
+        stopHostLoops();
+      }
+    }
+
+    // =========================
+    // Controls + position sync
+    // =========================
+    window.addEventListener("keydown", e => {
+      if (e.key === "w" || e.key === "ArrowUp") keys.w = true;
+      if (e.key === "a" || e.key === "ArrowLeft") keys.a = true;
+      if (e.key === "s" || e.key === "ArrowDown") keys.s = true;
+      if (e.key === "d" || e.key === "ArrowRight") keys.d = true;
+    });
+    window.addEventListener("keyup", e => {
+      if (e.key === "w" || e.key === "ArrowUp") keys.w = false;
+      if (e.key === "a" || e.key === "ArrowLeft") keys.a = false;
+      if (e.key === "s" || e.key === "ArrowDown") keys.s = false;
+      if (e.key === "d" || e.key === "ArrowRight") keys.d = false;
+    });
+
+    setInterval(() => {
+      if (!myId) return;
+      if (!session || session.state !== "playing") return;
+      db.ref(`${ROOT}/players/${myId}`).update({ x: me.x, y: me.y });
+    }, 60);
+
+    // =========================
+    // Rendering
+    // =========================
+    const canvas = document.getElementById("c");
+    const ctx = canvas.getContext("2d");
+
+    function initCanvas(){
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      requestAnimationFrame(loop);
+    }
+    window.addEventListener("resize", () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    });
+
+    function loop(){
+      if (!session || session.state !== "playing"){
+        requestAnimationFrame(loop);
+        return;
+      }
+
+      // Movement
+      if (myRole === "student"){
+        const speed = BASE_PLAYER_SPEED;
+        if (keys.w) me.y -= speed;
+        if (keys.s) me.y += speed;
+        if (keys.a) me.x -= speed;
+        if (keys.d) me.x += speed;
+
+        me.x = clamp(me.x, PLAY_BOUNDS.minX + 20, PLAY_BOUNDS.maxX - 20);
+        me.y = clamp(me.y, PLAY_BOUNDS.minY + 20, PLAY_BOUNDS.maxY - 20);
+
+        // Obstacle blocking (simple push out)
+        for (const o of OBSTACLES){
+          if (inRect(me.x, me.y, o)){
+            const left = Math.abs(me.x - o.x);
+            const right = Math.abs(me.x - (o.x + o.w));
+            const top = Math.abs(me.y - o.y);
+            const bottom = Math.abs(me.y - (o.y + o.h));
+            const m = Math.min(left,right,top,bottom);
+            if (m === left) me.x = o.x - 1;
+            else if (m === right) me.x = o.x + o.w + 1;
+            else if (m === top) me.y = o.y - 1;
+            else me.y = o.y + o.h + 1;
+          }
+        }
+      } else if (myRole === "teacher") {
+        const camSpeed = 7;
+        if (keys.w) me.y -= camSpeed;
+        if (keys.s) me.y += camSpeed;
+        if (keys.a) me.x -= camSpeed;
+        if (keys.d) me.x += camSpeed;
+        me.x = clamp(me.x, PLAY_BOUNDS.minX + 20, PLAY_BOUNDS.maxX - 20);
+        me.y = clamp(me.y, PLAY_BOUNDS.minY + 20, PLAY_BOUNDS.maxY - 20);
+      }
+
+      // Camera
+      const camX = me.x - canvas.width/2;
+      const camY = me.y - canvas.height/2;
+
+      // HUD
+      const n = studentCount();
+      const spd = verbSpeed(n);
+      document.getElementById("timer").innerText = formatTime(session.timer || 0);
+      document.getElementById("statusLine").innerText = `Catch the past verbs!\n(Verb speed: ${spd.toFixed(1)})`;
+
+      const myCarry = players?.[myId]?.carry || null;
+      document.getElementById("meLine").innerText = `${myName}\nRole: ${myRole === "teacher" ? "Teacher Host" : "Student"}\nPlayers: ${n}`;
+      document.getElementById("carryLine").innerText = myCarry
+        ? `Carrying: "${verbs?.[myCarry]?.past || myCarry}" → take to "${myCarry}" enclosure`
+        : `Carrying: none`;
+
+      document.getElementById("progress").innerText = VERB_PAIRS.map(vp => {
+        const st = verbs?.[vp.id]?.state || "—";
+        const mark = (st === "delivered") ? "✅" : (st === "carried" ? "🟡" : "⬜");
+        return `${mark} ${vp.present} / ${vp.past}`;
+      }).join("\n");
+
+      // Draw
+      ctx.fillStyle = FIELD_BG;
+      ctx.fillRect(0,0,canvas.width,canvas.height);
+
+      ctx.save();
+      ctx.translate(-camX, -camY);
+
+      // Field frame
+      ctx.strokeStyle = "rgba(255,255,255,.18)";
+      ctx.lineWidth = 3;
+      ctx.strokeRect(PLAY_BOUNDS.minX, PLAY_BOUNDS.minY, PLAY_BOUNDS.maxX-PLAY_BOUNDS.minX, PLAY_BOUNDS.maxY-PLAY_BOUNDS.minY);
+      ctx.lineWidth = 1;
+
+      // Obstacles
+      for (const o of OBSTACLES){
+        ctx.fillStyle = OBSTACLE_COLOR;
+        ctx.fillRect(o.x,o.y,o.w,o.h);
+        ctx.strokeStyle = "rgba(255,255,255,.10)";
+        ctx.strokeRect(o.x,o.y,o.w,o.h);
+      }
+
+      // Enclosures
+      ENCLOSURES.forEach(enc => {
+        ctx.fillStyle = "rgba(0,255,204,0.08)";
+        ctx.fillRect(enc.x, enc.y, enc.w, enc.h);
+        ctx.strokeStyle = "rgba(0,255,204,0.35)";
+        ctx.strokeRect(enc.x, enc.y, enc.w, enc.h);
+
+        ctx.fillStyle = "#00ffcc";
+        ctx.font = "18px Orbitron";
+        ctx.textAlign = "center";
+        ctx.fillText(enc.id.toUpperCase(), enc.x + enc.w/2, enc.y + 30);
+
+        const vp = VERB_PAIRS.find(v => v.id === enc.id);
+        ctx.fillStyle = "rgba(255,255,255,.85)";
+        ctx.font = "16px Roboto";
+        ctx.fillText(`present: ${vp.present}`, enc.x + enc.w/2, enc.y + 55);
+        ctx.fillText(`past: ${vp.past}`, enc.x + enc.w/2, enc.y + 78);
+      });
+
+      // Verbs
+      for (const [id,v] of Object.entries(verbs || {})){
+        if (!v) continue;
+
+        const delivered = v.state === "delivered";
+        const carried = v.state === "carried";
+
+        ctx.beginPath();
+        ctx.arc(v.x, v.y, VERB_RADIUS, 0, Math.PI*2);
+        ctx.fillStyle = delivered ? "rgba(0,255,204,0.85)" : carried ? "rgba(255,204,0,0.85)" : "rgba(51,204,255,0.85)";
+        ctx.shadowColor = ctx.fillStyle;
+        ctx.shadowBlur = 14;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+
+        ctx.fillStyle = "#0b0f19";
+        ctx.font = "bold 14px Orbitron";
+        ctx.textAlign = "center";
+        ctx.fillText(String(v.past || id).toUpperCase(), v.x, v.y + 5);
+      }
+
+      // Players
+      for (const [pid,p] of Object.entries(players || {})){
+        if (!validPlayer(p)) continue;
+        const isMe = (pid === myId);
+        const isTeacher = (p.role === "teacher");
+
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, PLAYER_RADIUS, 0, Math.PI*2);
+        ctx.fillStyle = isTeacher ? "rgba(255,51,102,0.9)" : "rgba(255,255,255,0.85)";
+        if (isMe) ctx.fillStyle = isTeacher ? "rgba(255,51,102,1)" : "rgba(255,255,255,1)";
+        ctx.shadowColor = isTeacher ? "rgba(255,51,102,0.7)" : "rgba(255,255,255,0.5)";
+        ctx.shadowBlur = isMe ? 18 : 10;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+
+        ctx.fillStyle = "rgba(255,255,255,.9)";
+        ctx.font = "12px Orbitron";
+        ctx.textAlign = "center";
+        ctx.fillText(isTeacher ? "TEACHER" : p.name, p.x, p.y - 22);
+
+        if (p.role === "student" && p.carry){
+          ctx.fillStyle = "rgba(255,204,0,0.95)";
+          ctx.font = "11px Orbitron";
+          ctx.fillText(`carrying: ${verbs?.[p.carry]?.past || p.carry}`, p.x, p.y + 32);
+        }
+      }
+
+      ctx.restore();
+      requestAnimationFrame(loop);
+    }
+  </script>
+</body>
+</html>
