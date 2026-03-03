@@ -2,108 +2,326 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Electric Highway: Conductor Lab</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Electric Highway</title>
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;800&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
   <style>
-    body { margin: 0; overflow: hidden; background: #0b0f19; color: white; font-family: 'Roboto', sans-serif; }
-    .overlay {
-      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-      background: rgba(11, 15, 25, 0.95); z-index: 100;
-      display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center;
+    :root{
+      --bg:#0b0f19;
+      --teal:#00ffcc;
+      --red:#ff3366;
+      --blue:#33ccff;
+      --panel:rgba(0,0,0,0.80);
+      --panel2:rgba(0,0,0,0.65);
+      --border:rgba(255,255,255,0.12);
     }
-    h1 { font-family: 'Orbitron', sans-serif; color: #00ffcc; font-size: 3rem; margin-bottom: 10px; text-shadow: 0 0 15px rgba(0,255,204,0.5); }
-    .btn {
-      background: #00ffcc; color: #0b0f19; border: none; padding: 15px 30px; font-size: 1.2rem;
-      font-family: 'Orbitron', sans-serif; font-weight: bold; border-radius: 5px; cursor: pointer;
-      margin: 10px; transition: 0.2s;
+    html, body { height:100%; }
+    body { margin:0; overflow:hidden; background:var(--bg); color:#fff; font-family:Roboto, sans-serif; }
+    canvas { display:block; touch-action:none; }
+
+    /* Language selector (always available) */
+    #lang-ui{
+      position:fixed; top:10px; right:10px;
+      z-index:300;
+      background:rgba(0,0,0,0.55);
+      border:1px solid var(--border);
+      border-radius:10px;
+      padding:8px 10px;
+      backdrop-filter: blur(6px);
+      pointer-events:auto;
+      display:flex; align-items:center; gap:8px;
+      max-width:min(92vw, 380px);
     }
-    .btn:hover { background: #fff; box-shadow: 0 0 20px #00ffcc; transform: translateY(-2px); }
-    .btn-alt { background: #ff3366; color: white; }
-    .btn-alt:hover { box-shadow: 0 0 20px #ff3366; }
+    #lang-ui label{ font-family:Orbitron, sans-serif; font-size:12px; color:#dfe; opacity:.95; }
+    #lang-ui select{
+      background:rgba(255,255,255,0.06);
+      border:1px solid rgba(255,255,255,0.14);
+      border-radius:8px;
+      color:#fff;
+      padding:6px 8px;
+      font-size:12px;
+      outline:none;
+    }
+    #lang-ui select option{ color:#111; }
 
-    #game-ui { position: absolute; top: 10px; left: 10px; z-index: 10; pointer-events: none; width: 98vw; display: flex; justify-content: space-between;}
-    .hud-panel { background: rgba(0,0,0,0.8); padding: 15px; border-radius: 8px; border: 1px solid #333; }
+    /* Overlays */
+    .overlay{
+      position:fixed; inset:0;
+      background:rgba(11,15,25,0.95);
+      z-index:100;
+      display:flex; flex-direction:column;
+      align-items:center; justify-content:center;
+      text-align:center;
+      padding:24px;
+    }
+    h1{
+      font-family:Orbitron, sans-serif;
+      color:var(--teal);
+      font-size:clamp(2rem, 5vw, 3.2rem);
+      margin:0 0 10px;
+      text-shadow:0 0 14px rgba(0,255,204,0.5);
+    }
+    .sub{
+      color:#aab;
+      max-width:820px;
+      line-height:1.4;
+      margin:0 0 18px;
+      font-size:clamp(0.95rem, 2.2vw, 1.1rem);
+    }
+    .btn{
+      background:var(--teal);
+      color:#0b0f19;
+      border:none;
+      padding:14px 22px;
+      font-size:clamp(1rem, 2.2vw, 1.2rem);
+      font-family:Orbitron, sans-serif;
+      font-weight:800;
+      border-radius:10px;
+      cursor:pointer;
+      margin:10px;
+      transition:0.15s;
+      touch-action: manipulation;
+    }
+    .btn:hover{ background:#fff; box-shadow:0 0 20px rgba(0,255,204,0.55); transform:translateY(-2px); }
+    .btn-alt{ background:var(--red); color:#fff; }
+    .btn-alt:hover{ box-shadow:0 0 18px rgba(255,51,102,0.55); }
 
-    #top-center-ui { display: flex; flex-direction: column; align-items: center; background: rgba(0,0,0,0.8); padding: 10px 30px; border-radius: 0 0 15px 15px; border: 2px solid #00ffcc; border-top: none; }
-    #timer-display { font-family: 'Orbitron'; font-size: 2.5rem; color: #00ffcc; }
-    #role-banner { font-weight: bold; font-size: 1.2rem; margin-top: 5px; text-transform: uppercase; text-align:center; max-width: 70vw; white-space: pre-line; }
+    /* Game UI */
+    #game-ui{
+      position:absolute; top:10px; left:10px;
+      z-index:10;
+      width:calc(100vw - 20px);
+      display:none;
+      justify-content:space-between;
+      pointer-events:none;
+      gap:10px;
+    }
+    .hud-panel{
+      background:var(--panel);
+      padding:12px 14px;
+      border-radius:12px;
+      border:1px solid var(--border);
+      max-width:34vw;
+      min-width:240px;
+    }
+    @media (max-width: 700px){
+      .hud-panel{ min-width: 160px; max-width: 42vw; padding:10px 12px; }
+    }
 
-    #scoreboard { font-family: 'Orbitron'; font-size: 1.2rem; display: flex; gap: 20px; }
-    .score-pos { color: #ff3366; }
-    .score-neg { color: #33ccff; }
+    #top-center-ui{
+      display:flex; flex-direction:column; align-items:center;
+      background:var(--panel);
+      padding:10px 18px;
+      border-radius:0 0 14px 14px;
+      border:2px solid var(--teal);
+      border-top:none;
+      max-width:min(78vw, 620px);
+    }
+    #timer-display{ font-family:Orbitron, sans-serif; font-size:clamp(1.8rem, 5vw, 2.6rem); color:var(--teal); }
+    #role-banner{
+      font-weight:800;
+      font-size:clamp(0.95rem, 2.8vw, 1.15rem);
+      margin-top:6px;
+      text-transform:uppercase;
+      text-align:center;
+      max-width:70vw;
+      white-space:pre-line;
+    }
 
-    .team-pos { color: #ff3366; text-shadow: 0 0 5px #ff3366; }
-    .team-neg { color: #33ccff; text-shadow: 0 0 5px #33ccff; }
+    #scoreboard{
+      font-family:Orbitron, sans-serif;
+      font-size:clamp(0.95rem, 2.5vw, 1.2rem);
+      display:flex;
+      gap:14px;
+      align-items:center;
+    }
+    .score-pos{ color:var(--red); }
+    .score-neg{ color:var(--blue); }
+    .team-pos{ color:var(--red); text-shadow:0 0 5px rgba(255,51,102,0.85); }
+    .team-neg{ color:var(--blue); text-shadow:0 0 5px rgba(51,204,255,0.85); }
 
-    #teacher-controls { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 50; display: none; }
+    #teacher-controls{
+      position:absolute;
+      bottom:16px; left:50%;
+      transform:translateX(-50%);
+      z-index:60;
+      display:none;
+      pointer-events:auto;
+    }
 
-    canvas { display: block; }
+    /* Touch controls */
+    #touch-controls{
+      position:fixed;
+      bottom:16px;
+      left:16px;
+      z-index:80;
+      display:none;
+      pointer-events:auto;
+      user-select:none;
+      -webkit-user-select:none;
+      touch-action:none;
+    }
+    #touch-controls.right{ left:auto; right:16px; }
+    .tc-wrap{
+      background:rgba(0,0,0,0.35);
+      border:1px solid rgba(255,255,255,0.14);
+      border-radius:16px;
+      padding:10px;
+      backdrop-filter: blur(6px);
+    }
+    .dpad{
+      display:grid;
+      grid-template-columns:64px 64px 64px;
+      grid-template-rows:64px 64px 64px;
+      gap:10px;
+      align-items:center;
+      justify-items:center;
+    }
+    @media (max-width: 700px){
+      .dpad{ grid-template-columns:56px 56px 56px; grid-template-rows:56px 56px 56px; gap:8px; }
+    }
+    .tc-btn{
+      width:100%;
+      height:100%;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,0.18);
+      background:rgba(255,255,255,0.08);
+      color:#fff;
+      font-family:Orbitron, sans-serif;
+      font-weight:800;
+      font-size:22px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      touch-action:none;
+    }
+    .tc-btn:active, .tc-btn.active{
+      background:rgba(0,255,204,0.22);
+      border-color:rgba(0,255,204,0.45);
+      box-shadow:0 0 18px rgba(0,255,204,0.35);
+    }
+    .tc-toggle{
+      width:100%;
+      height:42px;
+      margin-bottom:10px;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,0.18);
+      background:rgba(255,255,255,0.06);
+      color:#fff;
+      font-family:Orbitron, sans-serif;
+      font-weight:800;
+      font-size:14px;
+      touch-action:manipulation;
+    }
+    .tc-toggle:active{
+      background:rgba(255,255,255,0.14);
+    }
   </style>
 </head>
 <body>
 
+  <!-- Language selector -->
+  <div id="lang-ui">
+    <label id="lang-label" for="langSelect">Language</label>
+    <select id="langSelect" aria-label="Language">
+      <option value="en">English</option>
+      <option value="tr">Türkçe</option>
+      <option value="pt">Português</option>
+      <option value="pt-BR">Português (Brasil)</option>
+      <option value="ru">Русский</option>
+      <option value="ro">Română</option>
+      <option value="es">Español</option>
+      <option value="fr">Français</option>
+      <option value="fr-CD">Français (RDC)</option>
+    </select>
+  </div>
+
+  <!-- Role select -->
   <div id="role-select" class="overlay">
-    <h1>THE ELECTRIC HIGHWAY</h1>
-    <p style="color: #aaa; margin-bottom: 30px;">Choose your role for this session.</p>
+    <h1 id="ui-title">THE ELECTRIC HIGHWAY</h1>
+    <p id="ui-subtitle" class="sub">Choose your role for this session.</p>
     <div>
-      <button class="btn" onclick="joinGame('player')">Join as Student (Player)</button>
-      <button class="btn btn-alt" onclick="joinGame('teacher')">Join as Teacher (Host / Spectator)</button>
+      <button id="btn-join-student" class="btn" onclick="joinGame('player')">Join as Student (Player)</button>
+      <button id="btn-join-teacher" class="btn btn-alt" onclick="joinGame('teacher')">Join as Teacher (Host / Spectator)</button>
     </div>
   </div>
 
+  <!-- Lobby -->
   <div id="lobby" class="overlay" style="display:none;">
     <h1 id="lobby-title">LOBBY</h1>
-    <div id="player-identity-card" style="margin: 20px 0; font-size: 1.5rem;"></div>
+    <div id="player-identity-card" style="margin: 16px 0; font-size: 1.35rem;"></div>
 
-    <div id="host-start-area" style="display:none; margin-top: 30px; padding: 20px; border: 1px dashed #555; border-radius: 10px;">
-      <p style="color: #00ffcc;">TEACHER CONTROLS</p>
-      <p>Wait for students to join, then begin Round 1.</p>
-      <button class="btn" onclick="startNextRound()">START ROUND 1</button>
+    <div id="host-start-area" style="display:none; margin-top: 14px; padding: 16px; border: 1px dashed rgba(255,255,255,0.18); border-radius: 12px; max-width:min(860px, 92vw);">
+      <p id="teacher-controls-title" style="color: var(--teal); margin:0 0 10px; font-family:Orbitron, sans-serif;">TEACHER CONTROLS</p>
+      <p id="teacher-controls-instr" class="sub" style="margin:0 0 10px;">Wait for students to join, then begin Round 1.</p>
+      <button class="btn" id="start-round-btn" onclick="startNextRound()">START ROUND 1</button>
     </div>
-    <p id="waiting-msg" style="color: #666; font-style: italic;">Waiting for Teacher to start the round...</p>
+    <p id="waiting-msg" class="sub" style="color:#889; font-style: italic; margin-top: 10px;">Waiting for Teacher to start the round...</p>
   </div>
 
+  <!-- Round end / game over -->
   <div id="round-screen" class="overlay" style="display:none;">
-    <h1 id="round-title" style="font-size: 4rem;">ROUND OVER</h1>
-    <div id="round-scores" style="font-size: 2rem; margin: 20px; font-family: 'Orbitron';"></div>
-    <div id="round-winner" style="font-size: 1.6rem; margin-top: 5px; font-family: 'Orbitron'; color:#00ffcc;"></div>
-    <p id="round-summary" style="color:#aaa; max-width: 700px; line-height:1.4; white-space: pre-line;"></p>
+    <h1 id="round-title" style="font-size: clamp(2.3rem, 6vw, 4rem);">ROUND OVER</h1>
+    <div id="round-scores" style="font-size: clamp(1.2rem, 4vw, 2rem); margin: 14px; font-family: Orbitron, sans-serif;"></div>
+    <div id="round-winner" style="font-size: clamp(1.05rem, 3.5vw, 1.6rem); margin-top: 4px; font-family: Orbitron, sans-serif; color: var(--teal);"></div>
+    <p id="round-summary" class="sub" style="white-space:pre-line;"></p>
 
-    <div id="host-next-area" style="display:none; margin-top: 30px;">
+    <div id="host-next-area" style="display:none; margin-top: 16px;">
       <button class="btn" id="next-round-btn" onclick="startNextRound()">START NEXT ROUND</button>
     </div>
-    <p id="waiting-next-msg" style="color: #666; font-style: italic;">Waiting for Teacher to proceed...</p>
+    <p id="waiting-next-msg" class="sub" style="color:#889; font-style: italic;">Waiting for Teacher to proceed...</p>
   </div>
 
-  <div id="game-ui" style="display:none;">
+  <!-- Game HUD -->
+  <div id="game-ui">
     <div class="hud-panel">
-      <div id="my-identity" style="font-weight:bold; font-size:1.1rem; margin-bottom:10px;"></div>
-      <div style="font-size: 0.8rem; color:#aaa;">
-        <b>Materials Map:</b><br>
-        <span style="color:#b87333">🟧 Copper (Fast Conductor)</span><br>
-        <span style="color:#2b7fb8">🟦 Tap Water (Conductor)</span><br>
-        <span style="color:#5c4033">🟫 Wood (Insulator - SLOW)</span><br>
-        <span style="color:#333333">⬛ Rubber (Penalty & Respawn)</span><br>
-        <span style="color:#777">⬜ Rubber boundary (Penalty & Respawn)</span>
+      <div id="my-identity" style="font-weight:800; font-size:1.05rem; margin-bottom:10px;"></div>
+      <div style="font-size: 0.86rem; color:#aab; line-height:1.35;">
+        <b id="materials-title">Materials Map:</b><br>
+        <span id="mat-copper" style="color:#b87333">🟧 Copper (Fast Conductor)</span><br>
+        <span id="mat-water" style="color:#2b7fb8">🟦 Tap Water (Conductor)</span><br>
+        <span id="mat-wood" style="color:#5c4033">🟫 Wood (Insulator - SLOW)</span><br>
+        <span id="mat-rubber" style="color:#333333">⬛ Rubber (Penalty - Respawn)</span><br>
+        <span id="mat-boundary" style="color:#777">⬜ Rubber boundary (Penalty - Respawn)</span>
       </div>
     </div>
 
     <div id="top-center-ui">
       <div id="scoreboard">
-        <span class="score-pos">POS: <span id="score-p">0</span></span>
+        <span class="score-pos"><span id="lbl-pos">POS</span>: <span id="score-p">0</span></span>
         <span style="color:#555">|</span>
-        <span class="score-neg">NEG: <span id="score-n">0</span></span>
+        <span class="score-neg"><span id="lbl-neg">NEG</span>: <span id="score-n">0</span></span>
       </div>
       <div id="timer-display">1:00</div>
       <div id="role-banner">WAITING...</div>
     </div>
 
-    <div class="hud-panel" style="visibility: hidden;">Spacer</div>
+    <div class="hud-panel" style="visibility:hidden;">Spacer</div>
   </div>
 
+  <!-- Teacher controls -->
   <div id="teacher-controls">
-    <button class="btn btn-alt" onclick="endRoundEarly()">Force End Round</button>
+    <button class="btn btn-alt" id="btn-force-end" onclick="endRoundEarly()">Force End Round</button>
+  </div>
+
+  <!-- Touch controls -->
+  <div id="touch-controls" class="left" aria-label="Touch controls">
+    <div class="tc-wrap">
+      <button class="tc-toggle" id="tc-toggle" type="button">⇄</button>
+      <div class="dpad">
+        <div></div>
+        <button class="tc-btn" data-dir="w" type="button">▲</button>
+        <div></div>
+
+        <button class="tc-btn" data-dir="a" type="button">◀</button>
+        <div></div>
+        <button class="tc-btn" data-dir="d" type="button">▶</button>
+
+        <div></div>
+        <button class="tc-btn" data-dir="s" type="button">▼</button>
+        <div></div>
+      </div>
+    </div>
   </div>
 
   <canvas id="gameCanvas"></canvas>
@@ -112,7 +330,9 @@
   <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-database-compat.js"></script>
 
   <script>
-    // --- FIREBASE CONFIG ---
+    // =========================
+    // Firebase
+    // =========================
     const firebaseConfig = {
       apiKey: "AIzaSyBpf5wi0wShnatqUhcmPhSOdnd0NdBL65A",
       authDomain: "symmetry-and-nets.firebaseapp.com",
@@ -122,20 +342,600 @@
       messagingSenderId: "250211420064",
       appId: "1:250211420064:web:fe4a064715042bedf546c5"
     };
-
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // --- GAME VARIABLES ---
+    // =========================
+    // i18n (client-only; does not affect other users)
+    // =========================
+    const STRINGS = {
+      en: {
+        language: "Language",
+        appTitle: "THE ELECTRIC HIGHWAY",
+        chooseRole: "Choose your role for this session.",
+        joinStudent: "Join as Student (Player)",
+        joinTeacher: "Join as Teacher (Host / Spectator)",
+        lobby: "LOBBY",
+        teacherControls: "TEACHER CONTROLS",
+        teacherInstr: "Wait for students to join, then begin Round 1.",
+        startRound1: "START ROUND 1",
+        startRoundN: "START ROUND {n}",
+        playNewGame: "PLAY NEW GAME",
+        waitingTeacherStart: "Waiting for Teacher to start the round...",
+        waitingTeacherProceed: "Waiting for Teacher to proceed...",
+        endOfRound: "END OF ROUND {n}",
+        gameOver: "GAME OVER!",
+        mapClassic: "CLASSIC",
+        mapNew: "NEW",
+        teamPositive: "Positive",
+        teamNegative: "Negative",
+        teamPositiveShort: "POS",
+        teamNegativeShort: "NEG",
+        roleChasers: "CHASERS",
+        roleRunners: "RUNNERS",
+        youStartChasers: "Round 1: You start as CHASERS.",
+        youStartRunners: "Round 1: You start as RUNNERS.",
+        youAreChasers: "⚡ YOU ARE CHASERS! (Tag the others)\nROUND {n} | MAP: {map}",
+        youAreRunners: "🏃 YOU ARE RUNNERS! (Survive!)\nROUND {n} | MAP: {map}",
+        teacherBanner: "ROUND {n} (Chasers: {catchers}) | MAP: {map}",
+        materialsTitle: "Materials Map:",
+        copper: "🟧 Copper (Fast Conductor)",
+        water: "🟦 Tap Water (Conductor)",
+        wood: "🟫 Wood (Insulator - SLOW)",
+        rubber: "⬛ Rubber (Penalty - Respawn)",
+        boundary: "⬜ Rubber boundary (Penalty - Respawn)",
+        forceEnd: "Force End Round",
+        roundWinnerPos: "Round winner: POSITIVE (+{dp} vs +{dn})",
+        roundWinnerNeg: "Round winner: NEGATIVE (+{dn} vs +{dp})",
+        roundDraw: "Round result: DRAW (+{dp} each)",
+        overallWinnerPos: "Overall winner: POSITIVE ({p}–{n})",
+        overallWinnerNeg: "Overall winner: NEGATIVE ({n}–{p})",
+        overallDraw: "Overall result: DRAW ({p}–{n})",
+        summaryRound: "Chasers this round: {catchers}. Map: {map}. Scores shown above are the running total across all rounds.\nThis round: Positive +{dp}, Negative +{dn}.",
+        summaryRoundNoDelta: "Chasers this round: {catchers}. Map: {map}. Scores shown above are the running total across all rounds.",
+        summaryGameOver: "Four rounds complete. Final totals decide the winner (or a draw).\n\nRound recap: {recap}",
+        recapItem: "R{n}: {w}",
+        recapNoData: "R{n}: (no data)"
+      },
+
+      tr: {
+        language: "Dil",
+        appTitle: "ELEKTRİK OTOYOLU",
+        chooseRole: "Bu oturum için rolünü seç.",
+        joinStudent: "Öğrenci olarak katıl (Oyuncu)",
+        joinTeacher: "Öğretmen olarak katıl (Sunucu / İzleyici)",
+        lobby: "BEKLEME ODASI",
+        teacherControls: "ÖĞRETMEN KONTROLLERİ",
+        teacherInstr: "Öğrencilerin katılmasını bekleyin, sonra 1. turu başlatın.",
+        startRound1: "1. TURU BAŞLAT",
+        startRoundN: "{n}. TURU BAŞLAT",
+        playNewGame: "YENİ OYUN",
+        waitingTeacherStart: "Öğretmenin turu başlatmasını bekliyoruz...",
+        waitingTeacherProceed: "Öğretmenin devam etmesini bekliyoruz...",
+        endOfRound: "{n}. TUR SONU",
+        gameOver: "OYUN BİTTİ!",
+        mapClassic: "KLASİK",
+        mapNew: "YENİ",
+        teamPositive: "Pozitif",
+        teamNegative: "Negatif",
+        teamPositiveShort: "POZ",
+        teamNegativeShort: "NEG",
+        roleChasers: "KOVALAYANLAR",
+        roleRunners: "KOŞUCULAR",
+        youStartChasers: "1. Tur: KOVALAYAN olarak başlıyorsun.",
+        youStartRunners: "1. Tur: KOŞUCU olarak başlıyorsun.",
+        youAreChasers: "⚡ SEN KOVALAYANSIN! (Diğerlerine dokun)\nTUR {n} | HARİTA: {map}",
+        youAreRunners: "🏃 SEN KOŞUCUSUN! (Hayatta kal!)\nTUR {n} | HARİTA: {map}",
+        teacherBanner: "TUR {n} (Kovalayanlar: {catchers}) | HARİTA: {map}",
+        materialsTitle: "Malzeme Haritası:",
+        copper: "🟧 Bakır (Hızlı İletken)",
+        water: "🟦 Musluk Suyu (İletken)",
+        wood: "🟫 Tahta (Yalıtkan - YAVAŞ)",
+        rubber: "⬛ Kauçuk (Ceza - Yeniden doğ)",
+        boundary: "⬜ Kauçuk sınır (Ceza - Yeniden doğ)",
+        forceEnd: "Turu Bitir (Zorla)",
+        roundWinnerPos: "Tur kazananı: POZİTİF (+{dp} / +{dn})",
+        roundWinnerNeg: "Tur kazananı: NEGATİF (+{dn} / +{dp})",
+        roundDraw: "Tur sonucu: BERABERE (+{dp})",
+        overallWinnerPos: "Genel kazanan: POZİTİF ({p}–{n})",
+        overallWinnerNeg: "Genel kazanan: NEGATİF ({n}–{p})",
+        overallDraw: "Genel sonuç: BERABERE ({p}–{n})",
+        summaryRound: "Bu tur kovalayanlar: {catchers}. Harita: {map}. Yukarıdaki skorlar toplam skordur.\nBu tur: Pozitif +{dp}, Negatif +{dn}.",
+        summaryRoundNoDelta: "Bu tur kovalayanlar: {catchers}. Harita: {map}. Yukarıdaki skorlar toplam skordur.",
+        summaryGameOver: "Dört tur bitti. Son skorlar kazananı belirler (ya da beraberlik).\n\nTur özeti: {recap}",
+        recapItem: "T{n}: {w}",
+        recapNoData: "T{n}: (veri yok)"
+      },
+
+      pt: {
+        language: "Idioma",
+        appTitle: "AUTOESTRADA ELÉTRICA",
+        chooseRole: "Escolhe o teu papel nesta sessão.",
+        joinStudent: "Entrar como Aluno (Jogador)",
+        joinTeacher: "Entrar como Professor (Anfitrião / Observador)",
+        lobby: "SALA DE ESPERA",
+        teacherControls: "CONTROLOS DO PROFESSOR",
+        teacherInstr: "Espera que os alunos entrem e depois inicia a Ronda 1.",
+        startRound1: "INICIAR RONDA 1",
+        startRoundN: "INICIAR RONDA {n}",
+        playNewGame: "NOVO JOGO",
+        waitingTeacherStart: "À espera que o professor inicie a ronda...",
+        waitingTeacherProceed: "À espera que o professor avance...",
+        endOfRound: "FIM DA RONDA {n}",
+        gameOver: "FIM DO JOGO!",
+        mapClassic: "CLÁSSICO",
+        mapNew: "NOVO",
+        teamPositive: "Positivo",
+        teamNegative: "Negativo",
+        teamPositiveShort: "POS",
+        teamNegativeShort: "NEG",
+        roleChasers: "PERSEGUIDORES",
+        roleRunners: "CORREDORES",
+        youStartChasers: "Ronda 1: começas como PERSEGUIDOR.",
+        youStartRunners: "Ronda 1: começas como CORREDOR.",
+        youAreChasers: "⚡ TU ÉS PERSEGUIDOR! (Toca nos outros)\nRONDA {n} | MAPA: {map}",
+        youAreRunners: "🏃 TU ÉS CORREDOR! (Sobrevive!)\nRONDA {n} | MAPA: {map}",
+        teacherBanner: "RONDA {n} (Perseguidores: {catchers}) | MAPA: {map}",
+        materialsTitle: "Mapa de Materiais:",
+        copper: "🟧 Cobre (Condutor rápido)",
+        water: "🟦 Água da torneira (Condutor)",
+        wood: "🟫 Madeira (Isolante - LENTO)",
+        rubber: "⬛ Borracha (Penalização - reaparecer)",
+        boundary: "⬜ Limite de borracha (Penalização - reaparecer)",
+        forceEnd: "Terminar Ronda (Forçar)",
+        roundWinnerPos: "Vencedor da ronda: POSITIVO (+{dp} vs +{dn})",
+        roundWinnerNeg: "Vencedor da ronda: NEGATIVO (+{dn} vs +{dp})",
+        roundDraw: "Resultado da ronda: EMPATE (+{dp} cada)",
+        overallWinnerPos: "Vencedor final: POSITIVO ({p}–{n})",
+        overallWinnerNeg: "Vencedor final: NEGATIVO ({n}–{p})",
+        overallDraw: "Resultado final: EMPATE ({p}–{n})",
+        summaryRound: "Perseguidores nesta ronda: {catchers}. Mapa: {map}. As pontuações acima são o total.\nNesta ronda: Positivo +{dp}, Negativo +{dn}.",
+        summaryRoundNoDelta: "Perseguidores nesta ronda: {catchers}. Mapa: {map}. As pontuações acima são o total.",
+        summaryGameOver: "Quatro rondas completas. O total decide o vencedor (ou empate).\n\nResumo: {recap}",
+        recapItem: "R{n}: {w}",
+        recapNoData: "R{n}: (sem dados)"
+      },
+
+      "pt-BR": {
+        language: "Idioma",
+        appTitle: "RODOVIA ELÉTRICA",
+        chooseRole: "Escolha seu papel nesta sessão.",
+        joinStudent: "Entrar como Aluno (Jogador)",
+        joinTeacher: "Entrar como Professor (Host / Espectador)",
+        lobby: "SALA DE ESPERA",
+        teacherControls: "CONTROLES DO PROFESSOR",
+        teacherInstr: "Aguarde os alunos entrarem e depois inicie a Rodada 1.",
+        startRound1: "INICIAR RODADA 1",
+        startRoundN: "INICIAR RODADA {n}",
+        playNewGame: "NOVO JOGO",
+        waitingTeacherStart: "Aguardando o professor iniciar a rodada...",
+        waitingTeacherProceed: "Aguardando o professor continuar...",
+        endOfRound: "FIM DA RODADA {n}",
+        gameOver: "FIM DE JOGO!",
+        mapClassic: "CLÁSSICO",
+        mapNew: "NOVO",
+        teamPositive: "Positivo",
+        teamNegative: "Negativo",
+        teamPositiveShort: "POS",
+        teamNegativeShort: "NEG",
+        roleChasers: "PERSEGUIDORES",
+        roleRunners: "CORREDORES",
+        youStartChasers: "Rodada 1: você começa como PERSEGUIDOR.",
+        youStartRunners: "Rodada 1: você começa como CORREDOR.",
+        youAreChasers: "⚡ VOCÊ É PERSEGUIDOR! (Encoste nos outros)\nRODADA {n} | MAPA: {map}",
+        youAreRunners: "🏃 VOCÊ É CORREDOR! (Sobreviva!)\nRODADA {n} | MAPA: {map}",
+        teacherBanner: "RODADA {n} (Perseguidores: {catchers}) | MAPA: {map}",
+        materialsTitle: "Mapa de Materiais:",
+        copper: "🟧 Cobre (Condutor rápido)",
+        water: "🟦 Água da torneira (Condutor)",
+        wood: "🟫 Madeira (Isolante - LENTO)",
+        rubber: "⬛ Borracha (Penalidade - respawn)",
+        boundary: "⬜ Limite de borracha (Penalidade - respawn)",
+        forceEnd: "Encerrar Rodada (Forçar)",
+        roundWinnerPos: "Vencedor da rodada: POSITIVO (+{dp} vs +{dn})",
+        roundWinnerNeg: "Vencedor da rodada: NEGATIVO (+{dn} vs +{dp})",
+        roundDraw: "Resultado da rodada: EMPATE (+{dp} cada)",
+        overallWinnerPos: "Vencedor final: POSITIVO ({p}–{n})",
+        overallWinnerNeg: "Vencedor final: NEGATIVO ({n}–{p})",
+        overallDraw: "Resultado final: EMPATE ({p}–{n})",
+        summaryRound: "Perseguidores nesta rodada: {catchers}. Mapa: {map}. Os pontos acima são o total.\nNesta rodada: Positivo +{dp}, Negativo +{dn}.",
+        summaryRoundNoDelta: "Perseguidores nesta rodada: {catchers}. Mapa: {map}. Os pontos acima são o total.",
+        summaryGameOver: "Quatro rodadas completas. O total decide o vencedor (ou empate).\n\nResumo: {recap}",
+        recapItem: "R{n}: {w}",
+        recapNoData: "R{n}: (sem dados)"
+      },
+
+      ru: {
+        language: "Язык",
+        appTitle: "ЭЛЕКТРИЧЕСКОЕ ШОССЕ",
+        chooseRole: "Выберите роль.",
+        joinStudent: "Войти как ученик (игрок)",
+        joinTeacher: "Войти как учитель (ведущий / наблюдатель)",
+        lobby: "ЛОББИ",
+        teacherControls: "УПРАВЛЕНИЕ УЧИТЕЛЯ",
+        teacherInstr: "Подождите, пока ученики подключатся, затем начните раунд 1.",
+        startRound1: "НАЧАТЬ РАУНД 1",
+        startRoundN: "НАЧАТЬ РАУНД {n}",
+        playNewGame: "НОВАЯ ИГРА",
+        waitingTeacherStart: "Ждём, пока учитель начнёт раунд...",
+        waitingTeacherProceed: "Ждём, пока учитель продолжит...",
+        endOfRound: "КОНЕЦ РАУНДА {n}",
+        gameOver: "ИГРА ОКОНЧЕНА!",
+        mapClassic: "КЛАССИКА",
+        mapNew: "НОВАЯ",
+        teamPositive: "Позитив",
+        teamNegative: "Негатив",
+        teamPositiveShort: "ПОЗ",
+        teamNegativeShort: "НЕГ",
+        roleChasers: "ЛОВЦЫ",
+        roleRunners: "БЕГУНЫ",
+        youStartChasers: "Раунд 1: вы начинаете как ЛОВЕЦ.",
+        youStartRunners: "Раунд 1: вы начинаете как БЕГУН.",
+        youAreChasers: "⚡ ВЫ ЛОВЦЫ! (Коснитесь других)\nРАУНД {n} | КАРТА: {map}",
+        youAreRunners: "🏃 ВЫ БЕГУНЫ! (Выжить!)\nРАУНД {n} | КАРТА: {map}",
+        teacherBanner: "РАУНД {n} (Ловцы: {catchers}) | КАРТА: {map}",
+        materialsTitle: "Карта материалов:",
+        copper: "🟧 Медь (быстрый проводник)",
+        water: "🟦 Водопроводная вода (проводник)",
+        wood: "🟫 Дерево (изолятор — МЕДЛЕННО)",
+        rubber: "⬛ Резина (штраф — возрождение)",
+        boundary: "⬜ Резиновая граница (штраф — возрождение)",
+        forceEnd: "Завершить раунд (принудительно)",
+        roundWinnerPos: "Победитель раунда: ПОЗИТИВ (+{dp} vs +{dn})",
+        roundWinnerNeg: "Победитель раунда: НЕГАТИВ (+{dn} vs +{dp})",
+        roundDraw: "Результат раунда: НИЧЬЯ (+{dp})",
+        overallWinnerPos: "Итоговый победитель: ПОЗИТИВ ({p}–{n})",
+        overallWinnerNeg: "Итоговый победитель: НЕГАТИВ ({n}–{p})",
+        overallDraw: "Итог: НИЧЬЯ ({p}–{n})",
+        summaryRound: "Ловцы в этом раунде: {catchers}. Карта: {map}. Очки выше — общий итог.\nЭтот раунд: Позитив +{dp}, Негатив +{dn}.",
+        summaryRoundNoDelta: "Ловцы в этом раунде: {catchers}. Карта: {map}. Очки выше — общий итог.",
+        summaryGameOver: "Четыре раунда завершены. Итоговые очки определяют победителя (или ничью).\n\nИтоги раундов: {recap}",
+        recapItem: "R{n}: {w}",
+        recapNoData: "R{n}: (нет данных)"
+      },
+
+      ro: {
+        language: "Limbă",
+        appTitle: "AUTOSTRADA ELECTRICĂ",
+        chooseRole: "Alege rolul pentru această sesiune.",
+        joinStudent: "Intră ca Elev (Jucător)",
+        joinTeacher: "Intră ca Profesor (Gazdă / Spectator)",
+        lobby: "SALA DE AȘTEPTARE",
+        teacherControls: "CONTROALE PROFESOR",
+        teacherInstr: "Așteptați să intre elevii, apoi porniți Runda 1.",
+        startRound1: "PORNEȘTE RUNDA 1",
+        startRoundN: "PORNEȘTE RUNDA {n}",
+        playNewGame: "JOC NOU",
+        waitingTeacherStart: "Așteptăm ca profesorul să pornească runda...",
+        waitingTeacherProceed: "Așteptăm ca profesorul să continue...",
+        endOfRound: "SFÂRȘITUL RUNDEI {n}",
+        gameOver: "JOC TERMINAT!",
+        mapClassic: "CLASIC",
+        mapNew: "NOU",
+        teamPositive: "Pozitiv",
+        teamNegative: "Negativ",
+        teamPositiveShort: "POZ",
+        teamNegativeShort: "NEG",
+        roleChasers: "URMĂRITORI",
+        roleRunners: "ALERGĂTORI",
+        youStartChasers: "Runda 1: începi ca URMĂRITOR.",
+        youStartRunners: "Runda 1: începi ca ALERGĂTOR.",
+        youAreChasers: "⚡ EȘTI URMĂRITOR! (Atinge-i pe ceilalți)\nRUNDA {n} | HARTĂ: {map}",
+        youAreRunners: "🏃 EȘTI ALERGĂTOR! (Supraviețuiește!)\nRUNDA {n} | HARTĂ: {map}",
+        teacherBanner: "RUNDA {n} (Urmăritori: {catchers}) | HARTĂ: {map}",
+        materialsTitle: "Harta materialelor:",
+        copper: "🟧 Cupru (Conductor rapid)",
+        water: "🟦 Apă de la robinet (Conductor)",
+        wood: "🟫 Lemn (Izolator - LENT)",
+        rubber: "⬛ Cauciuc (Penalizare - respawn)",
+        boundary: "⬜ Limită de cauciuc (Penalizare - respawn)",
+        forceEnd: "Încheie runda (forțat)",
+        roundWinnerPos: "Câștigător rundă: POZITIV (+{dp} vs +{dn})",
+        roundWinnerNeg: "Câștigător rundă: NEGATIV (+{dn} vs +{dp})",
+        roundDraw: "Rezultat rundă: EGAL (+{dp} fiecare)",
+        overallWinnerPos: "Câștigător final: POZITIV ({p}–{n})",
+        overallWinnerNeg: "Câștigător final: NEGATIV ({n}–{p})",
+        overallDraw: "Rezultat final: EGAL ({p}–{n})",
+        summaryRound: "Urmăritori în această rundă: {catchers}. Hartă: {map}. Scorurile de sus sunt totalul.\nÎn această rundă: Pozitiv +{dp}, Negativ +{dn}.",
+        summaryRoundNoDelta: "Urmăritori în această rundă: {catchers}. Hartă: {map}. Scorurile de sus sunt totalul.",
+        summaryGameOver: "Patru runde încheiate. Totalul decide câștigătorul (sau egal).\n\nRezumat: {recap}",
+        recapItem: "R{n}: {w}",
+        recapNoData: "R{n}: (fără date)"
+      },
+
+      es: {
+        language: "Idioma",
+        appTitle: "LA AUTOPISTA ELÉCTRICA",
+        chooseRole: "Elige tu rol para esta sesión.",
+        joinStudent: "Entrar como Estudiante (Jugador)",
+        joinTeacher: "Entrar como Profesor/a (Anfitrión / Espectador)",
+        lobby: "SALA DE ESPERA",
+        teacherControls: "CONTROLES DEL PROFESOR",
+        teacherInstr: "Espera a que entren los estudiantes y luego inicia la Ronda 1.",
+        startRound1: "INICIAR RONDA 1",
+        startRoundN: "INICIAR RONDA {n}",
+        playNewGame: "NUEVO JUEGO",
+        waitingTeacherStart: "Esperando a que el profesor inicie la ronda...",
+        waitingTeacherProceed: "Esperando a que el profesor continúe...",
+        endOfRound: "FIN DE LA RONDA {n}",
+        gameOver: "¡FIN DEL JUEGO!",
+        mapClassic: "CLÁSICO",
+        mapNew: "NUEVO",
+        teamPositive: "Positivo",
+        teamNegative: "Negativo",
+        teamPositiveShort: "POS",
+        teamNegativeShort: "NEG",
+        roleChasers: "PERSEGUIDORES",
+        roleRunners: "CORREDORES",
+        youStartChasers: "Ronda 1: empiezas como PERSEGUIDOR.",
+        youStartRunners: "Ronda 1: empiezas como CORREDOR.",
+        youAreChasers: "⚡ ¡ERES PERSEGUIDOR! (Toca a los demás)\nRONDA {n} | MAPA: {map}",
+        youAreRunners: "🏃 ¡ERES CORREDOR! (¡Sobrevive!)\nRONDA {n} | MAPA: {map}",
+        teacherBanner: "RONDA {n} (Perseguidores: {catchers}) | MAPA: {map}",
+        materialsTitle: "Mapa de materiales:",
+        copper: "🟧 Cobre (Conductor rápido)",
+        water: "🟦 Agua del grifo (Conductor)",
+        wood: "🟫 Madera (Aislante - LENTO)",
+        rubber: "⬛ Goma (Penalización - respawn)",
+        boundary: "⬜ Límite de goma (Penalización - respawn)",
+        forceEnd: "Terminar ronda (Forzar)",
+        roundWinnerPos: "Ganador de la ronda: POSITIVO (+{dp} vs +{dn})",
+        roundWinnerNeg: "Ganador de la ronda: NEGATIVO (+{dn} vs +{dp})",
+        roundDraw: "Resultado de la ronda: EMPATE (+{dp} cada uno)",
+        overallWinnerPos: "Ganador final: POSITIVO ({p}–{n})",
+        overallWinnerNeg: "Ganador final: NEGATIVO ({n}–{p})",
+        overallDraw: "Resultado final: EMPATE ({p}–{n})",
+        summaryRound: "Perseguidores en esta ronda: {catchers}. Mapa: {map}. Los puntos de arriba son el total.\nEn esta ronda: Positivo +{dp}, Negativo +{dn}.",
+        summaryRoundNoDelta: "Perseguidores en esta ronda: {catchers}. Mapa: {map}. Los puntos de arriba son el total.",
+        summaryGameOver: "Cuatro rondas completas. El total decide el ganador (o empate).\n\nResumen: {recap}",
+        recapItem: "R{n}: {w}",
+        recapNoData: "R{n}: (sin datos)"
+      },
+
+      fr: {
+        language: "Langue",
+        appTitle: "L’AUTOROUTE ÉLECTRIQUE",
+        chooseRole: "Choisis ton rôle pour cette session.",
+        joinStudent: "Rejoindre comme Élève (Joueur)",
+        joinTeacher: "Rejoindre comme Enseignant (Hôte / Spectateur)",
+        lobby: "SALLE D’ATTENTE",
+        teacherControls: "COMMANDES ENSEIGNANT",
+        teacherInstr: "Attendez que les élèves rejoignent, puis démarrez la Manche 1.",
+        startRound1: "DÉMARRER MANCHE 1",
+        startRoundN: "DÉMARRER MANCHE {n}",
+        playNewGame: "NOUVELLE PARTIE",
+        waitingTeacherStart: "En attente que l’enseignant démarre la manche...",
+        waitingTeacherProceed: "En attente que l’enseignant continue...",
+        endOfRound: "FIN DE MANCHE {n}",
+        gameOver: "PARTIE TERMINÉE !",
+        mapClassic: "CLASSIQUE",
+        mapNew: "NOUVELLE",
+        teamPositive: "Positif",
+        teamNegative: "Négatif",
+        teamPositiveShort: "POS",
+        teamNegativeShort: "NEG",
+        roleChasers: "POURSUIVEURS",
+        roleRunners: "COUREURS",
+        youStartChasers: "Manche 1 : tu commences comme POURSUIVEUR.",
+        youStartRunners: "Manche 1 : tu commences comme COUREUR.",
+        youAreChasers: "⚡ TU ES POURSUIVEUR ! (Touche les autres)\nMANCHE {n} | CARTE : {map}",
+        youAreRunners: "🏃 TU ES COUREUR ! (Survis !)\nMANCHE {n} | CARTE : {map}",
+        teacherBanner: "MANCHE {n} (Poursuiveurs : {catchers}) | CARTE : {map}",
+        materialsTitle: "Carte des matériaux :",
+        copper: "🟧 Cuivre (Conducteur rapide)",
+        water: "🟦 Eau du robinet (Conducteur)",
+        wood: "🟫 Bois (Isolant - LENT)",
+        rubber: "⬛ Caoutchouc (Pénalité - respawn)",
+        boundary: "⬜ Limite en caoutchouc (Pénalité - respawn)",
+        forceEnd: "Finir la manche (Forcer)",
+        roundWinnerPos: "Gagnant de la manche : POSITIF (+{dp} vs +{dn})",
+        roundWinnerNeg: "Gagnant de la manche : NÉGATIF (+{dn} vs +{dp})",
+        roundDraw: "Résultat : ÉGALITÉ (+{dp} chacun)",
+        overallWinnerPos: "Gagnant final : POSITIF ({p}–{n})",
+        overallWinnerNeg: "Gagnant final : NÉGATIF ({n}–{p})",
+        overallDraw: "Résultat final : ÉGALITÉ ({p}–{n})",
+        summaryRound: "Poursuiveurs cette manche : {catchers}. Carte : {map}. Les scores ci-dessus sont le total.\nCette manche : Positif +{dp}, Négatif +{dn}.",
+        summaryRoundNoDelta: "Poursuiveurs cette manche : {catchers}. Carte : {map}. Les scores ci-dessus sont le total.",
+        summaryGameOver: "Quatre manches terminées. Le total décide le gagnant (ou égalité).\n\nRécapitulatif : {recap}",
+        recapItem: "M{n} : {w}",
+        recapNoData: "M{n} : (pas de données)"
+      },
+
+      "fr-CD": {
+        language: "Langue",
+        appTitle: "L’AUTOROUTE ÉLECTRIQUE",
+        chooseRole: "Choisis ton rôle pour cette session.",
+        joinStudent: "Rejoindre comme Élève (Joueur)",
+        joinTeacher: "Rejoindre comme Enseignant (Hôte / Spectateur)",
+        lobby: "SALLE D’ATTENTE",
+        teacherControls: "COMMANDES ENSEIGNANT",
+        teacherInstr: "Attendez que les élèves rejoignent, puis démarrez le Tour 1.",
+        startRound1: "DÉMARRER TOUR 1",
+        startRoundN: "DÉMARRER TOUR {n}",
+        playNewGame: "NOUVELLE PARTIE",
+        waitingTeacherStart: "En attente que l’enseignant démarre le tour...",
+        waitingTeacherProceed: "En attente que l’enseignant continue...",
+        endOfRound: "FIN DU TOUR {n}",
+        gameOver: "PARTIE TERMINÉE !",
+        mapClassic: "CLASSIQUE",
+        mapNew: "NOUVELLE",
+        teamPositive: "Positif",
+        teamNegative: "Négatif",
+        teamPositiveShort: "POS",
+        teamNegativeShort: "NEG",
+        roleChasers: "POURSUIVEURS",
+        roleRunners: "COUREURS",
+        youStartChasers: "Tour 1 : tu commences comme POURSUIVEUR.",
+        youStartRunners: "Tour 1 : tu commences comme COUREUR.",
+        youAreChasers: "⚡ TU ES POURSUIVEUR ! (Touche les autres)\nTOUR {n} | CARTE : {map}",
+        youAreRunners: "🏃 TU ES COUREUR ! (Survis !)\nTOUR {n} | CARTE : {map}",
+        teacherBanner: "TOUR {n} (Poursuiveurs : {catchers}) | CARTE : {map}",
+        materialsTitle: "Carte des matériaux :",
+        copper: "🟧 Cuivre (Conducteur rapide)",
+        water: "🟦 Eau du robinet (Conducteur)",
+        wood: "🟫 Bois (Isolant - LENT)",
+        rubber: "⬛ Caoutchouc (Pénalité - respawn)",
+        boundary: "⬜ Limite en caoutchouc (Pénalité - respawn)",
+        forceEnd: "Finir le tour (Forcer)",
+        roundWinnerPos: "Gagnant du tour : POSITIF (+{dp} vs +{dn})",
+        roundWinnerNeg: "Gagnant du tour : NÉGATIF (+{dn} vs +{dp})",
+        roundDraw: "Résultat : ÉGALITÉ (+{dp} chacun)",
+        overallWinnerPos: "Gagnant final : POSITIF ({p}–{n})",
+        overallWinnerNeg: "Gagnant final : NÉGATIF ({n}–{p})",
+        overallDraw: "Résultat final : ÉGALITÉ ({p}–{n})",
+        summaryRound: "Poursuiveurs ce tour : {catchers}. Carte : {map}. Les scores ci-dessus sont le total.\nCe tour : Positif +{dp}, Négatif +{dn}.",
+        summaryRoundNoDelta: "Poursuiveurs ce tour : {catchers}. Carte : {map}. Les scores ci-dessus sont le total.",
+        summaryGameOver: "Quatre tours terminés. Le total décide le gagnant (ou égalité).\n\nRécapitulatif : {recap}",
+        recapItem: "T{n} : {w}",
+        recapNoData: "T{n} : (pas de données)"
+      }
+    };
+
+    function guessDefaultLang(){
+      const saved = localStorage.getItem("eh_lang");
+      if (saved && STRINGS[saved]) return saved;
+
+      const nav = (navigator.language || "en").toLowerCase();
+      if (nav.startsWith("pt-br")) return "pt-BR";
+      if (nav.startsWith("pt")) return "pt";
+      if (nav.startsWith("tr")) return "tr";
+      if (nav.startsWith("ru")) return "ru";
+      if (nav.startsWith("ro")) return "ro";
+      if (nav.startsWith("es")) return "es";
+      if (nav.startsWith("fr")) return "fr";
+      return "en";
+    }
+
+    let LANG = guessDefaultLang();
+
+    function t(key, vars){
+      const table = STRINGS[LANG] || STRINGS.en;
+      let s = table[key] || STRINGS.en[key] || key;
+      if (vars){
+        for (const [k,v] of Object.entries(vars)){
+          s = s.replaceAll(`{${k}}`, String(v));
+        }
+      }
+      return s;
+    }
+
+    function teamLabel(team){
+      if (team === "Positive") return t("teamPositive");
+      if (team === "Negative") return t("teamNegative");
+      return String(team || "");
+    }
+    function teamShort(team){
+      if (team === "Positive") return t("teamPositiveShort");
+      if (team === "Negative") return t("teamNegativeShort");
+      return String(team || "");
+    }
+    function mapLabel(mapId){
+      return (Number(mapId) === 2) ? t("mapNew") : t("mapClassic");
+    }
+
+    function applyTranslationsStatic(){
+      document.getElementById("lang-label").innerText = t("language");
+
+      document.getElementById("ui-title").innerText = t("appTitle");
+      document.getElementById("ui-subtitle").innerText = t("chooseRole");
+      document.getElementById("btn-join-student").innerText = t("joinStudent");
+      document.getElementById("btn-join-teacher").innerText = t("joinTeacher");
+
+      document.getElementById("lobby-title").innerText = t("lobby");
+      document.getElementById("teacher-controls-title").innerText = t("teacherControls");
+      document.getElementById("teacher-controls-instr").innerText = t("teacherInstr");
+      document.getElementById("waiting-msg").innerText = t("waitingTeacherStart");
+
+      document.getElementById("materials-title").innerText = t("materialsTitle");
+      document.getElementById("mat-copper").innerText = t("copper");
+      document.getElementById("mat-water").innerText = t("water");
+      document.getElementById("mat-wood").innerText = t("wood");
+      document.getElementById("mat-rubber").innerText = t("rubber");
+      document.getElementById("mat-boundary").innerText = t("boundary");
+
+      document.getElementById("lbl-pos").innerText = t("teamPositiveShort");
+      document.getElementById("lbl-neg").innerText = t("teamNegativeShort");
+
+      document.getElementById("btn-force-end").innerText = t("forceEnd");
+      document.getElementById("waiting-next-msg").innerText = t("waitingTeacherProceed");
+    }
+
+    // Language selector hook
+    const langSelectEl = document.getElementById("langSelect");
+    langSelectEl.value = STRINGS[LANG] ? LANG : "en";
+    langSelectEl.addEventListener("change", () => {
+      const v = langSelectEl.value;
+      if (STRINGS[v]) {
+        LANG = v;
+        localStorage.setItem("eh_lang", LANG);
+        applyTranslationsStatic();
+        // re-render dynamic UI if in-game
+        renderIdentityCard();
+        renderRoleBanner();
+        renderRoundScreen();
+        renderHostButtons();
+      }
+    });
+
+    // =========================
+    // Touch controls
+    // =========================
+    const touchControlsEl = document.getElementById("touch-controls");
+    const isTouchDevice = (window.matchMedia && window.matchMedia("(pointer: coarse)").matches) ||
+                          ("ontouchstart" in window) || (navigator.maxTouchPoints > 0);
+
+    function setTouchControlsVisible(visible){
+      if (!isTouchDevice) {
+        touchControlsEl.style.display = "none";
+        return;
+      }
+      touchControlsEl.style.display = visible ? "block" : "none";
+    }
+
+    // Side preference
+    const savedSide = localStorage.getItem("eh_controls_side");
+    if (savedSide === "right") touchControlsEl.classList.add("right");
+    document.getElementById("tc-toggle").addEventListener("click", () => {
+      touchControlsEl.classList.toggle("right");
+      localStorage.setItem("eh_controls_side", touchControlsEl.classList.contains("right") ? "right" : "left");
+    });
+
+    function bindDpad(){
+      const btns = touchControlsEl.querySelectorAll(".tc-btn");
+      btns.forEach(btn => {
+        const dir = btn.getAttribute("data-dir");
+        const onDown = (e) => {
+          e.preventDefault();
+          keys[dir] = true;
+          btn.classList.add("active");
+          try { btn.setPointerCapture(e.pointerId); } catch {}
+        };
+        const onUp = (e) => {
+          e.preventDefault();
+          keys[dir] = false;
+          btn.classList.remove("active");
+        };
+        btn.addEventListener("pointerdown", onDown);
+        btn.addEventListener("pointerup", onUp);
+        btn.addEventListener("pointercancel", onUp);
+        btn.addEventListener("pointerleave", onUp);
+        btn.addEventListener("contextmenu", (e) => e.preventDefault());
+      });
+    }
+    bindDpad();
+
+    // =========================
+    // Game state
+    // =========================
     let myId, myName, myTeam, myRole;
     let isHost = false;
     let players = {};
     let session = {
-      state: 'lobby',
+      state: "lobby",
       round: 0,
       timer: 60,
       scores: { Positive: 0, Negative: 0 },
-      catchers: 'Positive',
+      catchers: "Positive",
       mapId: 1,
       roundStartScores: { Positive: 0, Negative: 0 },
       roundResults: {}
@@ -144,200 +944,190 @@
     let me = { x: 0, y: 0, caught: false, stuck: false, stuckUntil: 0 };
     const keys = { w:false, a:false, s:false, d:false };
 
-    let hostTimer;
+    let hostTimer = null;
     let hostEnding = false;
 
-    // Track round transitions on each client, so players reset their LOCAL position too
     let lastSeenRound = 0;
-    let lastSeenState = 'lobby';
+    let lastSeenState = "lobby";
 
-    // --- MAPS + BOUNDARY ---
+    // =========================
+    // Map + zones
+    // =========================
     const PLAY_BOUNDS = { minX: 0, minY: 0, maxX: 1100, maxY: 900 };
 
-    function clampToBounds(pos) {
+    function clampToBounds(pos){
       pos.x = Math.max(PLAY_BOUNDS.minX, Math.min(PLAY_BOUNDS.maxX, pos.x));
       pos.y = Math.max(PLAY_BOUNDS.minY, Math.min(PLAY_BOUNDS.maxY, pos.y));
     }
 
-    function baseSpawnForTeam(team) {
-      // Always the same base locations each round
-      const base = (team === 'Positive') ? { x: 140, y: 140 } : { x: 860, y: 660 };
-      return { x: base.x, y: base.y };
+    function baseSpawnForTeam(team){
+      return (team === "Positive") ? { x: 140, y: 140 } : { x: 860, y: 660 };
     }
 
-    function buildBoundaryZones() {
+    function buildBoundaryZones(){
       const padding = 500;
-      const base = { type: 'base', x: PLAY_BOUNDS.minX - padding, y: PLAY_BOUNDS.minY - padding, w: (PLAY_BOUNDS.maxX - PLAY_BOUNDS.minX) + padding*2, h: (PLAY_BOUNDS.maxY - PLAY_BOUNDS.minY) + padding*2, color: '#111' };
-
+      const base = { type:"base", x: PLAY_BOUNDS.minX - padding, y: PLAY_BOUNDS.minY - padding, w:(PLAY_BOUNDS.maxX-PLAY_BOUNDS.minX)+padding*2, h:(PLAY_BOUNDS.maxY-PLAY_BOUNDS.minY)+padding*2, color:"#111" };
       const thick = 80;
-      const left   = { type: 'stop', x: PLAY_BOUNDS.minX - thick, y: PLAY_BOUNDS.minY - thick, w: thick, h: (PLAY_BOUNDS.maxY - PLAY_BOUNDS.minY) + thick*2, color: '#222' };
-      const right  = { type: 'stop', x: PLAY_BOUNDS.maxX,        y: PLAY_BOUNDS.minY - thick, w: thick, h: (PLAY_BOUNDS.maxY - PLAY_BOUNDS.minY) + thick*2, color: '#222' };
-      const top    = { type: 'stop', x: PLAY_BOUNDS.minX,        y: PLAY_BOUNDS.minY - thick, w: (PLAY_BOUNDS.maxX - PLAY_BOUNDS.minX), h: thick, color: '#222' };
-      const bottom = { type: 'stop', x: PLAY_BOUNDS.minX,        y: PLAY_BOUNDS.maxY,         w: (PLAY_BOUNDS.maxX - PLAY_BOUNDS.minX), h: thick, color: '#222' };
-
-      return { base, boundary: [left, right, top, bottom] };
+      const left   = { type:"stop", x: PLAY_BOUNDS.minX - thick, y: PLAY_BOUNDS.minY - thick, w: thick, h:(PLAY_BOUNDS.maxY-PLAY_BOUNDS.minY)+thick*2, color:"#222" };
+      const right  = { type:"stop", x: PLAY_BOUNDS.maxX,        y: PLAY_BOUNDS.minY - thick, w: thick, h:(PLAY_BOUNDS.maxY-PLAY_BOUNDS.minY)+thick*2, color:"#222" };
+      const top    = { type:"stop", x: PLAY_BOUNDS.minX,        y: PLAY_BOUNDS.minY - thick, w:(PLAY_BOUNDS.maxX-PLAY_BOUNDS.minX), h: thick, color:"#222" };
+      const bottom = { type:"stop", x: PLAY_BOUNDS.minX,        y: PLAY_BOUNDS.maxY,         w:(PLAY_BOUNDS.maxX-PLAY_BOUNDS.minX), h: thick, color:"#222" };
+      return { base, boundary:[left,right,top,bottom] };
     }
 
-    function buildMap1Zones() {
+    function buildMap1Zones(){
       const b = buildBoundaryZones();
       return [
         b.base, ...b.boundary,
-        { type: 'conductor', x: 100, y: 100, w: 800, h: 80,  color: '#b87333' },
-        { type: 'conductor', x: 100, y: 100, w: 80,  h: 600, color: '#b87333' },
-        { type: 'conductor', x: 100, y: 620, w: 800, h: 80,  color: '#b87333' },
-        { type: 'conductor', x: 820, y: 100, w: 80,  h: 600, color: '#b87333' },
+        { type:"conductor", x:100, y:100, w:800, h:80,  color:"#b87333" },
+        { type:"conductor", x:100, y:100, w:80,  h:600, color:"#b87333" },
+        { type:"conductor", x:100, y:620, w:800, h:80,  color:"#b87333" },
+        { type:"conductor", x:820, y:100, w:80,  h:600, color:"#b87333" },
 
-        { type: 'conductor', x: 300, y: 300, w: 150, h: 150, color: 'rgba(43, 127, 184, 0.5)' },
-        { type: 'conductor', x: 600, y: 400, w: 120, h: 120, color: 'rgba(43, 127, 184, 0.5)' },
+        { type:"conductor", x:300, y:300, w:150, h:150, color:"rgba(43,127,184,0.5)" },
+        { type:"conductor", x:600, y:400, w:120, h:120, color:"rgba(43,127,184,0.5)" },
 
-        { type: 'slow', x: 250, y: 80,  w: 100, h: 120, color: '#5c4033' },
-        { type: 'slow', x: 650, y: 600, w: 100, h: 120, color: '#5c4033' },
+        { type:"slow", x:250, y:80,  w:100, h:120, color:"#5c4033" },
+        { type:"slow", x:650, y:600, w:100, h:120, color:"#5c4033" },
 
-        { type: 'stop', x: 450, y: 250, w: 50,  h: 300, color: '#222' }
+        // rubber obstacle (penalty)
+        { type:"stop", x:450, y:250, w:50, h:300, color:"#222" }
       ];
     }
 
-    function buildMap2Zones() {
+    function buildMap2Zones(){
       const b = buildBoundaryZones();
       return [
         b.base, ...b.boundary,
 
-        { type: 'conductor', x: 120, y: 140, w: 860, h: 70,  color: '#b87333' },
-        { type: 'conductor', x: 120, y: 140, w: 70,  h: 620, color: '#b87333' },
-        { type: 'conductor', x: 120, y: 690, w: 430, h: 70,  color: '#b87333' },
-        { type: 'conductor', x: 480, y: 330, w: 70,  h: 430, color: '#b87333' },
-        { type: 'conductor', x: 480, y: 330, w: 500, h: 70,  color: '#b87333' },
+        { type:"conductor", x:120, y:140, w:860, h:70,  color:"#b87333" },
+        { type:"conductor", x:120, y:140, w:70,  h:620, color:"#b87333" },
+        { type:"conductor", x:120, y:690, w:430, h:70,  color:"#b87333" },
+        { type:"conductor", x:480, y:330, w:70,  h:430, color:"#b87333" },
+        { type:"conductor", x:480, y:330, w:500, h:70,  color:"#b87333" },
 
-        { type: 'conductor', x: 260, y: 450, w: 160, h: 120, color: 'rgba(43, 127, 184, 0.5)' },
-        { type: 'conductor', x: 720, y: 520, w: 180, h: 120, color: 'rgba(43, 127, 184, 0.5)' },
+        { type:"conductor", x:260, y:450, w:160, h:120, color:"rgba(43,127,184,0.5)" },
+        { type:"conductor", x:720, y:520, w:180, h:120, color:"rgba(43,127,184,0.5)" },
 
-        { type: 'slow', x: 650, y: 140, w: 140, h: 120, color: '#5c4033' },
-        { type: 'slow', x: 250, y: 690, w: 140, h: 120, color: '#5c4033' },
+        { type:"slow", x:650, y:140, w:140, h:120, color:"#5c4033" },
+        { type:"slow", x:250, y:690, w:140, h:120, color:"#5c4033" },
 
-        { type: 'stop', x: 360, y: 250, w: 60, h: 260, color: '#222' },
-        { type: 'stop', x: 660, y: 430, w: 60, h: 260, color: '#222' }
+        { type:"stop", x:360, y:250, w:60, h:260, color:"#222" },
+        { type:"stop", x:660, y:430, w:60, h:260, color:"#222" }
       ];
     }
 
     let mapZones = buildMap1Zones();
-    function setActiveMapFromSession() {
+    function setActiveMapFromSession(){
       const id = Number(session.mapId || 1);
       mapZones = (id === 2) ? buildMap2Zones() : buildMap1Zones();
     }
 
-    // --- HELPERS ---
-    function formatTime(seconds) {
-      const s = Math.max(0, Number(seconds || 0));
-      const m = Math.floor(s / 60);
-      const r = s % 60;
-      return `${m}:${String(r).padStart(2, '0')}`;
-    }
-
-    function winnerFromDelta(delta) {
-      if (!delta) return { winner: 'Draw', text: 'Round result: DRAW' };
-      if (delta.Positive > delta.Negative) return { winner: 'Positive', text: `Round winner: POSITIVE (+${delta.Positive} vs +${delta.Negative})` };
-      if (delta.Negative > delta.Positive) return { winner: 'Negative', text: `Round winner: NEGATIVE (+${delta.Negative} vs +${delta.Positive})` };
-      return { winner: 'Draw', text: `Round result: DRAW (+${delta.Positive} each)` };
-    }
-
-    function overallWinnerFromScores(scores) {
-      const p = Number(scores?.Positive || 0);
-      const n = Number(scores?.Negative || 0);
-      if (p > n) return { winner: 'Positive', text: `Overall winner: POSITIVE (${p}–${n})` };
-      if (n > p) return { winner: 'Negative', text: `Overall winner: NEGATIVE (${n}–${p})` };
-      return { winner: 'Draw', text: `Overall result: DRAW (${p}–${n})` };
-    }
-
-    function countTeams(playersObj) {
-      let p = 0, n = 0;
-      Object.values(playersObj || {}).forEach(pl => {
-        if (pl?.team === 'Positive') p++;
-        if (pl?.team === 'Negative') n++;
-      });
-      return { Positive: p, Negative: n };
-    }
-
-    function isValidPlayer(p) {
+    // =========================
+    // Validation + scoring helpers
+    // =========================
+    function isValidPlayer(p){
       if (!p) return false;
-      if (p.team !== 'Positive' && p.team !== 'Negative') return false;
-      if (typeof p.x !== 'number' || typeof p.y !== 'number') return false;
-      if (!p.name || typeof p.name !== 'string') return false;
+      if (p.team !== "Positive" && p.team !== "Negative") return false;
+      if (typeof p.x !== "number" || typeof p.y !== "number") return false;
+      if (typeof p.name !== "string" || !p.name.trim()) return false;
       return true;
     }
 
-    // --- RUBBER PENALTY / RESPAWN ---
+    function formatTime(seconds){
+      const s = Math.max(0, Number(seconds || 0));
+      const m = Math.floor(s / 60);
+      const r = s % 60;
+      return `${m}:${String(r).padStart(2,"0")}`;
+    }
+
+    function winnerFromDelta(delta){
+      if (!delta) return { winner:"Draw", text:t("roundDraw", { dp: 0 }) };
+      const dp = Number(delta.Positive || 0);
+      const dn = Number(delta.Negative || 0);
+      if (dp > dn) return { winner:"Positive", text:t("roundWinnerPos", { dp, dn }) };
+      if (dn > dp) return { winner:"Negative", text:t("roundWinnerNeg", { dp, dn }) };
+      return { winner:"Draw", text:t("roundDraw", { dp }) };
+    }
+
+    function overallWinnerFromScores(scores){
+      const p = Number(scores?.Positive || 0);
+      const n = Number(scores?.Negative || 0);
+      if (p > n) return { winner:"Positive", text:t("overallWinnerPos", { p, n }) };
+      if (n > p) return { winner:"Negative", text:t("overallWinnerNeg", { p, n }) };
+      return { winner:"Draw", text:t("overallDraw", { p, n }) };
+    }
+
+    function countTeams(playersObj){
+      let p = 0, n = 0;
+      Object.values(playersObj || {}).forEach(pl => {
+        if (pl?.team === "Positive") p++;
+        if (pl?.team === "Negative") n++;
+      });
+      return { Positive:p, Negative:n };
+    }
+
+    // =========================
+    // Rubber penalty / respawn
+    // =========================
     const RUBBER_PENALTY_MS = 3000;
     const TEAMMATE_BUMP_DIST = 28;
 
-    function isInZone(pos, z) {
+    function isInZone(pos, z){
       return (pos.x > z.x && pos.x < z.x + z.w && pos.y > z.y && pos.y < z.y + z.h);
     }
-
-    function isTouchingRubber(pos) {
-      // Rubber zones are type 'stop' (including boundary ring)
-      for (let i = mapZones.length - 1; i >= 0; i--) {
+    function isTouchingRubber(pos){
+      for (let i = mapZones.length - 1; i >= 0; i--){
         const z = mapZones[i];
-        if (z.type === 'stop' && isInZone(pos, z)) return true;
+        if (z.type === "stop" && isInZone(pos, z)) return true;
       }
       return false;
     }
 
-    async function setMyStuck(untilTs) {
+    async function setMyStuck(untilTs){
       me.stuck = true;
       me.stuckUntil = untilTs;
-      if (myRole === 'player') {
-        await db.ref('electricLab/players/' + myId).update({
-          stuck: true,
-          stuckUntil: untilTs
-        });
+      if (myRole === "player"){
+        await db.ref(`electricLab/players/${myId}`).update({ stuck:true, stuckUntil: untilTs });
       }
     }
 
-    async function clearMyStuckAndRespawn() {
+    async function clearMyStuckAndRespawn(){
       const spawn = baseSpawnForTeam(myTeam);
       me.stuck = false;
       me.stuckUntil = 0;
       me.x = spawn.x; me.y = spawn.y;
       clampToBounds(me);
-
-      if (myRole === 'player') {
-        await db.ref('electricLab/players/' + myId).update({
-          stuck: false,
-          stuckUntil: 0,
-          x: me.x,
-          y: me.y
-        });
+      if (myRole === "player"){
+        await db.ref(`electricLab/players/${myId}`).update({ stuck:false, stuckUntil: 0, x: me.x, y: me.y });
       }
     }
 
-    async function applyTeamStuckReset(newUntil) {
-      // Reset stuck timer for ALL currently stuck teammates, and include me.
+    async function applyTeamStuckReset(newUntil){
+      // Reset stuck timer for all currently stuck teammates + make me stuck.
       const updates = {};
       Object.entries(players || {}).forEach(([id, p]) => {
         if (!isValidPlayer(p)) return;
         if (p.team !== myTeam) return;
-        if (p.stuck === true && Number(p.stuckUntil || 0) > Date.now()) {
+        const active = (p.stuck === true && Number(p.stuckUntil || 0) > Date.now());
+        if (active){
           updates[`electricLab/players/${id}/stuckUntil`] = newUntil;
         }
       });
       updates[`electricLab/players/${myId}/stuck`] = true;
       updates[`electricLab/players/${myId}/stuckUntil`] = newUntil;
+      await db.ref().update(updates);
 
-      if (Object.keys(updates).length > 0) {
-        await db.ref().update(updates);
-      }
       me.stuck = true;
       me.stuckUntil = newUntil;
     }
 
-    function teammateBumpTriggersStuck() {
-      // If I bump into a stuck teammate, I become stuck and everyone stuck gets timer reset.
-      if (myRole !== 'player' || session.state !== 'playing') return;
+    function teammateBumpTriggersStuck(){
+      if (myRole !== "player" || session.state !== "playing") return;
       if (me.caught) return;
-
       const now = Date.now();
 
-      for (const [id, p] of Object.entries(players || {})) {
+      for (const [id, p] of Object.entries(players || {})){
         if (id === myId) continue;
         if (!isValidPlayer(p)) continue;
         if (p.team !== myTeam) continue;
@@ -348,121 +1138,177 @@
         const dx = me.x - p.x;
         const dy = me.y - p.y;
         const dist = Math.sqrt(dx*dx + dy*dy);
-        if (dist < TEAMMATE_BUMP_DIST) {
+        if (dist < TEAMMATE_BUMP_DIST){
           const newUntil = now + RUBBER_PENALTY_MS;
-          // Fire and forget (avoid spamming)
           applyTeamStuckReset(newUntil);
           break;
         }
       }
     }
 
-    // --- INITIALIZATION ---
-    async function joinGame(roleSelected) {
+    function syncRemoteStuck(){
+      const p = players?.[myId];
+      if (!isValidPlayer(p)) return;
+      const remoteUntil = Number(p.stuckUntil || 0);
+      if (p.stuck === true && remoteUntil > me.stuckUntil){
+        me.stuck = true;
+        me.stuckUntil = remoteUntil;
+      }
+      if (p.stuck === false && me.stuck && remoteUntil === 0){
+        me.stuck = false;
+        me.stuckUntil = 0;
+      }
+      if (p.caught === true) me.caught = true;
+      if (p.caught === false) me.caught = false;
+    }
+
+    // =========================
+    // Join / lobby
+    // =========================
+    async function joinGame(roleSelected){
       myRole = roleSelected;
       myId = "user_" + Math.random().toString(36).substr(2, 9);
 
-      document.getElementById('role-select').style.display = 'none';
-      document.getElementById('lobby').style.display = 'flex';
+      document.getElementById("role-select").style.display = "none";
+      document.getElementById("lobby").style.display = "flex";
 
-      if (myRole === 'teacher') {
+      if (myRole === "teacher"){
         isHost = true;
         myName = "Teacher (Host)";
         myTeam = "Spectator";
         me.x = 500; me.y = 500;
 
-        document.getElementById('player-identity-card').innerHTML =
-          `<span style="color:#00ffcc">Teacher Mode Active</span><br><span style="font-size:1rem; color:#aaa">You will control the game flow and spectate.</span>`;
-        document.getElementById('host-start-area').style.display = 'block';
-        document.getElementById('waiting-msg').style.display = 'none';
+        document.getElementById("player-identity-card").innerHTML =
+          `<span style="color:var(--teal); font-family:Orbitron, sans-serif;">${myName}</span><br><span style="font-size:1rem; color:#aab;">${t("teacherControls")}</span>`;
+        document.getElementById("host-start-area").style.display = "block";
+        document.getElementById("waiting-msg").style.display = "none";
 
-        await db.ref('electricLab/session').set({
-          state: 'lobby',
+        // Reset / initialise session (teacher is source-of-truth)
+        await db.ref("electricLab/session").set({
+          state: "lobby",
           round: 0,
           timer: 60,
           scores: { Positive: 0, Negative: 0 },
-          catchers: 'Positive',
+          catchers: "Positive",
           mapId: 1,
           roundStartScores: { Positive: 0, Negative: 0 },
           roundResults: {}
         });
 
       } else {
-        const first = ["Sparky", "Zappy", "Volt", "Amp", "Flash", "Jolt"];
-        const last = ["Proton", "Electron", "Circuit", "Wire", "Battery"];
+        const first = ["Sparky","Zappy","Volt","Amp","Flash","Jolt"];
+        const last  = ["Proton","Electron","Circuit","Wire","Battery"];
         myName = first[Math.floor(Math.random()*first.length)] + " " + last[Math.floor(Math.random()*last.length)];
 
         // Even distribution allocation
-        const snap = await db.ref('electricLab/players').once('value');
+        const snap = await db.ref("electricLab/players").once("value");
         const currentPlayers = snap.val() || {};
         const counts = countTeams(currentPlayers);
         myTeam = (counts.Positive <= counts.Negative) ? "Positive" : "Negative";
 
         const spawn = baseSpawnForTeam(myTeam);
         me.x = spawn.x; me.y = spawn.y;
-        me.caught = false; me.stuck = false; me.stuckUntil = 0;
+        me.caught = false;
+        me.stuck = false;
+        me.stuckUntil = 0;
         clampToBounds(me);
 
-        const teamClass = (myTeam === 'Positive') ? 'team-pos' : 'team-neg';
-        document.getElementById('player-identity-card').innerHTML = `${myName}<br><span class="${teamClass}">Team ${myTeam}</span>`;
-        document.getElementById('my-identity').innerHTML = `<span class="${teamClass}">${myName}</span>`;
-
-        await db.ref('electricLab/players/' + myId).set({
-          x: me.x, y: me.y, team: myTeam, name: myName,
-          caught: false, stuck: false, stuckUntil: 0
+        await db.ref("electricLab/players/" + myId).set({
+          x: me.x, y: me.y,
+          team: myTeam,
+          name: myName,
+          caught: false,
+          stuck: false,
+          stuckUntil: 0
         });
-        db.ref('electricLab/players/' + myId).onDisconnect().remove();
+        db.ref("electricLab/players/" + myId).onDisconnect().remove();
       }
 
       listenToDatabase();
+      applyTranslationsStatic();
+      renderIdentityCard();
     }
 
-    function listenToDatabase() {
-      db.ref('electricLab/players').on('value', snap => {
+    function startingRoleForRound1(){
+      const round1Catchers = session?.catchers || "Positive";
+      const iAmChaser = (myTeam === round1Catchers);
+      return iAmChaser ? "chasers" : "runners";
+    }
+
+    function renderIdentityCard(){
+      if (myRole !== "player") return;
+
+      const teamClass = (myTeam === "Positive") ? "team-pos" : "team-neg";
+      const role1 = startingRoleForRound1();
+      const roleMsg = (role1 === "chasers") ? t("youStartChasers") : t("youStartRunners");
+
+      // In lobby we show: name, team, round 1 role
+      const teamText = teamLabel(myTeam);
+      document.getElementById("player-identity-card").innerHTML =
+        `${myName}<br><span class="${teamClass}">${teamText}</span><br><span style="font-size:1rem; color:#aab;">${roleMsg}</span>`;
+
+      document.getElementById("my-identity").innerHTML =
+        `<span class="${teamClass}">${myName}</span><br><span style="font-size:0.9rem; color:#aab;">${teamText}</span>`;
+    }
+
+    // =========================
+    // Database listeners
+    // =========================
+    function listenToDatabase(){
+      db.ref("electricLab/players").on("value", snap => {
         players = snap.val() || {};
 
-        // Host: if there are broken/stale entries, remove them (prevents "undefined" ghost dots)
-        if (isHost) {
+        // Host: clean invalid records (prevents ghost "undefined" dots)
+        if (isHost){
           const updates = {};
-          Object.entries(players).forEach(([id, p]) => {
-            if (!isValidPlayer(p)) {
-              updates[`electricLab/players/${id}`] = null;
-            }
+          Object.entries(players).forEach(([id,p]) => {
+            if (!isValidPlayer(p)) updates[`electricLab/players/${id}`] = null;
           });
           if (Object.keys(updates).length) db.ref().update(updates);
         }
 
-        // Host: end round immediately if all runners caught
-        if (isHost && session.state === 'playing') {
-          checkAllRunnersCaught();
+        // Host: end round immediately if all runners are caught
+        if (isHost && session.state === "playing"){
+          hostCheckAllRunnersCaughtLocal();
         }
       });
 
-      db.ref('electricLab/session').on('value', async snap => {
+      db.ref("electricLab/session").on("value", async snap => {
         const data = snap.val();
         if (!data) return;
-
         session = data;
+
+        // Map based on round
         setActiveMapFromSession();
 
-        document.getElementById('score-p').innerText = session.scores.Positive;
-        document.getElementById('score-n').innerText = session.scores.Negative;
-        document.getElementById('timer-display').innerText = formatTime(session.timer);
+        // Update static HUD numbers
+        document.getElementById("score-p").innerText = session.scores?.Positive ?? 0;
+        document.getElementById("score-n").innerText = session.scores?.Negative ?? 0;
+        document.getElementById("timer-display").innerText = formatTime(session.timer);
 
-        // Detect round transitions for LOCAL reset (prevents players overwriting host reset)
+        // Round / state transition tracking for local reset
         const roundChanged = (session.round !== lastSeenRound);
         const stateChanged = (session.state !== lastSeenState);
         lastSeenRound = session.round;
         lastSeenState = session.state;
 
-        if (session.state === 'playing') {
-          document.getElementById('lobby').style.display = 'none';
-          document.getElementById('round-screen').style.display = 'none';
-          document.getElementById('game-ui').style.display = 'flex';
-          if (myRole === 'teacher') document.getElementById('teacher-controls').style.display = 'block';
+        // Update lobby identity card (round 1 role uses session.catchers)
+        if (myRole === "player" && session.state === "lobby"){
+          renderIdentityCard();
+        }
 
-          // On entering a new round, reset LOCAL position + clear penalty so we don't teleport back to old position
-          if (myRole === 'player' && (roundChanged || (stateChanged && session.state === 'playing'))) {
+        // State machine
+        if (session.state === "playing"){
+          document.getElementById("lobby").style.display = "none";
+          document.getElementById("round-screen").style.display = "none";
+          document.getElementById("game-ui").style.display = "flex";
+          if (myRole === "teacher") document.getElementById("teacher-controls").style.display = "block";
+
+          // Touch controls visible in play
+          setTouchControlsVisible(true);
+
+          // On entering a new round: local reset to base + clear flags (prevents overwriting host reset)
+          if (myRole === "player" && (roundChanged || (stateChanged && session.state === "playing"))){
             me.caught = false;
             me.stuck = false;
             me.stuckUntil = 0;
@@ -470,8 +1316,7 @@
             me.x = spawn.x; me.y = spawn.y;
             clampToBounds(me);
 
-            // One-time "authoritative" update at round start (prevents the old position from being re-sent)
-            await db.ref('electricLab/players/' + myId).update({
+            await db.ref("electricLab/players/" + myId).update({
               x: me.x, y: me.y,
               caught: false,
               stuck: false,
@@ -479,97 +1324,160 @@
             });
           }
 
-          if (myRole === 'player') {
-            const banner = document.getElementById('role-banner');
-            if (session.catchers === myTeam) {
-              banner.innerText = `⚡ YOU ARE CATCHERS! (Tag the others)\nROUND ${session.round} | MAP: ${session.mapId === 2 ? 'NEW' : 'CLASSIC'}`;
-              banner.style.color = "#ff3366";
-            } else {
-              banner.innerText = `🏃 YOU ARE RUNNERS! (Survive!)\nROUND ${session.round} | MAP: ${session.mapId === 2 ? 'NEW' : 'CLASSIC'}`;
-              banner.style.color = "#33ccff";
-            }
-          } else {
-            document.getElementById('role-banner').innerText =
-              `ROUND ${session.round} (Catchers: ${session.catchers}) | MAP: ${session.mapId === 2 ? 'NEW' : 'CLASSIC'}`;
-            document.getElementById('role-banner').style.color = "white";
-          }
+          renderRoleBanner();
 
-          if (!document.getElementById('gameCanvas').dataset.active) {
-            document.getElementById('gameCanvas').dataset.active = "true";
+          if (!document.getElementById("gameCanvas").dataset.active){
+            document.getElementById("gameCanvas").dataset.active = "true";
             initCanvas();
           }
-        }
-        else if (session.state === 'round_end' || session.state === 'game_over') {
-          document.getElementById('game-ui').style.display = 'none';
-          document.getElementById('teacher-controls').style.display = 'none';
-          document.getElementById('round-screen').style.display = 'flex';
 
-          const isGameOver = (session.state === 'game_over');
-          document.getElementById('round-title').innerText = isGameOver ? "GAME OVER!" : `END OF ROUND ${session.round}`;
+        } else if (session.state === "round_end" || session.state === "game_over"){
+          document.getElementById("game-ui").style.display = "none";
+          document.getElementById("teacher-controls").style.display = "none";
+          document.getElementById("round-screen").style.display = "flex";
 
-          document.getElementById('round-scores').innerHTML =
-            `<span class="score-pos">Positive: ${session.scores.Positive}</span> | <span class="score-neg">Negative: ${session.scores.Negative}</span>`;
+          // Touch controls hidden in overlays
+          setTouchControlsVisible(false);
 
-          const rr = session.roundResults?.[String(session.round)] || session.roundResults?.[session.round];
-          let winnerText = "";
-          if (!isGameOver && rr?.delta) {
-            winnerText = winnerFromDelta(rr.delta).text;
-          } else if (isGameOver) {
-            winnerText = overallWinnerFromScores(session.scores).text;
-          }
-          document.getElementById('round-winner').innerText = winnerText;
+          renderRoundScreen();
 
-          let summary = "";
-          if (!isGameOver) {
-            const mapName = (Number(session.mapId) === 2) ? "NEW map (Rounds 3–4)" : "CLASSIC map";
-            summary = `Catchers this round: ${session.catchers}.\n${mapName}.\nScores above are running total across all rounds.`;
-            if (rr?.delta) summary += `\nThis round: Positive +${rr.delta.Positive || 0}, Negative +${rr.delta.Negative || 0}.`;
+          if (isHost){
+            document.getElementById("host-next-area").style.display = "block";
+            document.getElementById("waiting-next-msg").style.display = "none";
+            renderHostButtons();
           } else {
-            summary = `Four rounds complete. Final totals decide the winner (or a draw).`;
-            const results = session.roundResults || {};
-            const recap = [1,2,3,4].map(r => {
-              const item = results[String(r)] || results[r];
-              if (!item?.delta) return `R${r}: (no data)`;
-              return `R${r}: ${winnerFromDelta(item.delta).winner}`;
-            }).join("  |  ");
-            summary += `\n\nRound recap: ${recap}`;
+            document.getElementById("host-next-area").style.display = "none";
+            document.getElementById("waiting-next-msg").style.display = "block";
           }
-          document.getElementById('round-summary').innerText = summary;
 
-          if (isHost) {
-            document.getElementById('next-round-btn').innerText = isGameOver ? "PLAY NEW GAME" : `START ROUND ${session.round + 1}`;
-            document.getElementById('host-next-area').style.display = 'block';
-            document.getElementById('waiting-next-msg').style.display = 'none';
+        } else {
+          // lobby
+          document.getElementById("game-ui").style.display = "none";
+          document.getElementById("teacher-controls").style.display = "none";
+          document.getElementById("round-screen").style.display = "none";
+          document.getElementById("lobby").style.display = "flex";
+
+          setTouchControlsVisible(false);
+
+          // host area visibility
+          if (isHost){
+            document.getElementById("host-start-area").style.display = "block";
+            document.getElementById("waiting-msg").style.display = "none";
+          } else {
+            document.getElementById("host-start-area").style.display = "none";
+            document.getElementById("waiting-msg").style.display = "block";
           }
+
+          renderHostButtons();
+          renderIdentityCard();
         }
       });
     }
 
-    // --- HOST LOGIC ---
-    async function startNextRound() {
+    function renderHostButtons(){
+      if (!isHost) return;
+      const nextRound = (session.state === "game_over") ? 1 : (session.round + 1);
+      const isGameOver = (session.state === "game_over");
+      document.getElementById("start-round-btn").innerText = t("startRound1");
+      document.getElementById("next-round-btn").innerText = isGameOver ? t("playNewGame") : t("startRoundN", { n: nextRound });
+    }
+
+    function renderRoleBanner(){
+      const map = mapLabel(session.mapId);
+      if (myRole === "player"){
+        const banner = document.getElementById("role-banner");
+        const iAmChaser = (session.catchers === myTeam);
+        if (iAmChaser){
+          banner.innerText = t("youAreChasers", { n: session.round, map });
+          banner.style.color = "var(--red)";
+        } else {
+          banner.innerText = t("youAreRunners", { n: session.round, map });
+          banner.style.color = "var(--blue)";
+        }
+      } else {
+        document.getElementById("role-banner").innerText = t("teacherBanner", { n: session.round, catchers: teamLabel(session.catchers), map });
+        document.getElementById("role-banner").style.color = "#fff";
+      }
+    }
+
+    function renderRoundScreen(){
+      const isGameOver = (session.state === "game_over");
+      document.getElementById("round-title").innerText = isGameOver ? t("gameOver") : t("endOfRound", { n: session.round });
+
+      // Scores display (keep numeric + team colors)
+      document.getElementById("round-scores").innerHTML =
+        `<span class="score-pos">${t("teamPositive")}: ${session.scores.Positive}</span> | <span class="score-neg">${t("teamNegative")}: ${session.scores.Negative}</span>`;
+
+      const rr = session.roundResults?.[String(session.round)] || session.roundResults?.[session.round];
+      let winnerText = "";
+      if (!isGameOver && rr?.delta){
+        winnerText = winnerFromDelta(rr.delta).text;
+      } else if (isGameOver){
+        winnerText = overallWinnerFromScores(session.scores).text;
+      }
+      document.getElementById("round-winner").innerText = winnerText;
+
+      // Summary
+      let summary = "";
+      if (!isGameOver){
+        const map = mapLabel(session.mapId);
+        const catchers = teamLabel(session.catchers);
+        if (rr?.delta){
+          summary = t("summaryRound", {
+            catchers,
+            map,
+            dp: Number(rr.delta.Positive || 0),
+            dn: Number(rr.delta.Negative || 0)
+          });
+        } else {
+          summary = t("summaryRoundNoDelta", { catchers, map });
+        }
+      } else {
+        const results = session.roundResults || {};
+        const recap = [1,2,3,4].map(r => {
+          const item = results[String(r)] || results[r];
+          if (!item?.delta) return t("recapNoData", { n: r });
+          const w = winnerFromDelta(item.delta).winner;
+          const ww = (w === "Positive") ? t("teamPositive") : (w === "Negative") ? t("teamNegative") : "Draw";
+          return t("recapItem", { n: r, w: ww });
+        }).join("  |  ");
+        summary = t("summaryGameOver", { recap });
+      }
+      document.getElementById("round-summary").innerText = summary;
+    }
+
+    // =========================
+    // Host logic
+    // =========================
+    async function startNextRound(){
       if (!isHost) return;
 
       hostEnding = false;
 
       let nextRound = session.round + 1;
-      if (session.state === 'game_over') {
+
+      // Reset if game over
+      if (session.state === "game_over"){
         nextRound = 1;
-        await db.ref('electricLab/session/scores').set({ Positive: 0, Negative: 0 });
-        await db.ref('electricLab/session/roundResults').set({});
+        await db.ref("electricLab/session/scores").set({ Positive: 0, Negative: 0 });
+        await db.ref("electricLab/session/roundResults").set({});
       }
 
+      // Catchers alternate each round (Round 1 = Positive)
       let nextCatchers = session.catchers;
-      if (nextRound === 1) nextCatchers = 'Positive';
-      else if (nextRound % 2 === 0) nextCatchers = (session.catchers === 'Positive') ? 'Negative' : 'Positive';
+      if (nextRound === 1) nextCatchers = "Positive";
+      else nextCatchers = (session.catchers === "Positive") ? "Negative" : "Positive";
 
+      // Map changes (Rounds 3-4 use map 2)
       const nextMapId = (nextRound >= 3) ? 2 : 1;
 
-      const startScoresSnap = await db.ref('electricLab/session/scores').once('value');
+      // Snapshot scores for round delta
+      const startScoresSnap = await db.ref("electricLab/session/scores").once("value");
       const startScores = startScoresSnap.val() || { Positive: 0, Negative: 0 };
 
-      // Reset all players server-side to base location (authoritative)
+      // Reset all players server-side to base (authoritative)
       const updates = {};
-      Object.entries(players || {}).forEach(([id, p]) => {
+      Object.entries(players || {}).forEach(([id,p]) => {
         if (!isValidPlayer(p)) {
           updates[`electricLab/players/${id}`] = null;
           return;
@@ -583,8 +1491,8 @@
       });
       if (Object.keys(updates).length) await db.ref().update(updates);
 
-      await db.ref('electricLab/session').update({
-        state: 'playing',
+      await db.ref("electricLab/session").update({
+        state: "playing",
         round: nextRound,
         timer: 60,
         catchers: nextCatchers,
@@ -592,74 +1500,68 @@
         roundStartScores: startScores
       });
 
+      // Start timer countdown
       clearInterval(hostTimer);
       hostTimer = setInterval(async () => {
-        // End immediately if all runners caught
-        await checkAllRunnersCaught();
+        // if all runners caught, end early
+        hostCheckAllRunnersCaughtLocal();
 
-        const tSnap = await db.ref('electricLab/session/timer').once('value');
-        let t = Number(tSnap.val() || 0) - 1;
+        const tSnap = await db.ref("electricLab/session/timer").once("value");
+        let tLeft = Number(tSnap.val() || 0) - 1;
 
-        if (t <= 0) {
+        if (tLeft <= 0){
           clearInterval(hostTimer);
           processRoundEnd("time");
         } else {
-          db.ref('electricLab/session/timer').set(t);
+          db.ref("electricLab/session/timer").set(tLeft);
         }
       }, 1000);
     }
 
-    function endRoundEarly() {
+    function endRoundEarly(){
       if (!isHost) return;
       clearInterval(hostTimer);
       processRoundEnd("forced");
     }
 
-    async function checkAllRunnersCaught() {
+    function hostCheckAllRunnersCaughtLocal(){
       if (!isHost) return;
       if (hostEnding) return;
-      if (session.state !== 'playing') return;
+      if (session.state !== "playing") return;
 
-      // Pull latest players to avoid relying on a stale in-memory snapshot
-      const pSnap = await db.ref('electricLab/players').once('value');
-      const ps = pSnap.val() || {};
-
-      const runnerTeam = (session.catchers === 'Positive') ? 'Negative' : 'Positive';
+      const runnerTeam = (session.catchers === "Positive") ? "Negative" : "Positive";
       let anyRunnerAlive = false;
 
-      Object.values(ps).forEach(p => {
+      Object.values(players || {}).forEach(p => {
         if (!isValidPlayer(p)) return;
         if (p.team === runnerTeam && !p.caught) anyRunnerAlive = true;
       });
 
-      if (!anyRunnerAlive) {
+      if (!anyRunnerAlive){
         clearInterval(hostTimer);
         processRoundEnd("all_caught");
       }
     }
 
-    async function processRoundEnd(reason) {
+    async function processRoundEnd(reason){
       if (!isHost) return;
       if (hostEnding) return;
       hostEnding = true;
 
-      // Surviving runners get points (this includes the case where none survived => +0)
-      const runnerTeam = (session.catchers === 'Positive') ? 'Negative' : 'Positive';
+      // Award survivor points to runners
+      const runnerTeam = (session.catchers === "Positive") ? "Negative" : "Positive";
       let survivors = 0;
 
-      // Use latest players snapshot
-      const pSnap = await db.ref('electricLab/players').once('value');
-      const ps = pSnap.val() || {};
-
-      Object.values(ps).forEach(p => {
+      Object.values(players || {}).forEach(p => {
         if (!isValidPlayer(p)) return;
         if (p.team === runnerTeam && !p.caught) survivors++;
       });
 
-      await db.ref('electricLab/session/scores/' + runnerTeam)
-        .transaction(currentScore => (currentScore || 0) + survivors);
+      await db.ref("electricLab/session/scores/" + runnerTeam)
+        .transaction(current => (current || 0) + survivors);
 
-      const scoresSnap = await db.ref('electricLab/session/scores').once('value');
+      // Delta this round
+      const scoresSnap = await db.ref("electricLab/session/scores").once("value");
       const scoresNow = scoresSnap.val() || { Positive: 0, Negative: 0 };
       const start = session.roundStartScores || { Positive: 0, Negative: 0 };
 
@@ -669,7 +1571,8 @@
       };
 
       const win = winnerFromDelta(delta);
-      await db.ref('electricLab/session/roundResults/' + session.round).set({
+
+      await db.ref("electricLab/session/roundResults/" + session.round).set({
         delta,
         winner: win.winner,
         catchers: session.catchers,
@@ -677,143 +1580,120 @@
         reason: reason || "unknown"
       });
 
-      const isGameOver = session.round >= 4;
-      await db.ref('electricLab/session/state').set(isGameOver ? 'game_over' : 'round_end');
+      const isGameOver = (session.round >= 4);
+      await db.ref("electricLab/session/state").set(isGameOver ? "game_over" : "round_end");
 
       hostEnding = false;
     }
 
-    // --- CONTROLS ---
-    window.addEventListener('keydown', e => {
-      if (e.key === 'w' || e.key === 'ArrowUp') keys.w = true;
-      if (e.key === 'a' || e.key === 'ArrowLeft') keys.a = true;
-      if (e.key === 's' || e.key === 'ArrowDown') keys.s = true;
-      if (e.key === 'd' || e.key === 'ArrowRight') keys.d = true;
+    // =========================
+    // Keyboard controls (desktop)
+    // =========================
+    window.addEventListener("keydown", e => {
+      if (e.key === "w" || e.key === "ArrowUp") keys.w = true;
+      if (e.key === "a" || e.key === "ArrowLeft") keys.a = true;
+      if (e.key === "s" || e.key === "ArrowDown") keys.s = true;
+      if (e.key === "d" || e.key === "ArrowRight") keys.d = true;
     });
-    window.addEventListener('keyup', e => {
-      if (e.key === 'w' || e.key === 'ArrowUp') keys.w = false;
-      if (e.key === 'a' || e.key === 'ArrowLeft') keys.a = false;
-      if (e.key === 's' || e.key === 'ArrowDown') keys.s = false;
-      if (e.key === 'd' || e.key === 'ArrowRight') keys.d = false;
+    window.addEventListener("keyup", e => {
+      if (e.key === "w" || e.key === "ArrowUp") keys.w = false;
+      if (e.key === "a" || e.key === "ArrowLeft") keys.a = false;
+      if (e.key === "s" || e.key === "ArrowDown") keys.s = false;
+      if (e.key === "d" || e.key === "ArrowRight") keys.d = false;
     });
 
-    function checkMaterialSpeed() {
+    function checkMaterialSpeed(){
       let maxSpeed = 2;
-      for (let i = mapZones.length - 1; i >= 0; i--) {
+      for (let i = mapZones.length - 1; i >= 0; i--){
         const z = mapZones[i];
-        if (isInZone(me, z)) {
-          if (z.type === 'conductor') maxSpeed = 7;
-          if (z.type === 'slow') maxSpeed = 0.5;
-          // Rubber no longer means "speed 0 forever" — we handle penalty separately.
+        if (isInZone(me, z)){
+          if (z.type === "conductor") maxSpeed = 7;
+          if (z.type === "slow") maxSpeed = 0.5;
           break;
         }
       }
       return maxSpeed;
     }
 
-    // --- TAGGING ---
-    function checkTags() {
-      if (myRole !== 'player' || session.state !== 'playing') return;
+    // Tagging logic
+    function checkTags(){
+      if (myRole !== "player" || session.state !== "playing") return;
       if (me.caught) return;
-      if (me.stuck && Date.now() < me.stuckUntil) return; // can't tag while stuck
+      if (me.stuck && Date.now() < me.stuckUntil) return;
       if (session.catchers !== myTeam) return;
 
       Object.keys(players).forEach(id => {
         const p = players[id];
         if (!isValidPlayer(p)) return;
-        if (p.team !== myTeam && !p.caught) {
-          const dx = me.x - p.x;
-          const dy = me.y - p.y;
-          const dist = Math.sqrt(dx*dx + dy*dy);
+        if (p.team === myTeam) return;
+        if (p.caught) return;
 
-          if (dist < 30) {
-            db.ref('electricLab/players/' + id).update({ caught: true });
-            db.ref('electricLab/session/scores/' + myTeam).transaction(current => (current || 0) + 1);
-          }
+        const dx = me.x - p.x;
+        const dy = me.y - p.y;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        if (dist < 30){
+          db.ref("electricLab/players/" + id).update({ caught: true });
+          db.ref("electricLab/session/scores/" + myTeam).transaction(current => (current || 0) + 1);
         }
       });
     }
 
-    // Position push (only if playing and not stuck/caught)
+    // Send position (players only)
     setInterval(() => {
-      if (myRole === 'player' && session.state === 'playing') {
-        // Keep me.stuck status synced from my local state
-        db.ref('electricLab/players/' + myId).update({
-          x: me.x,
-          y: me.y,
-          caught: !!me.caught,
-          stuck: !!me.stuck,
-          stuckUntil: Number(me.stuckUntil || 0)
-        });
+      if (myRole === "player" && session.state === "playing"){
+        db.ref("electricLab/players/" + myId).update({ x: me.x, y: me.y });
       }
-    }, 80);
+    }, 60);
 
-    // --- CANVAS / RENDER ---
-    const canvas = document.getElementById('gameCanvas');
-    const ctx = canvas.getContext('2d');
+    // =========================
+    // Canvas + render loop
+    // =========================
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
 
-    function initCanvas() {
+    function initCanvas(){
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
       requestAnimationFrame(gameLoop);
     }
-
-    window.addEventListener('resize', () => {
+    window.addEventListener("resize", () => {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
     });
 
-    async function maybeTriggerRubberPenalty() {
-      if (myRole !== 'player' || session.state !== 'playing') return;
+    async function maybeTriggerRubberPenalty(){
+      if (myRole !== "player" || session.state !== "playing") return;
       if (me.caught) return;
-
       const now = Date.now();
 
-      // If already stuck, check respawn timer
-      if (me.stuck) {
-        if (now >= me.stuckUntil) {
+      if (me.stuck){
+        if (now >= me.stuckUntil){
           await clearMyStuckAndRespawn();
         }
         return;
       }
-
-      // Not stuck: if touching rubber, apply penalty
-      if (isTouchingRubber(me)) {
-        const until = now + RUBBER_PENALTY_MS;
-        await setMyStuck(until);
+      if (isTouchingRubber(me)){
+        await setMyStuck(now + RUBBER_PENALTY_MS);
       }
     }
 
-    function updateFromRemoteSelf() {
-      // If we get remote stuckUntil that is higher, respect it (for teammate bump resets).
-      const p = players?.[myId];
-      if (!isValidPlayer(p)) return;
-      const remoteUntil = Number(p.stuckUntil || 0);
-      if (p.stuck === true && remoteUntil > me.stuckUntil) {
-        me.stuck = true;
-        me.stuckUntil = remoteUntil;
-      }
-      // Note: we do NOT overwrite local x/y from remote every tick to avoid jitter.
-    }
-
-    function gameLoop() {
-      if (session.state !== 'playing') {
+    function gameLoop(){
+      if (session.state !== "playing"){
         requestAnimationFrame(gameLoop);
         return;
       }
 
       setActiveMapFromSession();
-      updateFromRemoteSelf();
 
-      const now = Date.now();
+      // Update stuck/caught status from DB (important for shared penalty resets)
+      if (myRole === "player") syncRemoteStuck();
 
-      if (myRole === 'player') {
-        // If stuck, disable movement; still allow teammate-bump mechanic (others bumping you, and you bumping them)
-        if (me.stuck && now < me.stuckUntil) {
-          // If I bump into a stuck teammate, we reset the timer for all stuck teammates (and me)
+      // Movement
+      if (myRole === "player"){
+        const now = Date.now();
+        if (me.stuck && now < me.stuckUntil){
           teammateBumpTriggersStuck();
-        } else if (!me.caught) {
-          // Movement
+        } else if (!me.caught){
           const speed = checkMaterialSpeed();
           if (keys.w) me.y -= speed;
           if (keys.s) me.y += speed;
@@ -822,17 +1702,17 @@
 
           clampToBounds(me);
 
-          // Rubber penalty check (can set stuck)
+          // Rubber penalty / respawn
           maybeTriggerRubberPenalty();
 
-          // Teammate bump: I can also bump into a stuck teammate while I'm moving
+          // Teammate bump rule (touching stuck teammate)
           teammateBumpTriggersStuck();
 
           // Tagging
           checkTags();
         }
-      } else if (myRole === 'teacher') {
-        // Teacher free cam
+      } else if (myRole === "teacher"){
+        // Teacher camera movement (also works on touch dpad)
         if (keys.w) me.y -= 10;
         if (keys.s) me.y += 10;
         if (keys.a) me.x -= 10;
@@ -840,21 +1720,23 @@
         clampToBounds(me);
       }
 
-      const cx = me.x - canvas.width/2;
-      const cy = me.y - canvas.height/2;
+      // Camera follows self
+      const cx = me.x - canvas.width / 2;
+      const cy = me.y - canvas.height / 2;
 
+      // Clear
       ctx.fillStyle = "#0b0f19";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
       ctx.save();
       ctx.translate(-cx, -cy);
 
-      // Draw map
+      // Map zones
       mapZones.forEach(z => {
         ctx.fillStyle = z.color;
         ctx.fillRect(z.x, z.y, z.w, z.h);
-        if (z.type === 'conductor') {
-          ctx.strokeStyle = "rgba(255, 255, 255, 0.2)";
+        if (z.type === "conductor"){
+          ctx.strokeStyle = "rgba(255,255,255,0.2)";
           ctx.strokeRect(z.x, z.y, z.w, z.h);
         }
       });
@@ -865,33 +1747,32 @@
       ctx.strokeRect(PLAY_BOUNDS.minX, PLAY_BOUNDS.minY, PLAY_BOUNDS.maxX - PLAY_BOUNDS.minX, PLAY_BOUNDS.maxY - PLAY_BOUNDS.minY);
       ctx.lineWidth = 1;
 
-      // Draw players (filter invalid to remove "undefined" ghosts)
-      Object.values(players).forEach(p => {
+      // Players
+      Object.entries(players || {}).forEach(([id, p]) => {
         if (!isValidPlayer(p)) return;
-
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, 15, 0, Math.PI*2);
 
         const stuckActive = (p.stuck === true && Number(p.stuckUntil || 0) > Date.now());
 
-        if (p.caught) {
-          ctx.fillStyle = "rgba(100, 100, 100, 0.5)";
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 15, 0, Math.PI * 2);
+
+        if (p.caught){
+          ctx.fillStyle = "rgba(100,100,100,0.5)";
           ctx.shadowBlur = 0;
-        } else if (stuckActive) {
-          ctx.fillStyle = "rgba(180, 180, 180, 0.85)";
-          ctx.shadowColor = "rgba(255,255,255,0.5)";
+        } else if (stuckActive){
+          ctx.fillStyle = "rgba(180,180,180,0.85)";
+          ctx.shadowColor = "rgba(255,255,255,0.55)";
           ctx.shadowBlur = 12;
         } else {
-          if (p.team === 'Positive') { ctx.fillStyle = "#ff3366"; ctx.shadowColor = "#ff3366"; }
+          if (p.team === "Positive"){ ctx.fillStyle = "#ff3366"; ctx.shadowColor = "#ff3366"; }
           else { ctx.fillStyle = "#33ccff"; ctx.shadowColor = "#33ccff"; }
           ctx.shadowBlur = 15;
         }
-
         ctx.fill();
         ctx.shadowBlur = 0;
 
         // Name tag
-        ctx.fillStyle = p.caught ? "#666" : "white";
+        ctx.fillStyle = p.caught ? "#666" : "#fff";
         ctx.font = "12px Orbitron";
         ctx.textAlign = "center";
 
@@ -902,8 +1783,15 @@
       });
 
       ctx.restore();
+
       requestAnimationFrame(gameLoop);
     }
+
+    // =========================
+    // Initial render
+    // =========================
+    applyTranslationsStatic();
+    renderHostButtons();
   </script>
 </body>
 </html>
