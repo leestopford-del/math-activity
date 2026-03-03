@@ -1,40 +1,24 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Mr. Stopford's Classroom Hub</title>
+    <title>Mr. Stopford's Science Lab</title>
     <style>
-        body { background: #0b1426; color: white; font-family: 'Segoe UI', sans-serif; text-align: center; padding: 50px; }
-        .hub-container { display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; margin-top: 40px; }
-        .card { 
-            background: #1a2233; border: 2px solid #3b82f6; border-radius: 15px; 
-            padding: 20px; width: 280px; transition: 0.3s; 
-        }
-        .card:hover { transform: translateY(-10px); border-color: #00ffcc; }
-        .btn { 
-            background: #00ffcc; color: #0b1426; padding: 12px 20px; 
-            text-decoration: none; font-weight: bold; border-radius: 5px; 
-            display: inline-block; margin-top: 15px; 
-        }
-        .math-card { border-color: #f59e0b; }
-        .math-btn { background: #f59e0b; color: white; }
+        body { background: #0b1426; color: white; font-family: sans-serif; text-align: center; padding: 50px; }
+        .card { background: #1a2233; border: 2px solid #3b82f6; border-radius: 20px; padding: 30px; margin: 20px auto; max-width: 400px; }
+        .btn { background: #00ffcc; color: #0b1426; padding: 15px 30px; text-decoration: none; font-weight: bold; border-radius: 50px; display: inline-block; margin-top: 20px; }
     </style>
 </head>
 <body>
-    <h1>Welcome to the Interactive Lab</h1>
-    <p>Select today's activity:</p>
-
-    <div class="hub-container">
-        <div class="card">
-            <h2>⚡ Science Lab</h2>
-            <p>Activity: Electric Highway<br>(Conductors & Insulators)</p>
-            <a href="Electric-Highway.html" class="btn">ENTER LAB</a>
-        </div>
-
-        <div class="card math-card">
-            <h2>📐 Math Room</h2>
-            <p>Activity: Unfolding Magic<br>(3D Shape Nets)</p>
-            <a href="math-nets.html" class="btn math-btn">ENTER ROOM</a>
-        </div>
+    <h1>Welcome, Scientists!</h1>
+    <div class="card">
+        <h2>⚡ Electric Highway</h2>
+        <p>Topic: Conductors & Insulators</p>
+        <a href="Electric-Highway.html" class="btn">START SIMULATION</a>
+    </div>
+    <div class="card" style="border-color: #f59e0b;">
+        <h2>📐 Math Nets</h2>
+        <p>Topic: 3D Shapes</p>
+        <a href="math-nets.html" class="btn" style="background: #f59e0b; color: white;">START MATH</a>
     </div>
 </body>
 </html>
