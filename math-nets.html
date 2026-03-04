@@ -164,7 +164,7 @@
     const clicksRef = db.ref('totalClicks');
     const usersRef = db.ref('users');
 
-    // 1. Authentication & Presence
+    // 1. Authentication & Presence (UPDATED WITH ERROR CATCHING)
     firebase.auth().signInAnonymously().then((userCred) => {
         myUID = userCred.user.uid;
         document.getElementById('myNameDisplay').innerText = myName;
@@ -178,6 +178,10 @@
                 usersRef.child(myUID).onDisconnect().remove(); // Clean up votes
             }
         });
+    }).catch((error) => {
+        // THIS IS NEW: It will tell you exactly what is broken!
+        console.error("Firebase Auth Error:", error);
+        alert("Uh oh! Could not connect to the game server. Error: " + error.message);
     });
 
     // 2. Leader Election & User Counting
