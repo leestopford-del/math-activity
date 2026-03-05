@@ -43,7 +43,7 @@
         🧑‍🤝‍🧑 Classmates Online: <span id="onlineCount">0</span>
     </div>
     <div style="background: #10b981; color: white; padding: 5px 15px; border-radius: 20px; font-weight: bold;">
-        My Name: <span id="myNameDisplay">Loading...</span> <span id="leaderBadge" style="display:none;">👑 (Leader)</span>
+        My Name: <span id="myNameDisplay">Loading...</span> <span id="leaderBadge" style="display:none;">👑 (Host)</span>
     </div>
 </div>
 
@@ -147,10 +147,8 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // Funny Names List
     const namesList = ["Awesome Alpaca", "Brave Bear", "Clever Cat", "Daring Dog", "Eager Elephant", "Fast Fox", "Giant Giraffe", "Happy Hippo", "Incredible Iguana", "Jolly Jellyfish", "Kind Kangaroo", "Lucky Lion", "Mighty Monkey", "Ninja Newt", "Outstanding Owl", "Playful Penguin", "Quick Quail", "Radical Rhino", "Super Sloth", "Terrific Tiger", "Unique Unicorn", "Valiant Vulture", "Wild Wolf", "X-traordinary Xerus", "Yellow Yak", "Zippy Zebra", "Bouncy Bunny", "Cosmic Cow", "Dancing Dolphin", "Epic Eagle", "Famous Flamingo", "Groovy Goat", "Heroic Hamster", "Icey Impala", "Jumping Jaguar", "Koala King", "Laughing Llama", "Magical Moose", "Noble Narwhal", "Party Parrot"];
 
-    // Globals
     let myUID = null;
     let myName = namesList[Math.floor(Math.random() * namesList.length)];
     let isLeader = false;
@@ -158,31 +156,35 @@
     let myMagicClicks = 0;
     let amIReady = false;
 
-    // References
     const stateRef = db.ref('gameState');
     const presenceRef = db.ref('presence');
     const clicksRef = db.ref('totalClicks');
     const usersRef = db.ref('users');
 
-    // 1. Authentication & Presence
-    firebase.auth().signInAnonymously().then((userCred) => {
-        myUID = userCred.user.uid;
-        document.getElementById('myNameDisplay').innerText = myName;
+    // --- 1. THE FIX: Force 'none' persistence so every tab is a brand new user ---
+    firebase.auth().setPersistence('none')
+        .then(() => {
+            return firebase.auth().signInAnonymously();
+        })
+        .then((userCred) => {
+            myUID = userCred.user.uid;
+            console.log("My unique User ID for this tab is: ", myUID); // Check this in your browser console!
+            
+            document.getElementById('myNameDisplay').innerText = myName;
 
-        const myPresence = presenceRef.child(myUID);
-        db.ref('.info/connected').on('value', (snap) => {
-            if (snap.val() === true) {
-                // FIXED: Using a local device timestamp rather than relying on Firebase Server delay
-                const localJoinTime = new Date().getTime();
-                myPresence.set({ name: myName, joinedAt: localJoinTime });
-                myPresence.onDisconnect().remove();
-                usersRef.child(myUID).onDisconnect().remove();
-            }
+            const myPresence = presenceRef.child(myUID);
+            db.ref('.info/connected').on('value', (snap) => {
+                if (snap.val() === true) {
+                    const localJoinTime = new Date().getTime();
+                    myPresence.set({ name: myName, joinedAt: localJoinTime });
+                    myPresence.onDisconnect().remove();
+                    usersRef.child(myUID).onDisconnect().remove();
+                }
+            });
+        }).catch((error) => {
+            console.error("Firebase Auth Error:", error);
+            alert("Uh oh! Could not connect. Error: " + error.message);
         });
-    }).catch((error) => {
-        console.error("Firebase Auth Error:", error);
-        alert("Uh oh! Could not connect to the game server. Error: " + error.message);
-    });
 
     // 2. Leader Election & User Counting
     presenceRef.on('value', (snap) => {
@@ -249,7 +251,7 @@
 
     // 4. Dynamic Magic Logic
     function addMagicPower() {
-        if (myMagicClicks >= 3) return; // Max 3 clicks per person
+        if (myMagicClicks >= 3) return; 
         myMagicClicks++;
         document.getElementById('myClicks').innerText = myMagicClicks;
         clicksRef.transaction((current) => (current || 0) + 1);
@@ -257,7 +259,6 @@
 
     clicksRef.on('value', (snap) => {
         const totalClicks = snap.val() || 0;
-        // Require 2 clicks per person online
         const clicksNeeded = onlineUsersCount * 2;
         let power = clicksNeeded === 0 ? 0 : Math.floor((totalClicks / clicksNeeded) * 100);
         
