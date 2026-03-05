@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quality Control Race</title>
+    <title>Quality Control: Factory Face-Off</title>
     
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
@@ -11,126 +11,163 @@
 
     <style>
         :root {
-            --red-team: #ef4444;
-            --blue-team: #3b82f6;
-            --bg-dark: #0f172a;
-            --card-bg: #1e293b;
+            --red-team: #ef4444; --red-dark: #7f1d1d;
+            --blue-team: #3b82f6; --blue-dark: #1e3a8a;
+            --bg-dark: #0f172a; --card-bg: #1e293b;
+            --hazard: repeating-linear-gradient(45deg, #1e293b, #1e293b 10px, #0f172a 10px, #0f172a 20px);
         }
         body {
             margin: 0; padding: 0; background-color: var(--bg-dark); color: white;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            display: flex; flex-direction: column; align-items: center; height: 100vh;
-            overflow: hidden; /* Prevents mobile scrolling issues */
+            display: flex; flex-direction: column; align-items: center; height: 100vh; overflow: hidden;
         }
         
-        /* Top Scoreboard */
-        .scoreboard {
-            width: 100%; display: flex; justify-content: space-between; padding: 10px 0;
-            background: #000; box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-        }
-        .team-score { width: 45%; text-align: center; }
-        .bar-container { width: 90%; height: 20px; background: #333; margin: 5px auto; border-radius: 10px; overflow: hidden;}
+        /* Factory Aesthetics */
+        .header-bar { width: 100%; background: #000; padding: 10px 0; text-align: center; border-bottom: 4px solid #475569; }
+        
+        /* Scoreboard */
+        .scoreboard { width: 100%; display: flex; justify-content: space-between; padding: 10px 0; background: var(--hazard); box-shadow: 0 4px 6px rgba(0,0,0,0.5); z-index: 10; }
+        .team-score { width: 45%; text-align: center; background: rgba(0,0,0,0.7); border-radius: 10px; padding: 5px; margin: 0 5px;}
+        .bar-container { width: 90%; height: 15px; background: #333; margin: 5px auto; border-radius: 10px; overflow: hidden;}
         .bar { height: 100%; width: 0%; transition: width 0.3s ease; }
         #redBar { background: var(--red-team); }
         #blueBar { background: var(--blue-team); }
 
-        /* Main Play Area */
-        .container { flex-grow: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; width: 90%; max-width: 500px; text-align: center; }
+        /* Main Containers */
+        .container { flex-grow: 1; display: flex; flex-direction: column; width: 95%; max-width: 600px; padding-top: 10px; overflow-y: auto;}
+        .screen { display: none; width: 100%; flex-direction: column; align-items: center; }
         
-        /* The Inspection Card */
-        .ticket-card {
-            background: var(--card-bg); border: 4px solid #475569; border-radius: 20px;
-            padding: 30px 20px; width: 100%; box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-            margin-bottom: 20px; transition: transform 0.2s;
-        }
-        .ticket-title { color: #94a3b8; text-transform: uppercase; letter-spacing: 2px; font-size: 0.9em; margin-bottom: 15px;}
-        .goal-text { font-size: 1.5em; color: #facc15; font-weight: bold; margin: 10px 0; }
-        .material-text { font-size: 2em; margin: 10px 0; text-shadow: 2px 2px 0 #000; }
-        .test-text { background: #334155; padding: 10px; border-radius: 10px; font-style: italic; color: #cbd5e1; }
+        /* UI Elements */
+        .box { background: var(--card-bg); border: 2px solid #475569; border-radius: 15px; padding: 20px; width: 100%; box-sizing: border-box; margin-bottom: 15px; box-shadow: 0 10px 20px rgba(0,0,0,0.3); }
+        .input-text { padding: 15px; font-size: 1.2em; border-radius: 8px; border: none; width: 60px; text-align: center; text-transform: uppercase; font-weight: bold; margin-bottom: 15px;}
+        .btn { padding: 15px 25px; font-size: 1.2em; font-weight: bold; border: none; border-radius: 10px; cursor: pointer; transition: 0.2s; color: white; width: 100%; box-sizing: border-box;}
+        .btn:active { transform: scale(0.95); }
+        .btn-green { background: #16a34a; box-shadow: 0 5px 0 #14532d; }
+        .btn-red { background: #dc2626; box-shadow: 0 5px 0 #7f1d1d; }
+        .btn-gray { background: #475569; color: #94a3b8; cursor: not-allowed; }
 
-        /* Action Buttons */
-        .btn-row { display: flex; gap: 15px; width: 100%; }
-        .action-btn {
-            flex: 1; padding: 20px; font-size: 1.5em; font-weight: bold; border: none; border-radius: 15px;
-            cursor: pointer; transition: 0.2s; color: white;
-        }
-        .action-btn:active { transform: scale(0.95); }
-        .btn-reject { background: #dc2626; box-shadow: 0 6px 0 #991b1b; }
-        .btn-approve { background: #16a34a; box-shadow: 0 6px 0 #166534; }
+        /* Ticket & Gameplay */
+        .ticket { background: #f8fafc; color: #0f172a; border-radius: 5px; padding: 15px; position: relative; border-top: 15px solid #cbd5e1; margin-bottom: 15px; }
+        .ticket::before { content: ""; position: absolute; top: -10px; left: 50%; transform: translateX(-50%); width: 40px; height: 10px; background: #0f172a; border-radius: 10px; }
+        .ticket h3 { margin: 0 0 10px 0; color: #64748b; font-size: 0.9em; text-transform: uppercase; }
+        .goal { font-size: 1.3em; font-weight: bold; color: #b45309; }
+        .material { font-size: 1.8em; font-weight: 900; margin: 5px 0; }
+        .test-result { background: #e2e8f0; padding: 10px; border-left: 5px solid #3b82f6; font-style: italic; }
+        
+        /* Chat Box */
+        .chat-container { flex-grow: 1; display: flex; flex-direction: column; background: rgba(0,0,0,0.3); border-radius: 10px; overflow: hidden; border: 1px solid #334155; margin-bottom: 10px; min-height: 150px; max-height: 200px;}
+        .chat-messages { flex-grow: 1; padding: 10px; overflow-y: auto; font-size: 0.9em; display: flex; flex-direction: column; gap: 5px; }
+        .chat-msg { background: #334155; padding: 5px 10px; border-radius: 15px; width: fit-content; max-width: 80%; }
+        .chat-msg.me { background: #0ea5e9; align-self: flex-end; }
+        .chat-input-area { display: flex; border-top: 1px solid #475569; }
+        .chat-input { flex-grow: 1; padding: 10px; background: transparent; border: none; color: white; font-size: 1em; }
+        .chat-send { padding: 10px 20px; background: #3b82f6; border: none; color: white; font-weight: bold; cursor: pointer; }
 
-        /* Screens */
-        #screen-lobby, #screen-game, #screen-winner { display: none; width: 100%; max-width: 500px; text-align: center;}
-        
-        .join-btn { padding: 15px 30px; font-size: 1.2em; border: none; border-radius: 10px; color: white; margin: 10px; cursor: pointer; width: 80%; font-weight: bold;}
-        .join-red { background: var(--red-team); }
-        .join-blue { background: var(--blue-team); }
-        
-        /* Penalty Overlay */
-        #penalty-overlay {
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(220, 38, 38, 0.9); z-index: 100; justify-content: center; align-items: center;
-            font-size: 3em; font-weight: bold; color: white; flex-direction: column;
-        }
+        /* Host Dashboard */
+        .team-list { display: flex; gap: 10px; margin-top: 15px; }
+        .team-col { flex: 1; background: rgba(0,0,0,0.5); padding: 10px; border-radius: 10px; min-height: 100px; }
+        .player-tag { background: #334155; font-size: 0.8em; padding: 5px; margin-bottom: 5px; border-radius: 5px; }
+
+        /* Status Banner */
+        .turn-banner { background: #f59e0b; color: #000; font-weight: bold; text-align: center; padding: 10px; border-radius: 10px; margin-bottom: 15px; font-size: 1.1em; animation: pulse 2s infinite;}
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.02); } 100% { transform: scale(1); } }
     </style>
 </head>
 <body>
 
+    <div class="header-bar" id="top-header">
+        <h2 style="margin:0;">🏭 QUALITY CONTROL LAB</h2>
+    </div>
+
     <div class="scoreboard" id="scoreboard" style="display:none;">
         <div class="team-score">
-            <h3 style="margin:5px 0; color: #ef4444;">RED FACTORY: <span id="redScoreTxt">0</span>/15</h3>
+            <h4 style="margin:5px 0; color: #ef4444;">RED FACTORY: <span id="redScoreTxt">0</span>/15</h4>
             <div class="bar-container"><div class="bar" id="redBar"></div></div>
         </div>
         <div class="team-score">
-            <h3 style="margin:5px 0; color: #3b82f6;">BLUE FACTORY: <span id="blueScoreTxt">0</span>/15</h3>
+            <h4 style="margin:5px 0; color: #3b82f6;">BLUE FACTORY: <span id="blueScoreTxt">0</span>/15</h4>
             <div class="bar-container"><div class="bar" id="blueBar"></div></div>
         </div>
     </div>
 
     <div class="container">
-        <div id="screen-lobby">
-            <h1>🏭 The Quality Control Lab</h1>
-            <p>Select your shift team:</p>
-            <button class="join-btn join-red" onclick="joinTeam('red')">Join RED Factory</button>
-            <button class="join-btn join-blue" onclick="joinTeam('blue')">Join BLUE Factory</button>
-            
-            <div id="host-controls" style="display:none; margin-top: 40px; padding: 20px; border: 2px dashed #475569; border-radius: 10px;">
-                <p style="color: #facc15;">👑 You are the Host</p>
-                <button class="join-btn" style="background:#f59e0b; width:100%;" onclick="startRace()">START THE RACE!</button>
-                <button onclick="resetGame()" style="margin-top: 15px; background: transparent; color: #cbd5e1; border: 1px solid #cbd5e1; padding: 5px;">Reset Server</button>
-            </div>
-            <p id="waiting-msg" style="display:none; color: #94a3b8; margin-top: 20px;">Waiting for host to start the line...</p>
-        </div>
-
-        <div id="screen-game">
-            <h2 id="myTeamDisplay" style="margin-top:0;">You are on the <span id="teamNameColor">...</span> Team</h2>
-            
-            <div class="ticket-card">
-                <div class="ticket-title">Quality Control Ticket</div>
-                <div class="goal-text">Item: <span id="q-purpose">Loading...</span></div>
-                <div class="material-text" id="q-material">Loading...</div>
-                <div class="test-text">Test Result: <span id="q-test">Loading...</span></div>
+        <div id="screen-lobby" class="screen" style="display:flex;">
+            <div class="box" style="text-align: center;">
+                <h2>Welcome, Inspector!</h2>
+                <p>Enter the <b>first letter</b> of your name to get your official Factory ID badge and team assignment.</p>
+                <input type="text" id="initialInput" class="input-text" maxlength="1" placeholder="A">
+                <button class="btn btn-green" onclick="joinFactory()">GET HIRED</button>
             </div>
 
-            <div class="btn-row">
-                <button class="action-btn btn-reject" onclick="submitAnswer(false)">❌ SCRAP IT</button>
-                <button class="action-btn btn-approve" onclick="submitAnswer(true)">✅ APPROVE</button>
+            <div id="host-controls" class="box" style="display:none; border-color: #f59e0b;">
+                <h3 style="color: #f59e0b; margin-top:0;">👑 Host Dashboard</h3>
+                <button class="btn" style="background:#f59e0b; color:black;" onclick="showRules()">CONTINUE TO RULES ➔</button>
+                
+                <div class="team-list">
+                    <div class="team-col" style="border-top: 3px solid var(--red-team);">
+                        <strong>RED TEAM</strong>
+                        <div id="red-players"></div>
+                    </div>
+                    <div class="team-col" style="border-top: 3px solid var(--blue-team);">
+                        <strong>BLUE TEAM</strong>
+                        <div id="blue-players"></div>
+                    </div>
+                </div>
+                <button onclick="resetGame()" style="margin-top: 15px; background: transparent; color: #cbd5e1; border: 1px solid #cbd5e1; padding: 5px; width:100%;">Hard Reset Game</button>
             </div>
         </div>
 
-        <div id="screen-winner">
-            <h1 style="font-size: 4em; margin-bottom: 0;">🏆</h1>
-            <h1 id="winnerText" style="font-size: 2.5em;">TEAM WINS!</h1>
-            <p>Production quota met!</p>
+        <div id="screen-rules" class="screen">
+            <div class="box">
+                <h2 style="margin-top:0;">📋 Factory Protocol (Rules)</h2>
+                <ul style="line-height: 1.6; color: #cbd5e1; padding-left: 20px;">
+                    <li>You are split into <b>Team Red</b> and <b>Team Blue</b>.</li>
+                    <li>This is a tag-team race! Only <b>one player per team</b> has control of the buttons at a time.</li>
+                    <li>Look at the product goal and the material's test result. If it fits the purpose, tap <b>APPROVE</b>. If not, tap <b>SCRAP IT</b>.</li>
+                    <li>If it's not your turn, use the <b>Team Chat</b> to yell the answer to your active teammate!</li>
+                    <li>First team to process 15 correct items wins. Mistakes skip your turn!</li>
+                </ul>
+                <div id="wait-msg" style="text-align: center; color: #f59e0b; font-weight: bold; margin-top: 20px;">Waiting for Host to start the conveyor belt...</div>
+                <button id="start-btn" class="btn btn-green" style="display:none; margin-top:15px;" onclick="startRace()">START CONVEYOR BELT!</button>
+            </div>
         </div>
-    </div>
 
-    <div id="penalty-overlay">
-        <div>❌ BAD CHOICE!</div>
-        <div style="font-size: 0.5em; margin-top: 20px;">Safety check... wait <span id="penalty-timer">3</span>s</div>
+        <div id="screen-game" class="screen">
+            <div id="turn-banner" class="turn-banner">Loading turn...</div>
+
+            <div class="ticket">
+                <h3>🎟️ Inspection Ticket</h3>
+                <div class="goal">Product Goal: <span id="q-purpose" style="color:black;">...</span></div>
+                <div class="material" id="q-material">...</div>
+                <div class="test-result">Lab Test: <span id="q-test">...</span></div>
+            </div>
+
+            <div style="display: flex; gap: 10px; width: 100%; margin-bottom: 15px;">
+                <button id="btn-scrap" class="btn btn-red" onclick="submitAnswer(false)">❌ SCRAP IT</button>
+                <button id="btn-approve" class="btn btn-green" onclick="submitAnswer(true)">✅ APPROVE</button>
+            </div>
+
+            <div class="chat-container">
+                <div style="background: rgba(0,0,0,0.5); padding: 5px 10px; font-size: 0.8em; font-weight: bold; color: #94a3b8;">🔒 PRIVATE TEAM CHAT</div>
+                <div class="chat-messages" id="chat-messages"></div>
+                <form class="chat-input-area" onsubmit="sendChat(event)">
+                    <input type="text" id="chatInput" class="chat-input" placeholder="Type answer here..." autocomplete="off">
+                    <button type="submit" class="chat-send">SEND</button>
+                </form>
+            </div>
+        </div>
+
+        <div id="screen-winner" class="screen">
+            <div class="box" style="text-align: center; border-width: 4px;">
+                <h1 style="font-size: 5em; margin: 0;">🏆</h1>
+                <h1 id="winnerText" style="font-size: 2.5em; text-transform: uppercase;">TEAM WINS!</h1>
+                <p style="font-size: 1.2em;">Production quota achieved safely and scientifically.</p>
+            </div>
+        </div>
     </div>
 
 <script>
-    // --- FIREBASE CONFIG (Using your exact keys) ---
+    // --- FIREBASE CONFIG ---
     const firebaseConfig = {
       apiKey: "AIzaSyBXgT_LxFUar6FcfFqKJsuY2YIOjG5JLtM",
       authDomain: "symmetry-and-nets.firebaseapp.com",
@@ -144,7 +181,7 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // --- GAME DATA (Based on your PDF Lesson Plan) ---
+    // --- GAME DATA (Expanded for more variety) ---
     const questions = [
         { purpose: "Window", material: "Clear Glass", test: "Light shines straight through (Transparent)", approve: true },
         { purpose: "Window", material: "Wood", test: "Blocks all light (Opaque)", approve: false },
@@ -155,152 +192,272 @@
         { purpose: "Hot Cocoa Cup", material: "Insulated Plastic", test: "Keeps outside cool (Thermal Insulator)", approve: true },
         { purpose: "Boat Hull", material: "Steel", test: "Waterproof and Strong", approve: true },
         { purpose: "Umbrella", material: "Tissue Paper", test: "Tears when wet (Weak/Absorbent)", approve: false },
-        { purpose: "Electrical Wire Cover", material: "Plastic", test: "Blocks electricity (Electrical Insulator)", approve: true }
+        { purpose: "Electrical Wire Cover", material: "Plastic", test: "Blocks electricity (Electrical Insulator)", approve: true },
+        { purpose: "Frying Pan", material: "Iron", test: "Spreads heat quickly (Thermal Conductor)", approve: true },
+        { purpose: "Bath Towel", material: "Plastic Wrap", test: "Repels water (Waterproof)", approve: false },
+        { purpose: "Eyeglasses", material: "Ceramic", test: "Cannot see through it (Opaque)", approve: false },
+        { purpose: "Bridge Support", material: "Concrete", test: "Holds massive weight (Strong/Rigid)", approve: true }
     ];
 
+    // Sci-Fi Name Generator Dictionary
+    const adjectives = {
+        'A': 'Atomic', 'B': 'Bionic', 'C': 'Cosmic', 'D': 'Digital', 'E': 'Electric',
+        'F': 'Fusion', 'G': 'Galactic', 'H': 'Hyper', 'I': 'Ionic', 'J': 'Jumping',
+        'K': 'Kinetic', 'L': 'Laser', 'M': 'Magnetic', 'N': 'Neon', 'O': 'Optic',
+        'P': 'Plasma', 'Q': 'Quantum', 'R': 'Robotic', 'S': 'Sonic', 'T': 'Thermal',
+        'U': 'Ultra', 'V': 'Viral', 'W': 'Warp', 'X': 'Xenon', 'Y': 'Yellow', 'Z': 'Zero'
+    };
+
     // --- GLOBALS ---
+    let myUID = null;
+    let myName = "";
     let myTeam = null;
     let isHost = false;
-    let currentQuestionIndex = 0;
+    let isMyTurn = false;
     const GOAL_SCORE = 15;
 
     // References
     const stateRef = db.ref('factoryGame/state');
-    const scoresRef = db.ref('factoryGame/scores');
+    const usersRef = db.ref('factoryGame/users');
+    const teamsRef = db.ref('factoryGame/teams');
+    const chatRef = db.ref('factoryGame/chat');
     const hostRef = db.ref('factoryGame/hostExists');
 
-    // --- INIT & AUTH ---
+    // --- 1. AUTH & SETUP ---
     firebase.auth().setPersistence('none').then(() => {
         return firebase.auth().signInAnonymously();
-    }).then(() => {
-        document.getElementById('screen-lobby').style.display = 'block';
+    }).then((userCred) => {
+        myUID = userCred.user.uid;
         
-        // Host Election: First person to claim host gets it
-        hostRef.transaction((currentData) => {
-            if (currentData === null) return true; // Claim host
-            return; // Abort, host exists
+        // Host Election
+        hostRef.transaction((current) => {
+            if (current === null) return true;
+            return;
         }, (error, committed) => {
             if (committed) {
                 isHost = true;
                 document.getElementById('host-controls').style.display = 'block';
-                // Reset game on host creation
-                resetGame();
+                document.getElementById('start-btn').style.display = 'inline-block';
+                document.getElementById('wait-msg').style.display = 'none';
+                resetGame(); // Clear old data if new host
             }
         });
     });
 
-    // --- LISTENERS ---
+    // --- 2. JOINING THE FACTORY ---
+    function joinFactory() {
+        let letter = document.getElementById('initialInput').value.toUpperCase();
+        if(!letter.match(/[A-Z]/)) letter = 'X';
+        
+        myName = (adjectives[letter] || "Mystery") + " " + letter;
+
+        // Auto-Balance Teams
+        usersRef.once('value').then(snap => {
+            const users = snap.val() || {};
+            let redCount = 0, blueCount = 0;
+            Object.values(users).forEach(u => u.team === 'red' ? redCount++ : blueCount++);
+            
+            myTeam = (redCount <= blueCount) ? 'red' : 'blue';
+            
+            // Save to DB
+            const myUserRef = usersRef.child(myUID);
+            myUserRef.set({ name: myName, team: myTeam, joinedAt: firebase.database.ServerValue.TIMESTAMP });
+            myUserRef.onDisconnect().remove();
+
+            // Setup Chat Listener for my team
+            setupChat();
+
+            // Move UI to Rules Screen
+            switchScreen('screen-rules');
+        });
+    }
+
+    // --- 3. GAME STATE LISTENER ---
     stateRef.on('value', (snap) => {
         const state = snap.val() || 'lobby';
         
-        document.getElementById('screen-lobby').style.display = 'none';
-        document.getElementById('screen-game').style.display = 'none';
-        document.getElementById('screen-winner').style.display = 'none';
-        document.getElementById('scoreboard').style.display = 'none';
-
-        if (state === 'lobby') {
-            document.getElementById('screen-lobby').style.display = 'block';
-            if(myTeam) document.getElementById('waiting-msg').style.display = 'block';
+        if (state === 'rules') {
+            if (myName) switchScreen('screen-rules');
         } else if (state === 'racing') {
-            document.getElementById('screen-game').style.display = 'block';
-            document.getElementById('scoreboard').style.display = 'flex';
-            loadNextQuestion();
+            if (myName) {
+                switchScreen('screen-game');
+                document.getElementById('scoreboard').style.display = 'flex';
+                document.getElementById('top-header').style.display = 'none';
+            }
         } else if (state.startsWith('winner_')) {
-            document.getElementById('screen-winner').style.display = 'block';
+            switchScreen('screen-winner');
+            document.getElementById('scoreboard').style.display = 'none';
             const winner = state.split('_')[1];
-            document.getElementById('winnerText').innerText = winner.toUpperCase() + " FACTORY WINS!";
-            document.getElementById('winnerText').style.color = winner === 'red' ? '#ef4444' : '#3b82f6';
+            document.getElementById('winnerText').innerText = winner + " TEAM WINS!";
+            document.getElementById('winnerText').parentElement.style.borderColor = winner === 'red' ? 'var(--red-team)' : 'var(--blue-team)';
+            document.getElementById('winnerText').style.color = winner === 'red' ? 'var(--red-team)' : 'var(--blue-team)';
+        } else {
+            switchScreen('screen-lobby');
+            document.getElementById('scoreboard').style.display = 'none';
+            document.getElementById('top-header').style.display = 'block';
         }
     });
 
-    scoresRef.on('value', (snap) => {
-        const scores = snap.val() || { red: 0, blue: 0 };
-        document.getElementById('redScoreTxt').innerText = scores.red;
-        document.getElementById('blueScoreTxt').innerText = scores.blue;
+    // --- 4. TEAM SYNC & TURN LOGIC ---
+    // Listen to MY team's specific data (Score, Question Index, Turn Index)
+    teamsRef.on('value', (snap) => {
+        if(!myTeam) return;
+        const allTeams = snap.val() || { red: {score:0, q:0, turn:0}, blue: {score:0, q:0, turn:0} };
         
-        // Calculate percentages for progress bars
-        let redPct = Math.min((scores.red / GOAL_SCORE) * 100, 100);
-        let bluePct = Math.min((scores.blue / GOAL_SCORE) * 100, 100);
+        // Update Scoreboard for both teams
+        updateScoreboard(allTeams);
+
+        // Handle MY team's gameplay
+        const myTeamData = allTeams[myTeam] || {score:0, q:0, turn:0};
         
-        document.getElementById('redBar').style.width = redPct + '%';
-        document.getElementById('blueBar').style.width = bluePct + '%';
-
-        // Check for winner
-        if (isHost) {
-            if (scores.red >= GOAL_SCORE) stateRef.set('winner_red');
-            if (scores.blue >= GOAL_SCORE) stateRef.set('winner_blue');
-        }
-    });
-
-    // --- ACTIONS ---
-    function joinTeam(team) {
-        myTeam = team;
-        document.getElementById('myTeamDisplay').style.color = team === 'red' ? '#ef4444' : '#3b82f6';
-        document.getElementById('teamNameColor').innerText = team.toUpperCase();
-        document.getElementById('teamNameColor').style.color = team === 'red' ? '#ef4444' : '#3b82f6';
-        
-        // Hide join buttons, show waiting message
-        const btns = document.querySelectorAll('.join-btn');
-        btns.forEach(btn => { if(!btn.innerText.includes('START')) btn.style.display = 'none'; });
-        document.getElementById('waiting-msg').style.display = 'block';
-    }
-
-    function startRace() {
-        if(isHost) stateRef.set('racing');
-    }
-
-    function loadNextQuestion() {
-        // Pick a random question
-        currentQuestionIndex = Math.floor(Math.random() * questions.length);
-        const q = questions[currentQuestionIndex];
-        
+        // 1. Display Current Question
+        const qIndex = myTeamData.q % questions.length;
+        const q = questions[qIndex];
         document.getElementById('q-purpose').innerText = q.purpose;
         document.getElementById('q-material').innerText = q.material;
         document.getElementById('q-test').innerText = q.test;
-    }
 
-    function submitAnswer(userVotedApprove) {
-        if (!myTeam) return;
-        
-        const isCorrect = (userVotedApprove === questions[currentQuestionIndex].approve);
-        
-        if (isCorrect) {
-            // Add point
-            scoresRef.child(myTeam).transaction((currentScore) => (currentScore || 0) + 1);
-            loadNextQuestion(); // Move to next item immediately
+        // 2. Determine whose turn it is
+        usersRef.once('value').then(userSnap => {
+            const users = userSnap.val() || {};
+            // Get all UIDs on my team, sorted by join time
+            const myTeamUIDs = Object.keys(users)
+                .filter(uid => users[uid].team === myTeam)
+                .sort((a, b) => users[a].joinedAt - users[b].joinedAt);
+            
+            if (myTeamUIDs.length === 0) return;
+
+            // Math to cycle turns
+            const activeUID = myTeamUIDs[myTeamData.turn % myTeamUIDs.length];
+            const activeName = users[activeUID].name;
+            
+            isMyTurn = (activeUID === myUID);
+            updateControls(activeName);
+        });
+
+        // 3. Check for Winner
+        if (isHost) {
+            if (allTeams.red.score >= GOAL_SCORE) stateRef.set('winner_red');
+            if (allTeams.blue.score >= GOAL_SCORE) stateRef.set('winner_blue');
+        }
+    });
+
+    function updateControls(activeName) {
+        const banner = document.getElementById('turn-banner');
+        const btnA = document.getElementById('btn-approve');
+        const btnS = document.getElementById('btn-scrap');
+
+        if (isMyTurn) {
+            banner.innerText = "🚨 YOUR TURN! INSPECT IT! 🚨";
+            banner.style.background = "#ef4444";
+            banner.style.color = "white";
+            btnA.className = "btn btn-green"; btnA.disabled = false;
+            btnS.className = "btn btn-red"; btnS.disabled = false;
         } else {
-            // Penalty!
-            showPenalty();
+            banner.innerText = `Waiting for ${activeName} to decide...`;
+            banner.style.background = "#f59e0b";
+            banner.style.color = "black";
+            btnA.className = "btn btn-gray"; btnA.disabled = true;
+            btnS.className = "btn btn-gray"; btnS.disabled = true;
         }
     }
 
-    function showPenalty() {
-        const overlay = document.getElementById('penalty-overlay');
-        const timerText = document.getElementById('penalty-timer');
-        overlay.style.display = 'flex';
+    function updateScoreboard(allTeams) {
+        let rScore = allTeams.red ? allTeams.red.score : 0;
+        let bScore = allTeams.blue ? allTeams.blue.score : 0;
         
-        let timeLeft = 3;
-        timerText.innerText = timeLeft;
-        
-        const countdown = setInterval(() => {
-            timeLeft--;
-            timerText.innerText = timeLeft;
-            if (timeLeft <= 0) {
-                clearInterval(countdown);
-                overlay.style.display = 'none';
-                loadNextQuestion(); // Give them a new question after penalty
-            }
-        }, 1000);
+        document.getElementById('redScoreTxt').innerText = rScore;
+        document.getElementById('blueScoreTxt').innerText = bScore;
+        document.getElementById('redBar').style.width = Math.min((rScore / GOAL_SCORE) * 100, 100) + '%';
+        document.getElementById('blueBar').style.width = Math.min((bScore / GOAL_SCORE) * 100, 100) + '%';
     }
 
+    // --- 5. GAME ACTIONS ---
+    function submitAnswer(userVotedApprove) {
+        if (!isMyTurn) return;
+
+        teamsRef.child(myTeam).once('value').then(snap => {
+            let data = snap.val() || {score:0, q:0, turn:0};
+            let currentQ = questions[data.q % questions.length];
+            
+            let isCorrect = (userVotedApprove === currentQ.approve);
+
+            // Always increment question and pass turn to next player
+            let updates = {
+                q: data.q + 1,
+                turn: data.turn + 1
+            };
+            
+            // Only give point if correct
+            if (isCorrect) {
+                updates.score = data.score + 1;
+            }
+
+            teamsRef.child(myTeam).update(updates);
+        });
+    }
+
+    // --- 6. HOST & LOBBY LOGIC ---
+    usersRef.on('value', (snap) => {
+        if (!isHost) return;
+        const users = snap.val() || {};
+        let rHTML = '', bHTML = '';
+        
+        Object.values(users).forEach(u => {
+            const tag = `<div class="player-tag">👤 ${u.name}</div>`;
+            if (u.team === 'red') rHTML += tag;
+            else bHTML += tag;
+        });
+        
+        document.getElementById('red-players').innerHTML = rHTML || '<i style="color:#94a3b8">Empty</i>';
+        document.getElementById('blue-players').innerHTML = bHTML || '<i style="color:#94a3b8">Empty</i>';
+    });
+
+    function showRules() { if(isHost) stateRef.set('rules'); }
+    function startRace() { if(isHost) stateRef.set('racing'); }
     function resetGame() {
         if(isHost) {
-            scoresRef.set({ red: 0, blue: 0 });
+            teamsRef.set({ red: {score:0, q:0, turn:0}, blue: {score:0, q:0, turn:0} });
+            chatRef.remove();
             stateRef.set('lobby');
         }
     }
 
-    // Clean up host if teacher closes tab
+    // --- 7. TEAM CHAT LOGIC ---
+    function setupChat() {
+        chatRef.child(myTeam).limitToLast(15).on('child_added', (snap) => {
+            const msg = snap.val();
+            const div = document.createElement('div');
+            div.className = 'chat-msg' + (msg.uid === myUID ? ' me' : '');
+            div.innerHTML = `<b>${msg.name}:</b> ${msg.text}`;
+            
+            const box = document.getElementById('chat-messages');
+            box.appendChild(div);
+            box.scrollTop = box.scrollHeight; // Auto-scroll
+        });
+    }
+
+    function sendChat(e) {
+        e.preventDefault();
+        const input = document.getElementById('chatInput');
+        const text = input.value.trim();
+        if (text && myTeam) {
+            chatRef.child(myTeam).push({
+                uid: myUID,
+                name: myName,
+                text: text,
+                timestamp: firebase.database.ServerValue.TIMESTAMP
+            });
+            input.value = '';
+        }
+    }
+
+    // Utility: Switch Screens safely
+    function switchScreen(screenId) {
+        document.querySelectorAll('.screen').forEach(s => s.style.display = 'none');
+        document.getElementById(screenId).style.display = 'flex';
+    }
+
     window.addEventListener('beforeunload', () => {
         if (isHost) hostRef.remove();
     });
