@@ -26,7 +26,7 @@
         .header-bar { width: 100%; background: #000; padding: 10px 0; text-align: center; border-bottom: 4px solid #475569; }
         
         /* Scoreboard */
-        .scoreboard { width: 100%; display: flex; justify-content: space-between; padding: 10px 0; background: var(--hazard); box-shadow: 0 4px 6px rgba(0,0,0,0.5); z-index: 10; }
+        .scoreboard { width: 100%; display: flex; justify-content: space-between; padding: 10px 0; background: var(--hazard); box-shadow: 0 4px 6px rgba(0,0,0,0.5); z-index: 10; flex-shrink: 0;}
         .team-score { width: 45%; text-align: center; background: rgba(0,0,0,0.7); border-radius: 10px; padding: 5px; margin: 0 5px;}
         .bar-container { width: 90%; height: 15px; background: #333; margin: 5px auto; border-radius: 10px; overflow: hidden;}
         .bar { height: 100%; width: 0%; transition: width 0.3s ease; }
@@ -34,11 +34,21 @@
         #blueBar { background: var(--blue-team); }
 
         /* Main Containers */
-        .container { flex-grow: 1; display: flex; flex-direction: column; width: 95%; max-width: 600px; padding-top: 10px; overflow-y: auto;}
+        .container { flex-grow: 1; display: flex; flex-direction: column; width: 100%; max-width: 1000px; padding-top: 10px; overflow-y: auto; align-items: center;}
         .screen { display: none; width: 100%; flex-direction: column; align-items: center; }
         
+        /* Layout for Game Screen */
+        .game-layout { display: flex; width: 100%; height: 100%; gap: 15px; padding: 0 10px; box-sizing: border-box; }
+        .side-panel { width: 200px; background: rgba(0,0,0,0.4); border-radius: 10px; padding: 10px; display: flex; flex-direction: column; gap: 10px; overflow-y: auto; }
+        .center-panel { flex-grow: 1; display: flex; flex-direction: column; align-items: center; max-width: 500px; margin: 0 auto;}
+        
+        @media (max-width: 768px) {
+            .game-layout { flex-direction: column; }
+            .side-panel { width: 100%; max-height: 120px; flex-direction: row; flex-wrap: wrap; }
+        }
+
         /* UI Elements */
-        .box { background: var(--card-bg); border: 2px solid #475569; border-radius: 15px; padding: 20px; width: 100%; box-sizing: border-box; margin-bottom: 15px; box-shadow: 0 10px 20px rgba(0,0,0,0.3); }
+        .box { background: var(--card-bg); border: 2px solid #475569; border-radius: 15px; padding: 20px; width: 90%; max-width: 500px; box-sizing: border-box; margin-bottom: 15px; box-shadow: 0 10px 20px rgba(0,0,0,0.3); }
         .input-text { padding: 15px; font-size: 1.2em; border-radius: 8px; border: none; width: 60px; text-align: center; text-transform: uppercase; font-weight: bold; margin-bottom: 15px;}
         .btn { padding: 15px 25px; font-size: 1.2em; font-weight: bold; border: none; border-radius: 10px; cursor: pointer; transition: 0.2s; color: white; width: 100%; box-sizing: border-box;}
         .btn:active { transform: scale(0.95); }
@@ -46,8 +56,23 @@
         .btn-red { background: #dc2626; box-shadow: 0 5px 0 #7f1d1d; }
         .btn-gray { background: #475569; color: #94a3b8; cursor: not-allowed; }
 
+        /* Avatars & Players */
+        .emoji-selector { display: flex; justify-content: center; gap: 10px; margin-bottom: 15px; font-size: 2em; cursor: pointer; }
+        .emoji-option { padding: 5px; border-radius: 10px; border: 2px solid transparent; transition: 0.2s; }
+        .emoji-option.selected { background: rgba(255,255,255,0.2); border-color: #3b82f6; transform: scale(1.1); }
+        
+        .player-card { display: flex; align-items: center; gap: 10px; background: #334155; padding: 8px; border-radius: 8px; font-size: 0.9em; transition: 0.3s;}
+        .player-card .emoji { font-size: 1.5em; }
+        
+        /* Active Turn Animation */
+        .active-turn { background: #f59e0b; color: black; border: 2px solid white; animation: bounce 0.8s infinite alternate; font-weight: bold;}
+        @keyframes bounce { 
+            0% { transform: translateY(0) scale(1); } 
+            100% { transform: translateY(-5px) scale(1.05); box-shadow: 0 5px 15px rgba(245, 158, 11, 0.6); } 
+        }
+
         /* Ticket & Gameplay */
-        .ticket { background: #f8fafc; color: #0f172a; border-radius: 5px; padding: 15px; position: relative; border-top: 15px solid #cbd5e1; margin-bottom: 15px; }
+        .ticket { background: #f8fafc; color: #0f172a; border-radius: 5px; padding: 15px; position: relative; border-top: 15px solid #cbd5e1; margin-bottom: 15px; width: 100%; box-sizing: border-box;}
         .ticket::before { content: ""; position: absolute; top: -10px; left: 50%; transform: translateX(-50%); width: 40px; height: 10px; background: #0f172a; border-radius: 10px; }
         .ticket h3 { margin: 0 0 10px 0; color: #64748b; font-size: 0.9em; text-transform: uppercase; }
         .goal { font-size: 1.3em; font-weight: bold; color: #b45309; }
@@ -55,7 +80,7 @@
         .test-result { background: #e2e8f0; padding: 10px; border-left: 5px solid #3b82f6; font-style: italic; }
         
         /* Chat Box */
-        .chat-container { flex-grow: 1; display: flex; flex-direction: column; background: rgba(0,0,0,0.3); border-radius: 10px; overflow: hidden; border: 1px solid #334155; margin-bottom: 10px; min-height: 150px; max-height: 200px;}
+        .chat-container { width: 100%; flex-grow: 1; display: flex; flex-direction: column; background: rgba(0,0,0,0.3); border-radius: 10px; overflow: hidden; border: 1px solid #334155; margin-bottom: 10px; min-height: 150px;}
         .chat-messages { flex-grow: 1; padding: 10px; overflow-y: auto; font-size: 0.9em; display: flex; flex-direction: column; gap: 5px; }
         .chat-msg { background: #334155; padding: 5px 10px; border-radius: 15px; width: fit-content; max-width: 80%; }
         .chat-msg.me { background: #0ea5e9; align-self: flex-end; }
@@ -63,14 +88,10 @@
         .chat-input { flex-grow: 1; padding: 10px; background: transparent; border: none; color: white; font-size: 1em; }
         .chat-send { padding: 10px 20px; background: #3b82f6; border: none; color: white; font-weight: bold; cursor: pointer; }
 
-        /* Host Dashboard */
-        .team-list { display: flex; gap: 10px; margin-top: 15px; }
-        .team-col { flex: 1; background: rgba(0,0,0,0.5); padding: 10px; border-radius: 10px; min-height: 100px; }
-        .player-tag { background: #334155; font-size: 0.8em; padding: 5px; margin-bottom: 5px; border-radius: 5px; }
-
         /* Status Banner */
-        .turn-banner { background: #f59e0b; color: #000; font-weight: bold; text-align: center; padding: 10px; border-radius: 10px; margin-bottom: 15px; font-size: 1.1em; animation: pulse 2s infinite;}
-        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.02); } 100% { transform: scale(1); } }
+        .turn-banner { width: 100%; box-sizing: border-box; background: #f59e0b; color: #000; font-weight: bold; text-align: center; padding: 10px; border-radius: 10px; margin-bottom: 15px; font-size: 1.1em;}
+        .turn-pulse { animation: pulseBanner 1.5s infinite; background: #ef4444; color: white;}
+        @keyframes pulseBanner { 0% { transform: scale(1); } 50% { transform: scale(1.02); } 100% { transform: scale(1); } }
     </style>
 </head>
 <body>
@@ -94,66 +115,85 @@
         <div id="screen-lobby" class="screen" style="display:flex;">
             <div class="box" style="text-align: center;">
                 <h2>Welcome, Inspector!</h2>
-                <p>Enter the <b>first letter</b> of your name to get your official Factory ID badge and team assignment.</p>
+                <p>1. Enter the <b>first letter</b> of your name.</p>
                 <input type="text" id="initialInput" class="input-text" maxlength="1" placeholder="A">
+                
+                <p>2. Choose your Factory Avatar.</p>
+                <div class="emoji-selector" id="emoji-picker">
+                    <div class="emoji-option selected" onclick="selectEmoji(this, '🤖')">🤖</div>
+                    <div class="emoji-option" onclick="selectEmoji(this, '🧑‍🔬')">🧑‍🔬</div>
+                    <div class="emoji-option" onclick="selectEmoji(this, '👽')">👽</div>
+                    <div class="emoji-option" onclick="selectEmoji(this, '🕵️')">🕵️</div>
+                    <div class="emoji-option" onclick="selectEmoji(this, '👷‍♀️')">👷‍♀️</div>
+                </div>
+
                 <button class="btn btn-green" onclick="joinFactory()">GET HIRED</button>
             </div>
 
             <div id="host-controls" class="box" style="display:none; border-color: #f59e0b;">
                 <h3 style="color: #f59e0b; margin-top:0;">👑 Host Dashboard</h3>
                 <button class="btn" style="background:#f59e0b; color:black;" onclick="showRules()">CONTINUE TO RULES ➔</button>
-                
-                <div class="team-list">
-                    <div class="team-col" style="border-top: 3px solid var(--red-team);">
-                        <strong>RED TEAM</strong>
-                        <div id="red-players"></div>
-                    </div>
-                    <div class="team-col" style="border-top: 3px solid var(--blue-team);">
-                        <strong>BLUE TEAM</strong>
-                        <div id="blue-players"></div>
-                    </div>
-                </div>
                 <button onclick="resetGame()" style="margin-top: 15px; background: transparent; color: #cbd5e1; border: 1px solid #cbd5e1; padding: 5px; width:100%;">Hard Reset Game</button>
             </div>
         </div>
 
-        <div id="screen-rules" class="screen">
-            <div class="box">
-                <h2 style="margin-top:0;">📋 Factory Protocol (Rules)</h2>
-                <ul style="line-height: 1.6; color: #cbd5e1; padding-left: 20px;">
-                    <li>You are split into <b>Team Red</b> and <b>Team Blue</b>.</li>
-                    <li>This is a tag-team race! Only <b>one player per team</b> has control of the buttons at a time.</li>
-                    <li>Look at the product goal and the material's test result. If it fits the purpose, tap <b>APPROVE</b>. If not, tap <b>SCRAP IT</b>.</li>
-                    <li>If it's not your turn, use the <b>Team Chat</b> to yell the answer to your active teammate!</li>
-                    <li>First team to process 15 correct items wins. Mistakes skip your turn!</li>
-                </ul>
-                <div id="wait-msg" style="text-align: center; color: #f59e0b; font-weight: bold; margin-top: 20px;">Waiting for Host to start the conveyor belt...</div>
+        <div id="screen-waiting" class="screen">
+            <div class="box" style="text-align: center;">
+                <h2 style="margin-top:0;">ID Badge Created!</h2>
+                <div style="font-size: 3em; margin: 10px 0;" id="wait-avatar">🤖</div>
+                <h3>You are: <span id="wait-name" style="color:#f59e0b;">...</span></h3>
+                <h3 id="wait-team-title">...</h3>
+                
+                <hr style="border-color: #475569; margin: 20px 0;">
+                
+                <h4 style="margin-bottom: 5px;">Your Teammates:</h4>
+                <div id="wait-teammates" style="display: flex; flex-wrap: wrap; gap: 5px; justify-content: center;">
+                    </div>
+                
+                <div id="wait-msg" style="color: #cbd5e1; font-style: italic; margin-top: 20px;">Waiting for Host to explain the rules...</div>
+                
                 <button id="start-btn" class="btn btn-green" style="display:none; margin-top:15px;" onclick="startRace()">START CONVEYOR BELT!</button>
             </div>
         </div>
 
         <div id="screen-game" class="screen">
-            <div id="turn-banner" class="turn-banner">Loading turn...</div>
+            <div class="game-layout">
+                
+                <div class="side-panel" id="red-panel" style="border-top: 4px solid var(--red-team);">
+                    <h4 style="margin: 0; color: #ef4444; text-align: center;">RED TEAM</h4>
+                    <div id="red-players-game"></div>
+                </div>
 
-            <div class="ticket">
-                <h3>🎟️ Inspection Ticket</h3>
-                <div class="goal">Product Goal: <span id="q-purpose" style="color:black;">...</span></div>
-                <div class="material" id="q-material">...</div>
-                <div class="test-result">Lab Test: <span id="q-test">...</span></div>
-            </div>
+                <div class="center-panel">
+                    <div id="turn-banner" class="turn-banner">Loading factory data...</div>
 
-            <div style="display: flex; gap: 10px; width: 100%; margin-bottom: 15px;">
-                <button id="btn-scrap" class="btn btn-red" onclick="submitAnswer(false)">❌ SCRAP IT</button>
-                <button id="btn-approve" class="btn btn-green" onclick="submitAnswer(true)">✅ APPROVE</button>
-            </div>
+                    <div class="ticket">
+                        <h3>🎟️ Inspection Ticket</h3>
+                        <div class="goal">Product Goal: <span id="q-purpose" style="color:black;">...</span></div>
+                        <div class="material" id="q-material">...</div>
+                        <div class="test-result">Lab Test: <span id="q-test">...</span></div>
+                    </div>
 
-            <div class="chat-container">
-                <div style="background: rgba(0,0,0,0.5); padding: 5px 10px; font-size: 0.8em; font-weight: bold; color: #94a3b8;">🔒 PRIVATE TEAM CHAT</div>
-                <div class="chat-messages" id="chat-messages"></div>
-                <form class="chat-input-area" onsubmit="sendChat(event)">
-                    <input type="text" id="chatInput" class="chat-input" placeholder="Type answer here..." autocomplete="off">
-                    <button type="submit" class="chat-send">SEND</button>
-                </form>
+                    <div style="display: flex; gap: 10px; width: 100%; margin-bottom: 15px;">
+                        <button id="btn-scrap" class="btn btn-gray" disabled onclick="submitAnswer(false)">❌ SCRAP IT</button>
+                        <button id="btn-approve" class="btn btn-gray" disabled onclick="submitAnswer(true)">✅ APPROVE</button>
+                    </div>
+
+                    <div class="chat-container">
+                        <div style="background: rgba(0,0,0,0.5); padding: 5px 10px; font-size: 0.8em; font-weight: bold; color: #94a3b8;">🔒 PRIVATE TEAM CHAT</div>
+                        <div class="chat-messages" id="chat-messages"></div>
+                        <form class="chat-input-area" onsubmit="sendChat(event)">
+                            <input type="text" id="chatInput" class="chat-input" placeholder="Type answer here..." autocomplete="off">
+                            <button type="submit" class="chat-send">SEND</button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="side-panel" id="blue-panel" style="border-top: 4px solid var(--blue-team);">
+                    <h4 style="margin: 0; color: #3b82f6; text-align: center;">BLUE TEAM</h4>
+                    <div id="blue-players-game"></div>
+                </div>
+
             </div>
         </div>
 
@@ -178,10 +218,10 @@
       appId: "1:250211420064:web:fe4a064715042bedf546c5"
     };
 
-    firebase.initializeApp(firebaseConfig);
+    if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
     const db = firebase.database();
 
-    // --- GAME DATA (Expanded for more variety) ---
+    // --- GAME DATA ---
     const questions = [
         { purpose: "Window", material: "Clear Glass", test: "Light shines straight through (Transparent)", approve: true },
         { purpose: "Window", material: "Wood", test: "Blocks all light (Opaque)", approve: false },
@@ -192,14 +232,9 @@
         { purpose: "Hot Cocoa Cup", material: "Insulated Plastic", test: "Keeps outside cool (Thermal Insulator)", approve: true },
         { purpose: "Boat Hull", material: "Steel", test: "Waterproof and Strong", approve: true },
         { purpose: "Umbrella", material: "Tissue Paper", test: "Tears when wet (Weak/Absorbent)", approve: false },
-        { purpose: "Electrical Wire Cover", material: "Plastic", test: "Blocks electricity (Electrical Insulator)", approve: true },
-        { purpose: "Frying Pan", material: "Iron", test: "Spreads heat quickly (Thermal Conductor)", approve: true },
-        { purpose: "Bath Towel", material: "Plastic Wrap", test: "Repels water (Waterproof)", approve: false },
-        { purpose: "Eyeglasses", material: "Ceramic", test: "Cannot see through it (Opaque)", approve: false },
-        { purpose: "Bridge Support", material: "Concrete", test: "Holds massive weight (Strong/Rigid)", approve: true }
+        { purpose: "Electrical Wire Cover", material: "Plastic", test: "Blocks electricity (Electrical Insulator)", approve: true }
     ];
 
-    // Sci-Fi Name Generator Dictionary
     const adjectives = {
         'A': 'Atomic', 'B': 'Bionic', 'C': 'Cosmic', 'D': 'Digital', 'E': 'Electric',
         'F': 'Fusion', 'G': 'Galactic', 'H': 'Hyper', 'I': 'Ionic', 'J': 'Jumping',
@@ -212,8 +247,14 @@
     let myUID = null;
     let myName = "";
     let myTeam = null;
+    let myAvatar = "🤖";
     let isHost = false;
-    let isMyTurn = false;
+    let currentState = "lobby";
+    
+    // Data sync caches
+    let globalUsers = {};
+    let globalTeams = { red: {score:0, q:0, turn:0}, blue: {score:0, q:0, turn:0} };
+
     const GOAL_SCORE = 15;
 
     // References
@@ -223,13 +264,9 @@
     const chatRef = db.ref('factoryGame/chat');
     const hostRef = db.ref('factoryGame/hostExists');
 
-    // --- 1. AUTH & SETUP ---
-    firebase.auth().setPersistence('none').then(() => {
-        return firebase.auth().signInAnonymously();
-    }).then((userCred) => {
+    // --- 1. SETUP & HOST ELECTION ---
+    firebase.auth().signInAnonymously().then((userCred) => {
         myUID = userCred.user.uid;
-        
-        // Host Election
         hostRef.transaction((current) => {
             if (current === null) return true;
             return;
@@ -239,50 +276,210 @@
                 document.getElementById('host-controls').style.display = 'block';
                 document.getElementById('start-btn').style.display = 'inline-block';
                 document.getElementById('wait-msg').style.display = 'none';
-                resetGame(); // Clear old data if new host
+                resetGame(); 
             }
         });
     });
+
+    // Avatar Selection UI
+    function selectEmoji(element, emoji) {
+        document.querySelectorAll('.emoji-option').forEach(el => el.classList.remove('selected'));
+        element.classList.add('selected');
+        myAvatar = emoji;
+    }
 
     // --- 2. JOINING THE FACTORY ---
     function joinFactory() {
         let letter = document.getElementById('initialInput').value.toUpperCase();
         if(!letter.match(/[A-Z]/)) letter = 'X';
-        
         myName = (adjectives[letter] || "Mystery") + " " + letter;
 
-        // Auto-Balance Teams
-        usersRef.once('value').then(snap => {
-            const users = snap.val() || {};
-            let redCount = 0, blueCount = 0;
-            Object.values(users).forEach(u => u.team === 'red' ? redCount++ : blueCount++);
-            
-            myTeam = (redCount <= blueCount) ? 'red' : 'blue';
-            
-            // Save to DB
-            const myUserRef = usersRef.child(myUID);
-            myUserRef.set({ name: myName, team: myTeam, joinedAt: firebase.database.ServerValue.TIMESTAMP });
-            myUserRef.onDisconnect().remove();
+        // Auto-Balance
+        let redCount = 0, blueCount = 0;
+        Object.values(globalUsers).forEach(u => u.team === 'red' ? redCount++ : blueCount++);
+        myTeam = (redCount <= blueCount) ? 'red' : 'blue';
+        
+        // Save to DB
+        const myUserRef = usersRef.child(myUID);
+        myUserRef.set({ name: myName, team: myTeam, avatar: myAvatar, joinedAt: firebase.database.ServerValue.TIMESTAMP });
+        myUserRef.onDisconnect().remove();
 
-            // Setup Chat Listener for my team
-            setupChat();
+        setupChat();
+        
+        // Show local Waiting UI
+        document.getElementById('wait-avatar').innerText = myAvatar;
+        document.getElementById('wait-name').innerText = myName;
+        document.getElementById('wait-team-title').innerText = myTeam === 'red' ? "TEAM RED 🟥" : "TEAM BLUE 🟦";
+        document.getElementById('wait-team-title').style.color = myTeam === 'red' ? "var(--red-team)" : "var(--blue-team)";
 
-            // Move UI to Rules Screen
-            switchScreen('screen-rules');
+        // Move Screen
+        if(currentState === 'lobby') switchScreen('screen-waiting');
+        else handleStateChange(currentState);
+    }
+
+    // --- 3. DATA LISTENERS ---
+    // A. Listen to overall Game State
+    stateRef.on('value', (snap) => {
+        currentState = snap.val() || 'lobby';
+        handleStateChange(currentState);
+    });
+
+    // B. Listen to Users (for avatars and names)
+    usersRef.on('value', (snap) => {
+        globalUsers = snap.val() || {};
+        updateGameUI(); // Re-render if anyone joins/leaves
+    });
+
+    // C. Listen to Team Scores/Turns
+    teamsRef.on('value', (snap) => {
+        globalTeams = snap.val() || { red: {score:0, q:0, turn:0}, blue: {score:0, q:0, turn:0} };
+        updateGameUI(); // Re-render if score/turn changes
+    });
+
+    // --- 4. MASTER RENDER FUNCTION ---
+    // This is called whenever Users OR Teams update, preventing the "Loading" bug
+    function updateGameUI() {
+        if (!myTeam) return; // Haven't joined yet
+
+        // 1. Update Scoreboard
+        let rScore = globalTeams.red ? globalTeams.red.score : 0;
+        let bScore = globalTeams.blue ? globalTeams.blue.score : 0;
+        document.getElementById('redScoreTxt').innerText = rScore;
+        document.getElementById('blueScoreTxt').innerText = bScore;
+        document.getElementById('redBar').style.width = Math.min((rScore / GOAL_SCORE) * 100, 100) + '%';
+        document.getElementById('blueBar').style.width = Math.min((bScore / GOAL_SCORE) * 100, 100) + '%';
+
+        // 2. Sort Users into Teams
+        let myTeamUIDs = [];
+        let rHTML = '', bHTML = '', waitHTML = '';
+        
+        // We need to know who is active on Red and Blue
+        let redActiveUID = null, blueActiveUID = null;
+        
+        let redUIDs = Object.keys(globalUsers).filter(uid => globalUsers[uid].team === 'red').sort((a,b) => globalUsers[a].joinedAt - globalUsers[b].joinedAt);
+        let blueUIDs = Object.keys(globalUsers).filter(uid => globalUsers[uid].team === 'blue').sort((a,b) => globalUsers[a].joinedAt - globalUsers[b].joinedAt);
+
+        if(redUIDs.length > 0 && globalTeams.red) redActiveUID = redUIDs[globalTeams.red.turn % redUIDs.length];
+        if(blueUIDs.length > 0 && globalTeams.blue) blueActiveUID = blueUIDs[globalTeams.blue.turn % blueUIDs.length];
+
+        // Build Player Lists & Highlight Turns
+        Object.keys(globalUsers).forEach(uid => {
+            let u = globalUsers[uid];
+            let isActive = (uid === redActiveUID || uid === blueActiveUID);
+            let highlightClass = isActive ? 'active-turn' : '';
+            let card = `<div class="player-card ${highlightClass}"><span class="emoji">${u.avatar}</span> <span>${u.name}</span></div>`;
+            
+            if (u.team === 'red') rHTML += card;
+            if (u.team === 'blue') bHTML += card;
+
+            // Wait screen list (only show my teammates)
+            if (u.team === myTeam && uid !== myUID) {
+                waitHTML += `<div class="player-tag" style="background:#475569; padding:5px; border-radius:5px; font-size:0.8em;">${u.avatar} ${u.name}</div>`;
+            }
+        });
+
+        document.getElementById('red-players-game').innerHTML = rHTML;
+        document.getElementById('blue-players-game').innerHTML = bHTML;
+        document.getElementById('wait-teammates').innerHTML = waitHTML || '<i style="color:#94a3b8">You are the first one here!</i>';
+
+        // 3. Update MY Ticket and Controls
+        if (currentState === 'racing') {
+            const myTeamData = globalTeams[myTeam] || {score:0, q:0, turn:0};
+            myTeamUIDs = myTeam === 'red' ? redUIDs : blueUIDs;
+            
+            // Render Question
+            let qIndex = (myTeamData.q || 0) % questions.length;
+            const q = questions[qIndex];
+            document.getElementById('q-purpose').innerText = q.purpose;
+            document.getElementById('q-material').innerText = q.material;
+            document.getElementById('q-test').innerText = q.test;
+
+            // Render Turn Controls
+            const activeUID = myTeamUIDs.length > 0 ? myTeamUIDs[myTeamData.turn % myTeamUIDs.length] : null;
+            const activeName = activeUID ? globalUsers[activeUID].name : "Loading...";
+            let isMyTurn = (activeUID === myUID);
+
+            const banner = document.getElementById('turn-banner');
+            const btnA = document.getElementById('btn-approve');
+            const btnS = document.getElementById('btn-scrap');
+
+            if (isMyTurn) {
+                banner.innerText = "🚨 YOUR TURN! INSPECT IT! 🚨";
+                banner.className = "turn-banner turn-pulse";
+                btnA.className = "btn btn-green"; btnA.disabled = false;
+                btnS.className = "btn btn-red"; btnS.disabled = false;
+            } else {
+                banner.innerText = `Waiting for ${activeName} to decide...`;
+                banner.className = "turn-banner";
+                btnA.className = "btn btn-gray"; btnA.disabled = true;
+                btnS.className = "btn btn-gray"; btnS.disabled = true;
+            }
+
+            // Check Win Condition (Host Only)
+            if (isHost) {
+                if (globalTeams.red && globalTeams.red.score >= GOAL_SCORE) stateRef.set('winner_red');
+                if (globalTeams.blue && globalTeams.blue.score >= GOAL_SCORE) stateRef.set('winner_blue');
+            }
+        }
+    }
+
+    // --- 5. GAME ACTIONS ---
+    function submitAnswer(userVotedApprove) {
+        // Find if it's actually my turn mathematically
+        let myTeamUIDs = Object.keys(globalUsers).filter(uid => globalUsers[uid].team === myTeam).sort((a,b) => globalUsers[a].joinedAt - globalUsers[b].joinedAt);
+        let currentTurn = globalTeams[myTeam].turn;
+        let activeUID = myTeamUIDs[currentTurn % myTeamUIDs.length];
+        
+        if (activeUID !== myUID) return; // Security check
+
+        let currentQ = questions[globalTeams[myTeam].q % questions.length];
+        let isCorrect = (userVotedApprove === currentQ.approve);
+
+        teamsRef.child(myTeam).once('value').then(snap => {
+            let data = snap.val();
+            let updates = { q: data.q + 1, turn: data.turn + 1 };
+            if (isCorrect) updates.score = data.score + 1;
+            teamsRef.child(myTeam).update(updates);
         });
     }
 
-    // --- 3. GAME STATE LISTENER ---
-    stateRef.on('value', (snap) => {
-        const state = snap.val() || 'lobby';
-        
+    // --- 6. CHAT ---
+    function setupChat() {
+        chatRef.child(myTeam).limitToLast(15).on('child_added', (snap) => {
+            const msg = snap.val();
+            const div = document.createElement('div');
+            div.className = 'chat-msg' + (msg.uid === myUID ? ' me' : '');
+            div.innerHTML = `<b>${msg.avatar} ${msg.name}:</b> ${msg.text}`;
+            
+            const box = document.getElementById('chat-messages');
+            box.appendChild(div);
+            box.scrollTop = box.scrollHeight;
+        });
+    }
+
+    function sendChat(e) {
+        e.preventDefault();
+        const input = document.getElementById('chatInput');
+        const text = input.value.trim();
+        if (text && myTeam) {
+            chatRef.child(myTeam).push({
+                uid: myUID, name: myName, avatar: myAvatar, text: text,
+                timestamp: firebase.database.ServerValue.TIMESTAMP
+            });
+            input.value = '';
+        }
+    }
+
+    // --- 7. NAVIGATION CONTROLS ---
+    function handleStateChange(state) {
         if (state === 'rules') {
-            if (myName) switchScreen('screen-rules');
+            if (myName) switchScreen('screen-waiting');
         } else if (state === 'racing') {
             if (myName) {
                 switchScreen('screen-game');
                 document.getElementById('scoreboard').style.display = 'flex';
                 document.getElementById('top-header').style.display = 'none';
+                updateGameUI(); // Force immediate render
             }
         } else if (state.startsWith('winner_')) {
             switchScreen('screen-winner');
@@ -296,122 +493,7 @@
             document.getElementById('scoreboard').style.display = 'none';
             document.getElementById('top-header').style.display = 'block';
         }
-    });
-
-    // --- 4. TEAM SYNC & TURN LOGIC ---
-    // Listen to MY team's specific data (Score, Question Index, Turn Index)
-    teamsRef.on('value', (snap) => {
-        if(!myTeam) return;
-        const allTeams = snap.val() || { red: {score:0, q:0, turn:0}, blue: {score:0, q:0, turn:0} };
-        
-        // Update Scoreboard for both teams
-        updateScoreboard(allTeams);
-
-        // Handle MY team's gameplay
-        const myTeamData = allTeams[myTeam] || {score:0, q:0, turn:0};
-        
-        // 1. Display Current Question
-        const qIndex = myTeamData.q % questions.length;
-        const q = questions[qIndex];
-        document.getElementById('q-purpose').innerText = q.purpose;
-        document.getElementById('q-material').innerText = q.material;
-        document.getElementById('q-test').innerText = q.test;
-
-        // 2. Determine whose turn it is
-        usersRef.once('value').then(userSnap => {
-            const users = userSnap.val() || {};
-            // Get all UIDs on my team, sorted by join time
-            const myTeamUIDs = Object.keys(users)
-                .filter(uid => users[uid].team === myTeam)
-                .sort((a, b) => users[a].joinedAt - users[b].joinedAt);
-            
-            if (myTeamUIDs.length === 0) return;
-
-            // Math to cycle turns
-            const activeUID = myTeamUIDs[myTeamData.turn % myTeamUIDs.length];
-            const activeName = users[activeUID].name;
-            
-            isMyTurn = (activeUID === myUID);
-            updateControls(activeName);
-        });
-
-        // 3. Check for Winner
-        if (isHost) {
-            if (allTeams.red.score >= GOAL_SCORE) stateRef.set('winner_red');
-            if (allTeams.blue.score >= GOAL_SCORE) stateRef.set('winner_blue');
-        }
-    });
-
-    function updateControls(activeName) {
-        const banner = document.getElementById('turn-banner');
-        const btnA = document.getElementById('btn-approve');
-        const btnS = document.getElementById('btn-scrap');
-
-        if (isMyTurn) {
-            banner.innerText = "🚨 YOUR TURN! INSPECT IT! 🚨";
-            banner.style.background = "#ef4444";
-            banner.style.color = "white";
-            btnA.className = "btn btn-green"; btnA.disabled = false;
-            btnS.className = "btn btn-red"; btnS.disabled = false;
-        } else {
-            banner.innerText = `Waiting for ${activeName} to decide...`;
-            banner.style.background = "#f59e0b";
-            banner.style.color = "black";
-            btnA.className = "btn btn-gray"; btnA.disabled = true;
-            btnS.className = "btn btn-gray"; btnS.disabled = true;
-        }
     }
-
-    function updateScoreboard(allTeams) {
-        let rScore = allTeams.red ? allTeams.red.score : 0;
-        let bScore = allTeams.blue ? allTeams.blue.score : 0;
-        
-        document.getElementById('redScoreTxt').innerText = rScore;
-        document.getElementById('blueScoreTxt').innerText = bScore;
-        document.getElementById('redBar').style.width = Math.min((rScore / GOAL_SCORE) * 100, 100) + '%';
-        document.getElementById('blueBar').style.width = Math.min((bScore / GOAL_SCORE) * 100, 100) + '%';
-    }
-
-    // --- 5. GAME ACTIONS ---
-    function submitAnswer(userVotedApprove) {
-        if (!isMyTurn) return;
-
-        teamsRef.child(myTeam).once('value').then(snap => {
-            let data = snap.val() || {score:0, q:0, turn:0};
-            let currentQ = questions[data.q % questions.length];
-            
-            let isCorrect = (userVotedApprove === currentQ.approve);
-
-            // Always increment question and pass turn to next player
-            let updates = {
-                q: data.q + 1,
-                turn: data.turn + 1
-            };
-            
-            // Only give point if correct
-            if (isCorrect) {
-                updates.score = data.score + 1;
-            }
-
-            teamsRef.child(myTeam).update(updates);
-        });
-    }
-
-    // --- 6. HOST & LOBBY LOGIC ---
-    usersRef.on('value', (snap) => {
-        if (!isHost) return;
-        const users = snap.val() || {};
-        let rHTML = '', bHTML = '';
-        
-        Object.values(users).forEach(u => {
-            const tag = `<div class="player-tag">👤 ${u.name}</div>`;
-            if (u.team === 'red') rHTML += tag;
-            else bHTML += tag;
-        });
-        
-        document.getElementById('red-players').innerHTML = rHTML || '<i style="color:#94a3b8">Empty</i>';
-        document.getElementById('blue-players').innerHTML = bHTML || '<i style="color:#94a3b8">Empty</i>';
-    });
 
     function showRules() { if(isHost) stateRef.set('rules'); }
     function startRace() { if(isHost) stateRef.set('racing'); }
@@ -423,36 +505,6 @@
         }
     }
 
-    // --- 7. TEAM CHAT LOGIC ---
-    function setupChat() {
-        chatRef.child(myTeam).limitToLast(15).on('child_added', (snap) => {
-            const msg = snap.val();
-            const div = document.createElement('div');
-            div.className = 'chat-msg' + (msg.uid === myUID ? ' me' : '');
-            div.innerHTML = `<b>${msg.name}:</b> ${msg.text}`;
-            
-            const box = document.getElementById('chat-messages');
-            box.appendChild(div);
-            box.scrollTop = box.scrollHeight; // Auto-scroll
-        });
-    }
-
-    function sendChat(e) {
-        e.preventDefault();
-        const input = document.getElementById('chatInput');
-        const text = input.value.trim();
-        if (text && myTeam) {
-            chatRef.child(myTeam).push({
-                uid: myUID,
-                name: myName,
-                text: text,
-                timestamp: firebase.database.ServerValue.TIMESTAMP
-            });
-            input.value = '';
-        }
-    }
-
-    // Utility: Switch Screens safely
     function switchScreen(screenId) {
         document.querySelectorAll('.screen').forEach(s => s.style.display = 'none');
         document.getElementById(screenId).style.display = 'flex';
