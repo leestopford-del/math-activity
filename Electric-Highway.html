@@ -1430,6 +1430,48 @@ const observersRef = db.ref("electricLab/observers"); // list of observers
     // Database listeners
     // =========================
     function listenToDatabase(){
+	
+	function listenToDatabase(){
+
+  // ===== A) Host presence listener =====
+  hostRef.on("value", (snap) => {
+    hostInfo = snap.val(); // {id,name,at} or null
+
+    const teacherBtn = document.getElementById("btn-join-teacher");
+    if (teacherBtn) teacherBtn.disabled = !!(hostInfo && hostInfo.id);
+
+    const msgEl = document.getElementById("hostLockMessage");
+    if (msgEl) {
+      if (hostInfo && hostInfo.id) {
+        msgEl.style.display = "block";
+        msgEl.textContent =
+          `Host already selected${hostInfo.name ? " by " + hostInfo.name : ""}. ` +
+          `Students can join as Student or Observer.`;
+      } else {
+        msgEl.style.display = "none";
+      }
+    }
+
+    renderLobbyCount();
+  });
+
+  // ===== B) Observer presence listener =====
+	observersRef.on("value", (snap) => {
+		observers = snap.val() || {};
+		renderLobbyCount();
+  });
+
+  // ---- your existing listeners continue below ----
+	db.ref("electricLab/players").on("value", snap => {
+		players = snap.val() || {};
+
+    // ... your existing code ...
+  });
+
+	db.ref("electricLab/session").on("value", async snap => {
+    // ... your existing code ...
+  });
+}
       db.ref("electricLab/players").on("value", snap => {
         players = snap.val() || {};
 
@@ -1984,6 +2026,20 @@ const observersRef = db.ref("electricLab/observers"); // list of observers
 
       requestAnimationFrame(gameLoop);
     }
+	function renderLobbyCount() {
+		const playersCount = Object.values(players || {}).filter(isValidPlayer).length;
+		const observersCount = Object.keys(observers || {}).length;
+		const hostCount = (hostInfo && hostInfo.id) ? 1 : 0;
+
+		const el = document.getElementById("lobbyCount");
+		if (!el) return;
+
+		el.style.marginTop = "10px";
+		el.style.color = "#aab";
+		el.innerText =
+		  `Players in lobby: ${playersCount + observersCount + hostCount} ` +
+		  `(Host: ${hostCount}, Players: ${playersCount}, Observers: ${observersCount})`;
+	}
 
     // =========================
     // Initial render
