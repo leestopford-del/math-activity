@@ -275,6 +275,11 @@
       <button id="btn-join-student" class="btn" onclick="joinGame('player')">Join as Student (Player)</button>
       <button id="btn-join-teacher" class="btn btn-alt" onclick="joinGame('teacher')">Join as Teacher (Host / Spectator)</button>
     </div>
+    <div style="margin-top:14px; display:flex; justify-content:center;">
+      <button id="btn-join-observer" class="btn" onclick="joinGame('observer')">Join as Observer (Watch only)</button>
+    </div>
+    <div id="hostLockMessage" class="sub" style="margin-top:12px; color:#ffcf66; display:none;"></div>
+
   </div>
 
   <!-- Lobby -->
@@ -288,6 +293,8 @@
       <button class="btn" id="start-round-btn" onclick="startNextRound()">START ROUND 1</button>
       <div id="lobbyCount"></div>
       <div id="hostLockMessage" style="display:none;"></div>
+
+      <button id="btnJoinObserver">Join as Observer</button>
     </div>
     <p id="waiting-msg" class="sub" style="color:#889; font-style: italic; margin-top: 10px;">Waiting for Teacher to start the round...</p>
   </div>
@@ -368,6 +375,10 @@
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
+
+    // Presence refs
+    const hostRef = db.ref("electricLab/host");
+    const observersRef = db.ref("electricLab/observers");
 
     // =========================
     // i18n (client-only; does not affect other users)
@@ -1030,6 +1041,7 @@
       roundResults: {}
     };
 
+    // Presence state (client cache)
     let hostInfo = null;
     let observers = {};
 
@@ -1160,6 +1172,20 @@
       return { Positive:p, Negative:n };
     }
 
+
+function renderLobbyCount() {
+  const playersCount = Object.values(players || {}).filter(isValidPlayer).length;
+  const observersCount = Object.keys(observers || {}).length;
+  const hostCount = (hostInfo && hostInfo.id) ? 1 : 0;
+
+  const el = document.getElementById("lobbyCount");
+  if (!el) return;
+
+  el.innerText =
+    `Players in lobby: ${playersCount + observersCount + hostCount} (Host: ${hostCount}, Players: ${playersCount}, Observers: ${observersCount})`;
+}
+
+
     // =========================
     // Rubber penalty / respawn
     // =========================
@@ -1265,30 +1291,68 @@
       document.getElementById("role-select").style.display = "none";
       document.getElementById("lobby").style.display = "flex";
 
-      if (myRole === "teacher"){
-        isHost = true;
-        myName = "Teacher (Host)";
-        myTeam = "Spectator";
-        me.x = 500; me.y = 500;
+      
+if (myRole === "teacher"){
+    // ----- HOST LOCK: claim single host slot -----
+    const claim = await hostRef.transaction((current) => {
+      if (current && current.id) return; // abort: already taken
+      return { id: myId, name: "Teacher (Host)", at: Date.now() };
+    });
 
-        document.getElementById("player-identity-card").innerHTML =
-          `<span style="color:var(--teal); font-family:Orbitron, sans-serif;">${myName}</span><br><span style="font-size:1rem; color:#aab;">${t("teacherControls")}</span>`;
-        document.getElementById("host-start-area").style.display = "block";
-        document.getElementById("waiting-msg").style.display = "none";
+    if (!claim.committed) {
+      // Host already taken -> return to role select with explanation
+      document.getElementById("lobby").style.display = "none";
+      document.getElementById("role-select").style.display = "flex";
+      const msgEl = document.getElementById("hostLockMessage");
+      if (msgEl) {
+        msgEl.style.display = "block";
+        msgEl.textContent = "Host already selected. Join as Student or Observer.";
+      }
+      return;
+    }
 
-        // Reset / initialise session (teacher is source-of-truth)
-        await db.ref("electricLab/session").set({
-          state: "lobby",
-          round: 0,
-          timer: 60,
-          scores: { Positive: 0, Negative: 0 },
-          catchers: "Positive",
-          mapId: 1,
-          roundStartScores: { Positive: 0, Negative: 0 },
-          roundResults: {}
-        });
+    isHost = true;
+    myName = "Teacher (Host)";
+    myTeam = "Spectator";
+    me.x = 500; me.y = 500;
 
-      } else {
+    document.getElementById("player-identity-card").innerHTML =
+      `<span style="color:var(--teal); font-family:Orbitron, sans-serif;">${myName}</span><br><span style="font-size:1rem; color:#aab;">${t("teacherControls")}</span>`;
+    document.getElementById("host-start-area").style.display = "block";
+    document.getElementById("waiting-msg").style.display = "none";
+
+    // Free host slot on disconnect
+    hostRef.onDisconnect().remove();
+
+    // Reset / initialise session (teacher is source-of-truth)
+    await db.ref("electricLab/session").set({
+      state: "lobby",
+      round: 0,
+      timer: 60,
+      scores: { Positive: 0, Negative: 0 },
+      catchers: "Positive",
+      mapId: 1,
+      roundStartScores: { Positive: 0, Negative: 0 },
+      roundResults: {}
+    });
+
+  } else if (myRole === "observer") {
+    // ----- OBSERVER (watch only) -----
+    isHost = false;
+    myTeam = "Spectator";
+    const first = ["Observer","Viewer","Spectator"];
+    myName = first[Math.floor(Math.random()*first.length)] + " " + Math.floor(1000 + Math.random()*9000);
+    me.x = 500; me.y = 500;
+
+    // Register observer presence
+    await observersRef.child(myId).set({ name: myName, at: Date.now() });
+    observersRef.child(myId).onDisconnect().remove();
+
+    document.getElementById("player-identity-card").innerHTML =
+      `<span style="color:var(--teal); font-family:Orbitron, sans-serif;">${myName}</span><br><span style="font-size:1rem; color:#aab;">Observer (watch only)</span>`;
+    document.getElementById("host-start-area").style.display = "none";
+
+  } else {
         const first = ["Sparky","Zappy","Volt","Amp","Flash","Jolt"];
         const last  = ["Proton","Electron","Circuit","Wire","Battery"];
         myName = first[Math.floor(Math.random()*first.length)] + " " + last[Math.floor(Math.random()*last.length)];
@@ -1348,6 +1412,33 @@
     // Database listeners
     // =========================
     function listenToDatabase(){
+
+  // ===== A) Host presence listener =====
+  hostRef.on("value", (snap) => {
+    hostInfo = snap.val(); // {id,name,at} or null
+
+    const teacherBtn = document.getElementById("btn-join-teacher");
+    if (teacherBtn) teacherBtn.disabled = !!(hostInfo && hostInfo.id);
+
+    const msgEl = document.getElementById("hostLockMessage");
+    if (msgEl) {
+      if (hostInfo && hostInfo.id) {
+        msgEl.style.display = "block";
+        msgEl.textContent =
+          `Host already selected${hostInfo.name ? " by " + hostInfo.name : ""}. Students can join as Student or Observer.`;
+      } else {
+        msgEl.style.display = "none";
+      }
+    }
+    renderLobbyCount();
+  });
+
+  // ===== B) Observer presence listener =====
+  observersRef.on("value", (snap) => {
+    observers = snap.val() || {};
+    renderLobbyCount();
+  });
+
       db.ref("electricLab/players").on("value", snap => {
         players = snap.val() || {};
 
