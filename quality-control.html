@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quality Control Race</title>
+    
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+
+    <style>
+        :root {
+            --red-team: #ef4444;
+            --blue-team: #3b82f6;
+            --bg-dark: #0f172a;
+            --card-bg: #1e293b;
+        }
+        body {
+            margin: 0; padding: 0; background-color: var(--bg-dark); color: white;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex; flex-direction: column; align-items: center; height: 100vh;
+            overflow: hidden; /* Prevents mobile scrolling issues */
+        }
+        
+        /* Top Scoreboard */
+        .scoreboard {
+            width: 100%; display: flex; justify-content: space-between; padding: 10px 0;
+            background: #000; box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+        .team-score { width: 45%; text-align: center; }
+        .bar-container { width: 90%; height: 20px; background: #333; margin: 5px auto; border-radius: 10px; overflow: hidden;}
+        .bar { height: 100%; width: 0%; transition: width 0.3s ease; }
+        #redBar { background: var(--red-team); }
+        #blueBar { background: var(--blue-team); }
+
+        /* Main Play Area */
+        .container { flex-grow: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; width: 90%; max-width: 500px; text-align: center; }
+        
+        /* The Inspection Card */
+        .ticket-card {
+            background: var(--card-bg); border: 4px solid #475569; border-radius: 20px;
+            padding: 30px 20px; width: 100%; box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            margin-bottom: 20px; transition: transform 0.2s;
+        }
+        .ticket-title { color: #94a3b8; text-transform: uppercase; letter-spacing: 2px; font-size: 0.9em; margin-bottom: 15px;}
+        .goal-text { font-size: 1.5em; color: #facc15; font-weight: bold; margin: 10px 0; }
+        .material-text { font-size: 2em; margin: 10px 0; text-shadow: 2px 2px 0 #000; }
+        .test-text { background: #334155; padding: 10px; border-radius: 10px; font-style: italic; color: #cbd5e1; }
+
+        /* Action Buttons */
+        .btn-row { display: flex; gap: 15px; width: 100%; }
+        .action-btn {
+            flex: 1; padding: 20px; font-size: 1.5em; font-weight: bold; border: none; border-radius: 15px;
+            cursor: pointer; transition: 0.2s; color: white;
+        }
+        .action-btn:active { transform: scale(0.95); }
+        .btn-reject { background: #dc2626; box-shadow: 0 6px 0 #991b1b; }
+        .btn-approve { background: #16a34a; box-shadow: 0 6px 0 #166534; }
+
+        /* Screens */
+        #screen-lobby, #screen-game, #screen-winner { display: none; width: 100%; max-width: 500px; text-align: center;}
+        
+        .join-btn { padding: 15px 30px; font-size: 1.2em; border: none; border-radius: 10px; color: white; margin: 10px; cursor: pointer; width: 80%; font-weight: bold;}
+        .join-red { background: var(--red-team); }
+        .join-blue { background: var(--blue-team); }
+        
+        /* Penalty Overlay */
+        #penalty-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(220, 38, 38, 0.9); z-index: 100; justify-content: center; align-items: center;
+            font-size: 3em; font-weight: bold; color: white; flex-direction: column;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="scoreboard" id="scoreboard" style="display:none;">
+        <div class="team-score">
+            <h3 style="margin:5px 0; color: #ef4444;">RED FACTORY: <span id="redScoreTxt">0</span>/15</h3>
+            <div class="bar-container"><div class="bar" id="redBar"></div></div>
+        </div>
+        <div class="team-score">
+            <h3 style="margin:5px 0; color: #3b82f6;">BLUE FACTORY: <span id="blueScoreTxt">0</span>/15</h3>
+            <div class="bar-container"><div class="bar" id="blueBar"></div></div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div id="screen-lobby">
+            <h1>🏭 The Quality Control Lab</h1>
+            <p>Select your shift team:</p>
+            <button class="join-btn join-red" onclick="joinTeam('red')">Join RED Factory</button>
+            <button class="join-btn join-blue" onclick="joinTeam('blue')">Join BLUE Factory</button>
+            
+            <div id="host-controls" style="display:none; margin-top: 40px; padding: 20px; border: 2px dashed #475569; border-radius: 10px;">
+                <p style="color: #facc15;">👑 You are the Host</p>
+                <button class="join-btn" style="background:#f59e0b; width:100%;" onclick="startRace()">START THE RACE!</button>
+                <button onclick="resetGame()" style="margin-top: 15px; background: transparent; color: #cbd5e1; border: 1px solid #cbd5e1; padding: 5px;">Reset Server</button>
+            </div>
+            <p id="waiting-msg" style="display:none; color: #94a3b8; margin-top: 20px;">Waiting for host to start the line...</p>
+        </div>
+
+        <div id="screen-game">
+            <h2 id="myTeamDisplay" style="margin-top:0;">You are on the <span id="teamNameColor">...</span> Team</h2>
+            
+            <div class="ticket-card">
+                <div class="ticket-title">Quality Control Ticket</div>
+                <div class="goal-text">Item: <span id="q-purpose">Loading...</span></div>
+                <div class="material-text" id="q-material">Loading...</div>
+                <div class="test-text">Test Result: <span id="q-test">Loading...</span></div>
+            </div>
+
+            <div class="btn-row">
+                <button class="action-btn btn-reject" onclick="submitAnswer(false)">❌ SCRAP IT</button>
+                <button class="action-btn btn-approve" onclick="submitAnswer(true)">✅ APPROVE</button>
+            </div>
+        </div>
+
+        <div id="screen-winner">
+            <h1 style="font-size: 4em; margin-bottom: 0;">🏆</h1>
+            <h1 id="winnerText" style="font-size: 2.5em;">TEAM WINS!</h1>
+            <p>Production quota met!</p>
+        </div>
+    </div>
+
+    <div id="penalty-overlay">
+        <div>❌ BAD CHOICE!</div>
+        <div style="font-size: 0.5em; margin-top: 20px;">Safety check... wait <span id="penalty-timer">3</span>s</div>
+    </div>
+
+<script>
+    // --- FIREBASE CONFIG (Using your exact keys) ---
+    const firebaseConfig = {
+      apiKey: "AIzaSyBXgT_LxFUar6FcfFqKJsuY2YIOjG5JLtM",
+      authDomain: "symmetry-and-nets.firebaseapp.com",
+      databaseURL: "https://symmetry-and-nets-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "symmetry-and-nets",
+      storageBucket: "symmetry-and-nets.firebasestorage.app",
+      messagingSenderId: "250211420064",
+      appId: "1:250211420064:web:fe4a064715042bedf546c5"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    // --- GAME DATA (Based on your PDF Lesson Plan) ---
+    const questions = [
+        { purpose: "Window", material: "Clear Glass", test: "Light shines straight through (Transparent)", approve: true },
+        { purpose: "Window", material: "Wood", test: "Blocks all light (Opaque)", approve: false },
+        { purpose: "Oven Glove", material: "Thick Fabric", test: "Blocks heat travel (Thermal Insulator)", approve: true },
+        { purpose: "Raincoat", material: "Cotton", test: "Soaks up water (Absorbent)", approve: false },
+        { purpose: "Car Tyre", material: "Rubber", test: "Resists wear and tear (Durable)", approve: true },
+        { purpose: "Hot Cocoa Cup", material: "Metal", test: "Heats up instantly (Thermal Conductor)", approve: false },
+        { purpose: "Hot Cocoa Cup", material: "Insulated Plastic", test: "Keeps outside cool (Thermal Insulator)", approve: true },
+        { purpose: "Boat Hull", material: "Steel", test: "Waterproof and Strong", approve: true },
+        { purpose: "Umbrella", material: "Tissue Paper", test: "Tears when wet (Weak/Absorbent)", approve: false },
+        { purpose: "Electrical Wire Cover", material: "Plastic", test: "Blocks electricity (Electrical Insulator)", approve: true }
+    ];
+
+    // --- GLOBALS ---
+    let myTeam = null;
+    let isHost = false;
+    let currentQuestionIndex = 0;
+    const GOAL_SCORE = 15;
+
+    // References
+    const stateRef = db.ref('factoryGame/state');
+    const scoresRef = db.ref('factoryGame/scores');
+    const hostRef = db.ref('factoryGame/hostExists');
+
+    // --- INIT & AUTH ---
+    firebase.auth().setPersistence('none').then(() => {
+        return firebase.auth().signInAnonymously();
+    }).then(() => {
+        document.getElementById('screen-lobby').style.display = 'block';
+        
+        // Host Election: First person to claim host gets it
+        hostRef.transaction((currentData) => {
+            if (currentData === null) return true; // Claim host
+            return; // Abort, host exists
+        }, (error, committed) => {
+            if (committed) {
+                isHost = true;
+                document.getElementById('host-controls').style.display = 'block';
+                // Reset game on host creation
+                resetGame();
+            }
+        });
+    });
+
+    // --- LISTENERS ---
+    stateRef.on('value', (snap) => {
+        const state = snap.val() || 'lobby';
+        
+        document.getElementById('screen-lobby').style.display = 'none';
+        document.getElementById('screen-game').style.display = 'none';
+        document.getElementById('screen-winner').style.display = 'none';
+        document.getElementById('scoreboard').style.display = 'none';
+
+        if (state === 'lobby') {
+            document.getElementById('screen-lobby').style.display = 'block';
+            if(myTeam) document.getElementById('waiting-msg').style.display = 'block';
+        } else if (state === 'racing') {
+            document.getElementById('screen-game').style.display = 'block';
+            document.getElementById('scoreboard').style.display = 'flex';
+            loadNextQuestion();
+        } else if (state.startsWith('winner_')) {
+            document.getElementById('screen-winner').style.display = 'block';
+            const winner = state.split('_')[1];
+            document.getElementById('winnerText').innerText = winner.toUpperCase() + " FACTORY WINS!";
+            document.getElementById('winnerText').style.color = winner === 'red' ? '#ef4444' : '#3b82f6';
+        }
+    });
+
+    scoresRef.on('value', (snap) => {
+        const scores = snap.val() || { red: 0, blue: 0 };
+        document.getElementById('redScoreTxt').innerText = scores.red;
+        document.getElementById('blueScoreTxt').innerText = scores.blue;
+        
+        // Calculate percentages for progress bars
+        let redPct = Math.min((scores.red / GOAL_SCORE) * 100, 100);
+        let bluePct = Math.min((scores.blue / GOAL_SCORE) * 100, 100);
+        
+        document.getElementById('redBar').style.width = redPct + '%';
+        document.getElementById('blueBar').style.width = bluePct + '%';
+
+        // Check for winner
+        if (isHost) {
+            if (scores.red >= GOAL_SCORE) stateRef.set('winner_red');
+            if (scores.blue >= GOAL_SCORE) stateRef.set('winner_blue');
+        }
+    });
+
+    // --- ACTIONS ---
+    function joinTeam(team) {
+        myTeam = team;
+        document.getElementById('myTeamDisplay').style.color = team === 'red' ? '#ef4444' : '#3b82f6';
+        document.getElementById('teamNameColor').innerText = team.toUpperCase();
+        document.getElementById('teamNameColor').style.color = team === 'red' ? '#ef4444' : '#3b82f6';
+        
+        // Hide join buttons, show waiting message
+        const btns = document.querySelectorAll('.join-btn');
+        btns.forEach(btn => { if(!btn.innerText.includes('START')) btn.style.display = 'none'; });
+        document.getElementById('waiting-msg').style.display = 'block';
+    }
+
+    function startRace() {
+        if(isHost) stateRef.set('racing');
+    }
+
+    function loadNextQuestion() {
+        // Pick a random question
+        currentQuestionIndex = Math.floor(Math.random() * questions.length);
+        const q = questions[currentQuestionIndex];
+        
+        document.getElementById('q-purpose').innerText = q.purpose;
+        document.getElementById('q-material').innerText = q.material;
+        document.getElementById('q-test').innerText = q.test;
+    }
+
+    function submitAnswer(userVotedApprove) {
+        if (!myTeam) return;
+        
+        const isCorrect = (userVotedApprove === questions[currentQuestionIndex].approve);
+        
+        if (isCorrect) {
+            // Add point
+            scoresRef.child(myTeam).transaction((currentScore) => (currentScore || 0) + 1);
+            loadNextQuestion(); // Move to next item immediately
+        } else {
+            // Penalty!
+            showPenalty();
+        }
+    }
+
+    function showPenalty() {
+        const overlay = document.getElementById('penalty-overlay');
+        const timerText = document.getElementById('penalty-timer');
+        overlay.style.display = 'flex';
+        
+        let timeLeft = 3;
+        timerText.innerText = timeLeft;
+        
+        const countdown = setInterval(() => {
+            timeLeft--;
+            timerText.innerText = timeLeft;
+            if (timeLeft <= 0) {
+                clearInterval(countdown);
+                overlay.style.display = 'none';
+                loadNextQuestion(); // Give them a new question after penalty
+            }
+        }, 1000);
+    }
+
+    function resetGame() {
+        if(isHost) {
+            scoresRef.set({ red: 0, blue: 0 });
+            stateRef.set('lobby');
+        }
+    }
+
+    // Clean up host if teacher closes tab
+    window.addEventListener('beforeunload', () => {
+        if (isHost) hostRef.remove();
+    });
+</script>
+</body>
+</html>
