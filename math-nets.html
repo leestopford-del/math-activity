@@ -147,7 +147,7 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // Funny Names List (40)
+    // Funny Names List
     const namesList = ["Awesome Alpaca", "Brave Bear", "Clever Cat", "Daring Dog", "Eager Elephant", "Fast Fox", "Giant Giraffe", "Happy Hippo", "Incredible Iguana", "Jolly Jellyfish", "Kind Kangaroo", "Lucky Lion", "Mighty Monkey", "Ninja Newt", "Outstanding Owl", "Playful Penguin", "Quick Quail", "Radical Rhino", "Super Sloth", "Terrific Tiger", "Unique Unicorn", "Valiant Vulture", "Wild Wolf", "X-traordinary Xerus", "Yellow Yak", "Zippy Zebra", "Bouncy Bunny", "Cosmic Cow", "Dancing Dolphin", "Epic Eagle", "Famous Flamingo", "Groovy Goat", "Heroic Hamster", "Icey Impala", "Jumping Jaguar", "Koala King", "Laughing Llama", "Magical Moose", "Noble Narwhal", "Party Parrot"];
 
     // Globals
@@ -164,22 +164,22 @@
     const clicksRef = db.ref('totalClicks');
     const usersRef = db.ref('users');
 
-    // 1. Authentication & Presence (UPDATED WITH ERROR CATCHING)
+    // 1. Authentication & Presence
     firebase.auth().signInAnonymously().then((userCred) => {
         myUID = userCred.user.uid;
         document.getElementById('myNameDisplay').innerText = myName;
 
-        // Setup Presence (If user disconnects, remove them)
         const myPresence = presenceRef.child(myUID);
         db.ref('.info/connected').on('value', (snap) => {
             if (snap.val() === true) {
-                myPresence.set({ name: myName, joinedAt: firebase.database.ServerValue.TIMESTAMP });
+                // FIXED: Using a local device timestamp rather than relying on Firebase Server delay
+                const localJoinTime = new Date().getTime();
+                myPresence.set({ name: myName, joinedAt: localJoinTime });
                 myPresence.onDisconnect().remove();
-                usersRef.child(myUID).onDisconnect().remove(); // Clean up votes
+                usersRef.child(myUID).onDisconnect().remove();
             }
         });
     }).catch((error) => {
-        // THIS IS NEW: It will tell you exactly what is broken!
         console.error("Firebase Auth Error:", error);
         alert("Uh oh! Could not connect to the game server. Error: " + error.message);
     });
@@ -193,6 +193,7 @@
 
         // Sort by joinedAt. Oldest connection is leader.
         entries.sort((a, b) => a[1].joinedAt - b[1].joinedAt);
+        
         if (entries.length > 0 && entries[0][0] === myUID) {
             isLeader = true;
             document.getElementById('leaderBadge').style.display = 'inline';
@@ -208,7 +209,6 @@
     stateRef.on('value', (snap) => {
         const state = snap.val() || { phase: 'waiting', timerEnd: 0 };
         
-        // Hide all first
         document.getElementById('phase-waiting').style.display = 'none';
         document.getElementById('phase-magic').style.display = 'none';
         document.getElementById('phase-poll').style.display = 'none';
@@ -257,9 +257,9 @@
 
     clicksRef.on('value', (snap) => {
         const totalClicks = snap.val() || 0;
-        // Formula: Need 2 clicks per person.
+        // Require 2 clicks per person online
         const clicksNeeded = onlineUsersCount * 2;
-        let power = Math.floor((totalClicks / clicksNeeded) * 100);
+        let power = clicksNeeded === 0 ? 0 : Math.floor((totalClicks / clicksNeeded) * 100);
         
         if (power > 100) power = 100;
         
@@ -270,7 +270,6 @@
         if (power >= 100) {
             scene.classList.add('is-folded');
             scene.style.transform = 'rotateX(-20deg) rotateY(40deg)';
-            // If leader, move to next phase automatically after 3 seconds
             if (isLeader) {
                 setTimeout(() => { stateRef.update({ phase: 'ready' }) }, 3000);
             }
@@ -300,29 +299,24 @@
             if (users[uid].vote === 'B' && users[uid].name) winners.push(users[uid].name);
         });
 
-        // Update Ready Percentage
-        const readyPercent = Math.floor((readyCount / onlineUsersCount) * 100);
+        const readyPercent = onlineUsersCount === 0 ? 0 : Math.floor((readyCount / onlineUsersCount) * 100);
         document.getElementById('readyCount').innerText = readyPercent;
 
-        // Show leader start button if 60% ready
         if (isLeader && readyPercent >= 60) {
             document.getElementById('startTimerBtn').style.display = 'inline-block';
         } else {
             document.getElementById('startTimerBtn').style.display = 'none';
         }
 
-        // Update Vote Displays
         document.getElementById('votesA').innerText = votes.A;
         document.getElementById('votesB').innerText = votes.B;
         document.getElementById('votesC').innerText = votes.C;
 
-        // Update Winners list
         document.getElementById('winnersList').innerHTML = winners.map(n => `<span>🏆 ${n}</span>`).join('');
     });
 
     function startVotingTimer() {
         if (isLeader) {
-            // Set end time 33 seconds into future (3s get ready + 30s vote)
             const endTime = new Date().getTime() + 33000;
             stateRef.update({ phase: 'voting', timerEnd: endTime });
         }
@@ -342,11 +336,6 @@
                 document.getElementById('timerDisplay').innerText = seconds;
             }
         }, 1000);
-    }
-
-    function castVote(option) {
-        // Users can overwrite their previous vote!
-        usersRef.child(myUID).update({ vote: option, name: myName });
     }
 
     function emergencyReset() {
