@@ -68,7 +68,7 @@
         .emoji-option { padding: 5px; border-radius: 10px; border: 2px solid transparent; transition: 0.2s; }
         .emoji-option.selected { background: rgba(255,255,255,0.2); border-color: #3b82f6; transform: scale(1.1); }
         
-        .player-card { display: flex; align-items: center; gap: 10px; background: #334155; padding: 8px; border-radius: 8px; font-size: 0.9em; transition: 0.3s;}
+        .player-card { display: flex; align-items: center; gap: 10px; background: #334155; padding: 8px; border-radius: 8px; font-size: 0.9em; transition: 0.3s; margin-bottom: 5px;}
         .player-card .emoji { font-size: 1.5em; }
         
         /* Active Turn Animation */
@@ -232,6 +232,11 @@
                         <div class="material" id="h-redMaterial">...</div>
                         <div class="test-result"><span id="h-redTest">...</span></div>
                     </div>
+                    
+                    <div style="width: 100%; margin-top: 10px; text-align: left;">
+                        <h4 style="color:#cbd5e1; margin-bottom: 10px;">📋 Team Roster:</h4>
+                        <div id="h-red-players"></div>
+                    </div>
                 </div>
 
                 <div class="host-col blue">
@@ -246,6 +251,11 @@
                         <div class="goal"><span id="h-bluePurpose" style="color:black;">...</span></div>
                         <div class="material" id="h-blueMaterial">...</div>
                         <div class="test-result"><span id="h-blueTest">...</span></div>
+                    </div>
+
+                    <div style="width: 100%; margin-top: 10px; text-align: left;">
+                        <h4 style="color:#cbd5e1; margin-bottom: 10px;">📋 Team Roster:</h4>
+                        <div id="h-blue-players"></div>
                     </div>
                 </div>
             </div>
@@ -447,7 +457,7 @@
             document.getElementById('h-redActive').innerText = redActiveUID ? globalUsers[redActiveUID].name : "No Workers";
             document.getElementById('h-blueActive').innerText = blueActiveUID ? globalUsers[blueActiveUID].name : "No Workers";
 
-            // Render Host Tickets (using the split arrays)
+            // Render Host Tickets
             let rIndex = globalTeams.red.order[globalTeams.red.q % globalTeams.red.order.length];
             let bIndex = globalTeams.blue.order[globalTeams.blue.q % globalTeams.blue.order.length];
             
@@ -458,6 +468,22 @@
             document.getElementById('h-bluePurpose').innerText = allQuestions[bIndex].purpose;
             document.getElementById('h-blueMaterial').innerText = allQuestions[bIndex].material;
             document.getElementById('h-blueTest').innerText = allQuestions[bIndex].test;
+
+            // Render Host Full Team Rosters
+            let hRedHTML = '', hBlueHTML = '';
+            Object.keys(globalUsers).forEach(uid => {
+                let u = globalUsers[uid];
+                let isActive = (uid === redActiveUID || uid === blueActiveUID);
+                let highlight = isActive ? 'active-turn' : '';
+                let card = `<div class="player-card ${highlight}">
+                                <span class="emoji">${u.avatar}</span> 
+                                <span>${u.name} ${isActive ? ' ⏳(Active)' : ''}</span>
+                            </div>`;
+                if (u.team === 'red') hRedHTML += card;
+                if (u.team === 'blue') hBlueHTML += card;
+            });
+            document.getElementById('h-red-players').innerHTML = hRedHTML || '<i>No workers</i>';
+            document.getElementById('h-blue-players').innerHTML = hBlueHTML || '<i>No workers</i>';
 
             // Host checks win
             if (globalTeams.red.score >= GOAL_SCORE) stateRef.set('winner_red');
