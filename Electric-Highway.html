@@ -274,6 +274,7 @@
     <div>
       <button id="btn-join-student" class="btn" onclick="joinGame('player')">Join as Student (Player)</button>
       <button id="btn-join-teacher" class="btn btn-alt" onclick="joinGame('teacher')">Join as Teacher (Host / Spectator)</button>
+      <button id="btn-join-observer" class="btn" onclick="joinGame('observer')">Join as Observer (Watch only)</button>
     </div>
   </div>
 
@@ -286,13 +287,13 @@
       <p id="teacher-controls-title" style="color: var(--teal); margin:0 0 10px; font-family:Orbitron, sans-serif;">TEACHER CONTROLS</p>
       <p id="teacher-controls-instr" class="sub" style="margin:0 0 10px;">Wait for students to join, then begin Round 1.</p>
       <button class="btn" id="start-round-btn" onclick="startNextRound()">START ROUND 1</button>
+      <div id="lobbyCount"></div>
+      <div id="hostLockMessage" style="display:none;"></div>
+
+      <button id="btnJoinObserver">Join as Observer</button>
     </div>
     <p id="waiting-msg" class="sub" style="color:#889; font-style: italic; margin-top: 10px;">Waiting for Teacher to start the round...</p>
   </div>
-<div id="lobbyCount"></div>
-<div id="hostLockMessage" style="display:none;"></div>
-
-<button id="btnJoinObserver">Join as Observer</button>
 
   <!-- Round end / game over -->
   <div id="round-screen" class="overlay" style="display:none;">
@@ -306,58 +307,6 @@
     </div>
     <p id="waiting-next-msg" class="sub" style="color:#889; font-style: italic;">Waiting for Teacher to proceed...</p>
   </div>
-
-// public/js/lobby.js
-const lobbyCountEl = document.getElementById("lobbyCount");
-const hostLockEl = document.getElementById("hostLockMessage");
-
-const btnHost = document.getElementById("btnHost");          // your existing
-const btnJoinBlue = document.getElementById("btnJoinBlue");  // your existing
-const btnJoinRed = document.getElementById("btnJoinRed");    // your existing
-const btnJoinObserver = document.getElementById("btnJoinObserver");
-
-let myPlayerId = null;
-let myRole = null;
-
-function join(role, team) {
-  socket.emit("lobby:join", { name: window.playerName ?? "Player", role, team }, (res) => {
-    if (!res?.ok) {
-      if (res?.code === "HOST_TAKEN") {
-        hostLockEl.style.display = "block";
-        hostLockEl.textContent = res.message;
-      }
-      return;
-    }
-    myPlayerId = res.playerId;
-    myRole = res.role;
-  });
-}
-
-btnHost?.addEventListener("click", () => join("HOST"));
-btnJoinBlue?.addEventListener("click", () => join("PLAYER", "blue"));
-btnJoinRed?.addEventListener("click", () => join("PLAYER", "red"));
-btnJoinObserver?.addEventListener("click", () => join("OBSERVER"));
-
-socket.on("lobby:state", (state) => {
-  // 1) Lobby count visible
-  const c = state.counts;
-  lobbyCountEl.textContent =
-    `Players in lobby: ${c.total} (Host: ${c.host}, Players: ${c.players}, Observers: ${c.observers})`;
-
-  // 2) Host option disabled as soon as host exists (and show why)
-  const hostTaken = !!state.host;
-  if (btnHost) btnHost.disabled = hostTaken;
-
-  if (hostTaken) {
-    hostLockEl.style.display = "block";
-    hostLockEl.textContent = `Host already selected${state.host?.name ? ` by ${state.host.name}` : ""}. ` +
-      `Students can join as Player or Observer.`;
-  } else {
-    hostLockEl.style.display = "none";
-  }
-
-  // Optional: if you have a roster UI, you can render state.members here
-});
 
   <!-- Game HUD -->
   <div id="game-ui">
@@ -421,7 +370,9 @@ socket.on("lobby:state", (state) => {
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
-
+    // Presence refs
+const hostRef = db.ref("electricLab/host");           // single host object
+const observersRef = db.ref("electricLab/observers"); // list of observers
     // =========================
     // i18n (client-only; does not affect other users)
     // =========================
@@ -1081,6 +1032,8 @@ socket.on("lobby:state", (state) => {
       mapId: 1,
       roundStartScores: { Positive: 0, Negative: 0 },
       roundResults: {}
+     let hostInfo = null;
+     let observers = {};
     };
 
     let me = { x: 0, y: 0, caught: false, stuck: false, stuckUntil: 0 };
@@ -1307,9 +1260,89 @@ socket.on("lobby:state", (state) => {
     // =========================
     // Join / lobby
     // =========================
-    async function joinGame(roleSelected){
-      myRole = roleSelected;
-      myId = "user_" + Math.random().toString(36).substr(2, 9);
+	async function joinGame(roleSelected){
+  myRole = roleSelected;
+  myId = "user_" + Math.random().toString(36).substr(2, 9);
+
+  document.getElementById("role-select").style.display = "none";
+  document.getElementById("lobby").style.display = "flex";
+
+  // -------- HOST LOCK (Teacher) ----------
+  if (myRole === "teacher") {
+    // Attempt to claim host slot atomically
+    const claim = await hostRef.transaction((current) => {
+      if (current && current.id) return; // abort (host taken)
+      return { id: myId, name: "Teacher (Host)", at: Date.now() };
+    });
+
+    if (!claim.committed) {
+      // Host already taken -> block teacher join, show message, go back to role select
+      document.getElementById("lobby").style.display = "none";
+      document.getElementById("role-select").style.display = "flex";
+
+      const msgEl = document.getElementById("hostLockMessage");
+      msgEl.style.display = "block";
+      msgEl.textContent = "Host already selected. Join as Student or Observer.";
+      return;
+    }
+
+    // Host claimed successfully
+    isHost = true;
+    myName = "Teacher (Host)";
+    myTeam = "Spectator";
+    me.x = 500; me.y = 500;
+
+    document.getElementById("player-identity-card").innerHTML =
+      `<span style="color:var(--teal); font-family:Orbitron, sans-serif;">${myName}</span><br>` +
+      `<span style="font-size:1rem; color:#aab;">${t("teacherControls")}</span>`;
+    document.getElementById("host-start-area").style.display = "block";
+    document.getElementById("waiting-msg").style.display = "none";
+
+    // If host disconnects, free the slot
+    hostRef.onDisconnect().remove();
+
+    // Reset / initialise session (teacher is source-of-truth)
+    await db.ref("electricLab/session").set({
+      state: "lobby",
+      round: 0,
+      timer: 60,
+      scores: { Positive: 0, Negative: 0 },
+      catchers: "Positive",
+      mapId: 1,
+      roundStartScores: { Positive: 0, Negative: 0 },
+      roundResults: {}
+    });
+
+    listenToDatabase();
+    applyTranslationsStatic();
+    renderIdentityCard();
+    return;
+  }
+
+  // -------- OBSERVER ----------
+  if (myRole === "observer") {
+    isHost = false;
+    const first = ["Observer","Viewer","Spectator"];
+    myName = first[Math.floor(Math.random()*first.length)] + " " + Math.floor(1000 + Math.random()*9000);
+    myTeam = "Spectator";
+
+    // Register observer presence
+    await observersRef.child(myId).set({ name: myName, at: Date.now() });
+    observersRef.child(myId).onDisconnect().remove();
+
+    document.getElementById("player-identity-card").innerHTML =
+      `<span style="color:var(--teal); font-family:Orbitron, sans-serif;">${myName}</span><br>` +
+      `<span style="font-size:1rem; color:#aab;">Observer (watch only)</span>`;
+
+    listenToDatabase();
+    applyTranslationsStatic();
+
+    // Observers should never write to players/
+    return;
+  }
+
+  // -------- PLAYER (existing logic continues below) ----------
+  // (leave your existing player join code as-is)
 
       document.getElementById("role-select").style.display = "none";
       document.getElementById("lobby").style.display = "flex";
