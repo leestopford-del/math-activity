@@ -16,80 +16,68 @@
             --grid-line: rgba(255,255,255,0.3);
             --gold: #fbbf24;
         }
-        body {
-            margin: 0; padding: 0; background-color: var(--bg-dark); color: white;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            display: flex; flex-direction: column; align-items: center; height: 100vh; overflow: hidden;
-        }
-        
+        body { margin: 0; padding: 0; background-color: var(--bg-dark); color: white; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; flex-direction: column; align-items: center; height: 100vh; overflow: hidden; }
         .header-bar { width: 100%; background: #000; padding: 10px 0; text-align: center; border-bottom: 4px solid #475569; flex-shrink: 0;}
-        
-        /* Layouts */
         .container { flex-grow: 1; display: flex; flex-direction: column; width: 100%; max-width: 900px; padding: 10px; box-sizing: border-box; overflow-y: auto; align-items: center;}
         .screen { display: none; width: 100%; flex-direction: column; align-items: center; }
         
         /* UI Elements */
         .box { background: var(--card-bg); border: 2px solid #475569; border-radius: 15px; padding: 20px; width: 95%; max-width: 500px; box-sizing: border-box; margin-bottom: 15px; box-shadow: 0 10px 20px rgba(0,0,0,0.3); text-align: center;}
-        .btn { padding: 15px 25px; font-size: 1.2em; font-weight: bold; border: none; border-radius: 10px; cursor: pointer; transition: 0.2s; color: white; width: 100%; box-sizing: border-box;}
+        .btn { padding: 15px 25px; font-size: 1.2em; font-weight: bold; border: none; border-radius: 10px; cursor: pointer; transition: 0.2s; color: white; width: 100%; box-sizing: border-box; margin-bottom: 10px;}
         .btn:active { transform: scale(0.95); }
+        .btn:disabled { background: #475569 !important; cursor: not-allowed; box-shadow: none !important; opacity: 0.7;}
         .btn-blue { background: #2563eb; box-shadow: 0 5px 0 #1d4ed8; }
         .btn-green { background: #16a34a; box-shadow: 0 5px 0 #14532d; }
         .btn-gold { background: #d97706; box-shadow: 0 5px 0 #b45309; }
+        .btn-solo { background: transparent; border: 2px solid #cbd5e1; color: #cbd5e1; }
         
-        /* Avatar Selector */
         .emoji-selector { display: flex; justify-content: center; gap: 10px; margin-bottom: 15px; font-size: 2em; cursor: pointer; flex-wrap: wrap;}
         .emoji-option { padding: 5px; border-radius: 10px; border: 2px solid transparent; transition: 0.2s; }
         .emoji-option.selected { background: rgba(255,255,255,0.2); border-color: #3b82f6; transform: scale(1.1); }
 
+        /* Timer UI */
+        #timer-display { font-size: 3em; font-weight: bold; color: #ef4444; margin: 10px 0; text-shadow: 0 0 10px rgba(239,68,68,0.5); display:none;}
+
         /* The Grid Sea */
+        .grid-wrapper { position: relative; width: 100%; max-width: 500px; aspect-ratio: 1 / 1; margin: 20px 0 30px 0;}
         .grid-container {
-            position: relative; width: 100%; max-width: 500px; aspect-ratio: 1 / 1;
-            background-color: var(--ocean); border: 3px solid white; border-left: 5px solid white; border-bottom: 5px solid white;
-            margin: 20px 0 30px 20px; box-sizing: border-box;
-            background-image: 
-                linear-gradient(var(--grid-line) 1px, transparent 1px),
-                linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
-            background-size: 10% 10%; /* 10x10 Grid */
+            position: absolute; top:0; left:0; width: 100%; height: 100%;
+            background-color: var(--ocean); border: 2px solid rgba(255,255,255,0.5);
+            box-sizing: border-box; transition: transform 1s ease-in-out;
+            background-image: linear-gradient(var(--grid-line) 1px, transparent 1px), linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+            background-size: 10% 10%;
         }
 
-        /* Axes Labels */
-        .axis-label { position: absolute; font-weight: bold; font-size: 1.2em; color: #94a3b8;}
-        .y-axis-label { top: -25px; left: -15px; }
-        .x-axis-label { bottom: -30px; right: -15px; }
-        .origin-label { position: absolute; bottom: -25px; left: -25px; font-weight: bold; font-size: 1.2em;}
-        
-        .axis-numbers-y { position: absolute; left: -25px; height: 100%; display: flex; flex-direction: column-reverse; justify-content: space-between; font-size: 0.8em; }
-        .axis-numbers-x { position: absolute; bottom: -25px; width: 100%; display: flex; justify-content: space-between; font-size: 0.8em; margin-left: -4px;}
+        /* Perspective Borders */
+        .border-bl { border-left: 5px solid white; border-bottom: 5px solid white; }
 
-        /* Entities on the Grid */
         .entity {
             position: absolute; width: 10%; height: 10%; margin-left: -5%; margin-bottom: -5%;
             display: flex; justify-content: center; align-items: center; font-size: 1.5em;
-            transition: left 1.5s ease-in-out, bottom 1.5s ease-in-out; z-index: 5;
+            transition: left 1s ease-in-out, bottom 1s ease-in-out; z-index: 5;
         }
         .treasure { z-index: 2; font-size: 1.8em; filter: drop-shadow(0 0 5px var(--gold)); animation: float 2s infinite ease-in-out;}
         .player-ship { z-index: 5; }
         .my-ship { z-index: 10; font-size: 2em; filter: drop-shadow(0 0 10px white); }
+        .crash-icon { z-index: 20; font-size: 2.5em; display:none; }
 
         @keyframes float { 0% { transform: translateY(0); } 50% { transform: translateY(-5px); } 100% { transform: translateY(0); } }
 
-        /* Game Controls */
+        /* Controls */
         .controls-box { background: #334155; padding: 15px; border-radius: 15px; width: 100%; max-width: 500px; box-sizing: border-box; margin-bottom: 10px;}
         .control-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-size: 1.2em; font-weight: bold;}
         .stepper { display: flex; align-items: center; gap: 10px; background: #0f172a; padding: 5px 10px; border-radius: 10px;}
         .stepper button { background: #475569; border: none; color: white; font-size: 1.2em; width: 35px; height: 35px; border-radius: 5px; cursor: pointer; font-weight: bold;}
-        .stepper button:active { background: #64748b; }
-        
         .input-box { width: 50px; padding: 10px; font-size: 1.2em; text-align: center; border-radius: 5px; border: 2px solid #cbd5e1; background: #0f172a; color: white;}
         .bracket-input { display: flex; justify-content: center; align-items: center; gap: 10px; font-size: 2em; font-weight: bold; }
-
         .score-board { display: flex; justify-content: space-between; width: 100%; max-width: 500px; margin-bottom: 10px; }
         .score-card { background: rgba(0,0,0,0.5); padding: 10px 20px; border-radius: 10px; font-weight: bold; font-size: 1.2em;}
 
-        /* Host Dashboard */
+        /* Alerts */
+        #alert-box { display:none; background:#ef4444; padding:10px; border-radius:10px; font-weight:bold; margin-bottom:10px; text-align:center;}
+        
         .host-panel { width: 100%; max-width: 800px; display: flex; gap: 20px; flex-wrap: wrap; margin-top: 20px;}
         .host-card { flex: 1; background: #1e293b; padding: 15px; border-radius: 10px; border: 2px solid #475569; min-width: 250px;}
-        .player-list-item { background: #334155; padding: 5px 10px; border-radius: 5px; margin-bottom: 5px; display: flex; justify-content: space-between;}
     </style>
 </head>
 <body>
@@ -103,19 +91,21 @@
         <div id="screen-lobby" class="screen" style="display:flex;">
             <div class="box">
                 <h2>Welcome, Navigator!</h2>
-                <p>Choose your vessel before setting sail:</p>
                 <div class="emoji-selector" id="emoji-picker">
                     <div class="emoji-option selected" onclick="selectEmoji(this, '⛵')">⛵</div>
                     <div class="emoji-option" onclick="selectEmoji(this, '🚤')">🚤</div>
                     <div class="emoji-option" onclick="selectEmoji(this, '🚢')">🚢</div>
                     <div class="emoji-option" onclick="selectEmoji(this, '🛶')">🛶</div>
-                    <div class="emoji-option" onclick="selectEmoji(this, '🏴‍☠️')">🏴‍☠️</div>
                 </div>
 
-                <p>Enter your Captain Name:</p>
-                <input type="text" id="nameInput" style="padding: 10px; font-size: 1.2em; width: 80%; text-align: center; border-radius: 5px; margin-bottom: 15px;" placeholder="Captain...">
+                <input type="text" id="nameInput" style="padding: 10px; font-size: 1.2em; width: 80%; text-align: center; border-radius: 5px; margin-bottom: 15px;" placeholder="Captain Name...">
                 
-                <button class="btn btn-blue" onclick="joinFleet()">JOIN FLEET</button>
+                <div id="join-warning" style="display:none; color:#f59e0b; font-weight:bold; margin-bottom:10px;">
+                    A group expedition is currently underway!
+                </div>
+                
+                <button class="btn btn-blue" id="btn-join-fleet" onclick="joinFleet()">JOIN MULTIPLAYER FLEET</button>
+                <button class="btn btn-solo" onclick="startSoloMode()">PLAY SOLO PRACTICE</button>
             </div>
 
             <div id="host-lobby-box" class="box" style="display:none; border-color: #f59e0b; width: 100%; max-width: 800px;">
@@ -128,91 +118,78 @@
                 
                 <div class="host-panel">
                     <div class="host-card">
-                        <h3 style="margin-top:0; color:#cbd5e1;">📋 Fleet Roster</h3>
+                        <h3 style="margin-top:0;">📋 Fleet (Max 4 Teams)</h3>
                         <div id="host-roster"></div>
                     </div>
                     <div class="host-card">
-                        <h3 style="margin-top:0; color:#cbd5e1;">⚙️ Sea Controls</h3>
-                        <button class="btn" style="background:#475569; margin-bottom: 10px;" onclick="spawnTreasures()">💰 Scatter Treasure</button>
-                        <button class="btn" style="background:#991b1b;" onclick="resetGame()">🛑 Hard Reset Server</button>
+                        <h3 style="margin-top:0;">⚙️ Sea Controls</h3>
+                        <button class="btn" style="background:#991b1b;" onclick="resetGame()">🛑 End Game & Reset</button>
                     </div>
                 </div>
-            </div>
-
-            <div id="solo-prompt" style="display:none; margin-top: 20px; text-align: center;">
-                <p style="color: #94a3b8;">No active lesson detected.</p>
-                <button class="btn" style="background: transparent; border: 2px solid #94a3b8; color: #cbd5e1; width: auto;" onclick="startSoloMode()">Play Solo Practice</button>
             </div>
         </div>
 
         <div id="screen-waiting" class="screen">
             <div class="box">
                 <h2>Vessel Prepared! <span id="wait-avatar">⛵</span></h2>
-                <p>Captain <b id="wait-name" style="color:#0ea5e9;">...</b>, your ship is docked at the origin <b>(0,0)</b>.</p>
-                <p style="color: #f59e0b; font-weight: bold; margin-top: 20px;">Waiting for Host to sound the horn...</p>
+                <p>Captain <b id="wait-name" style="color:#0ea5e9;">...</b>, you are assigned to <b>Team <span id="wait-team">...</span></b>.</p>
+                <p style="color: #f59e0b; font-weight: bold; margin-top: 20px;">Waiting for Host to begin...</p>
             </div>
         </div>
 
         <div id="screen-game" class="screen">
             
             <div class="score-board">
-                <div class="score-card">🏆 My Score: <span id="my-score" style="color:var(--gold);">0</span></div>
+                <div class="score-card">Team <span id="my-team-display">1</span> Score: <span id="my-score" style="color:var(--gold);">0</span></div>
                 <div class="score-card" style="background: rgba(14, 165, 233, 0.3);">Round <span id="round-display">1</span></div>
             </div>
 
-            <div class="grid-container" id="grid-sea">
-                <div class="axis-label y-axis-label">y</div>
-                <div class="axis-label x-axis-label">x</div>
-                <div class="origin-label">0</div>
-                
-                <div class="axis-numbers-y"><span>10</span><span>9</span><span>8</span><span>7</span><span>6</span><span>5</span><span>4</span><span>3</span><span>2</span><span>1</span></div>
-                <div class="axis-numbers-x"><span>0</span><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span></div>
+            <div id="timer-display">10</div>
+            <div id="alert-box">💥 CRASH! Both ships destroyed at those coordinates!</div>
 
-                <div id="sea-entities"></div>
+            <button class="btn btn-gold" id="host-exec-btn" style="display:none; max-width:300px;" onclick="hostStartTimer()">⏰ START 10s TURN TIMER</button>
+
+            <div class="grid-wrapper">
+                <div class="grid-container border-bl" id="grid-sea">
+                    <div id="sea-entities"></div>
+                </div>
             </div>
 
             <div class="controls-box" id="controls-round1" style="display:none;">
-                <p style="margin: 0 0 10px 0; color: #94a3b8; font-size: 0.9em;">Navigate from Home Port (0,0):</p>
                 <div class="control-row">
                     <span>Along the Corridor ➡️</span>
                     <div class="stepper">
-                        <button onclick="changeVal('r1-x', -1)">-</button>
-                        <span id="r1-x" style="width: 20px; text-align: center;">0</span>
-                        <button onclick="changeVal('r1-x', 1)">+</button>
+                        <button onclick="changeVal('r1-x', -1)">-</button><span id="r1-x" style="width: 20px; text-align: center;">0</span><button onclick="changeVal('r1-x', 1)">+</button>
                     </div>
                 </div>
                 <div class="control-row">
                     <span>Up the Stairs ⬆️</span>
                     <div class="stepper">
-                        <button onclick="changeVal('r1-y', -1)">-</button>
-                        <span id="r1-y" style="width: 20px; text-align: center;">0</span>
-                        <button onclick="changeVal('r1-y', 1)">+</button>
+                        <button onclick="changeVal('r1-y', -1)">-</button><span id="r1-y" style="width: 20px; text-align: center;">0</span><button onclick="changeVal('r1-y', 1)">+</button>
                     </div>
                 </div>
-                <button class="btn btn-green" onclick="sailShip(1)" style="margin-top: 10px;">SAIL!</button>
+                <button class="btn btn-green" id="btn-sail-1" onclick="lockMove(1)">LOCK IN MOVE</button>
             </div>
 
             <div class="controls-box" id="controls-round2" style="display:none;">
-                <p style="margin: 0 0 10px 0; color: #94a3b8; font-size: 0.9em;">Navigate from Home Port (0,0):</p>
                 <div class="control-row">
-                    <span>X-Axis (Horizontal) ➡️</span>
-                    <input type="number" id="r2-x" class="input-box" min="0" max="10" value="0">
+                    <span>X-Axis (Horizontal) ➡️</span><input type="number" id="r2-x" class="input-box" min="0" max="10" value="0">
                 </div>
                 <div class="control-row">
-                    <span>Y-Axis (Vertical) ⬆️</span>
-                    <input type="number" id="r2-y" class="input-box" min="0" max="10" value="0">
+                    <span>Y-Axis (Vertical) ⬆️</span><input type="number" id="r2-y" class="input-box" min="0" max="10" value="0">
                 </div>
-                <button class="btn btn-green" onclick="sailShip(2)" style="margin-top: 10px;">SAIL!</button>
+                <button class="btn btn-green" id="btn-sail-2" onclick="lockMove(2)">LOCK IN MOVE</button>
             </div>
 
             <div class="controls-box" id="controls-round3" style="display:none;">
-                <p style="margin: 0 0 10px 0; color: #94a3b8; font-size: 0.9em;">Enter Target Coordinates from (0,0):</p>
                 <div class="bracket-input">
                     ( <input type="number" id="r3-x" class="input-box" min="0" max="10" placeholder="x"> , 
                       <input type="number" id="r3-y" class="input-box" min="0" max="10" placeholder="y"> )
                 </div>
-                <button class="btn btn-green" onclick="sailShip(3)" style="margin-top: 15px;">SAIL!</button>
+                <button class="btn btn-green" id="btn-sail-3" style="margin-top:15px;" onclick="lockMove(3)">LOCK IN MOVE</button>
             </div>
+            
+            <p id="lock-status" style="color:#10b981; font-weight:bold; display:none;">✅ Coordinates locked! Waiting for timer...</p>
 
         </div>
     </div>
@@ -223,90 +200,82 @@
       apiKey: "AIzaSyBXgT_LxFUar6FcfFqKJsuY2YIOjG5JLtM",
       authDomain: "symmetry-and-nets.firebaseapp.com",
       databaseURL: "https://symmetry-and-nets-default-rtdb.europe-west1.firebasedatabase.app",
-      projectId: "symmetry-and-nets",
-      storageBucket: "symmetry-and-nets.firebasestorage.app",
-      messagingSenderId: "250211420064",
-      appId: "1:250211420064:web:fe4a064715042bedf546c5"
+      projectId: "symmetry-and-nets"
     };
-
     if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
     const db = firebase.database();
 
     // --- GLOBALS ---
     let myUID = null;
-    let myName = "";
+    let myName = "Captain";
     let myAvatar = "⛵";
+    let myTeam = 1;
     let isHost = false;
     let isSolo = false;
     let myScore = 0;
     
-    // Data Caches
-    let globalState = { phase: 'lobby', round: 1 };
+    // Caches
+    let globalState = { phase: 'lobby', round: 1, timer: 0 };
     let globalUsers = {};
     let globalTreasures = {};
 
-    // References
+    // Refs
     const stateRef = db.ref('gridGame/state');
     const usersRef = db.ref('gridGame/users');
     const treasuresRef = db.ref('gridGame/treasures');
     const hostRef = db.ref('gridGame/hostExists');
 
-    // --- 1. SETUP & HOST ELECTION ---
-    firebase.auth().setPersistence('none').then(() => {
-        return firebase.auth().signInAnonymously();
-    }).then((userCred) => {
+    // --- 1. SETUP ---
+    firebase.auth().signInAnonymously().then((userCred) => {
         myUID = userCred.user.uid;
-        
         hostRef.transaction((current) => {
             if (current === null) return true;
             return;
         }, (error, committed) => {
             if (committed) {
-                // I AM HOST
                 isHost = true;
                 document.getElementById('host-lobby-box').style.display = 'block';
-                document.getElementById('solo-prompt').style.display = 'none';
+                document.getElementById('host-exec-btn').style.display = 'block';
                 resetGame(); 
-            } else {
-                // I AM PLAYER
-                document.getElementById('solo-prompt').style.display = 'block';
             }
         });
     });
 
-    // Avatar Selection UI
     function selectEmoji(element, emoji) {
         document.querySelectorAll('.emoji-option').forEach(el => el.classList.remove('selected'));
         element.classList.add('selected');
         myAvatar = emoji;
     }
 
-    // --- 2. JOINING THE FLEET ---
-    function joinFleet() {
-        myName = document.getElementById('nameInput').value.trim() || "Captain Unknown";
-        
-        if (isSolo) {
-            startSoloMode();
-            return;
-        }
-
-        // Save to DB
-        const myUserRef = usersRef.child(myUID);
-        myUserRef.set({ name: myName, avatar: myAvatar, x: 0, y: 0, score: 0, joinedAt: firebase.database.ServerValue.TIMESTAMP });
-        myUserRef.onDisconnect().remove();
-
-        document.getElementById('wait-avatar').innerText = myAvatar;
-        document.getElementById('wait-name').innerText = myName;
-
-        if(globalState.phase === 'lobby') switchScreen('screen-waiting');
-        else handleStateChange(globalState.phase);
-    }
-
-    // --- 3. DATA LISTENERS ---
+    // --- 2. DATA LISTENERS ---
     stateRef.on('value', (snap) => {
         if(isSolo) return;
-        globalState = snap.val() || { phase: 'lobby', round: 1 };
-        handleStateChange(globalState.phase);
+        const newState = snap.val() || { phase: 'lobby', round: 1, timer: 0 };
+        
+        // Timer Logic
+        if (newState.timer > 0) {
+            document.getElementById('timer-display').style.display = 'block';
+            document.getElementById('timer-display').innerText = newState.timer;
+        } else if (newState.timer === 0 && globalState.timer > 0) {
+            document.getElementById('timer-display').style.display = 'none';
+            if (isHost) hostResolveTurn();
+        }
+
+        // Phase change
+        if (newState.phase !== globalState.phase) {
+            handlePhaseChange(newState.phase);
+        }
+
+        // Lobby Leak Protection
+        if (newState.phase === 'racing' && globalState.phase === 'lobby' && !globalUsers[myUID]) {
+            document.getElementById('btn-join-fleet').disabled = true;
+            document.getElementById('join-warning').style.display = 'block';
+        } else if (newState.phase === 'lobby') {
+            document.getElementById('btn-join-fleet').disabled = false;
+            document.getElementById('join-warning').style.display = 'none';
+        }
+
+        globalState = newState;
     });
 
     usersRef.on('value', (snap) => {
@@ -314,16 +283,14 @@
         globalUsers = snap.val() || {};
         updateGridUI(); 
         
-        // Host Dashboard Update
         if (isHost && globalState.phase === 'lobby') {
             let html = '';
             Object.values(globalUsers).forEach(u => {
-                html += `<div class="player-list-item"><span>${u.avatar} ${u.name}</span> <span>Score: ${u.score}</span></div>`;
+                html += `<div>T${u.team}: ${u.avatar} ${u.name} (Score: ${u.score})</div>`;
             });
-            document.getElementById('host-roster').innerHTML = html || '<i style="color:#94a3b8">No ships docked yet.</i>';
+            document.getElementById('host-roster').innerHTML = html;
         }
 
-        // Update my local score
         if(globalUsers[myUID]) {
             myScore = globalUsers[myUID].score;
             document.getElementById('my-score').innerText = myScore;
@@ -336,82 +303,191 @@
         updateGridUI(); 
     });
 
-    // --- 4. RENDER GRID (The Magic) ---
+    // --- 3. JOINING & TEAMS ---
+    function joinFleet() {
+        myName = document.getElementById('nameInput').value.trim() || "Captain";
+        
+        // Assign Team (Round Robin 1-4)
+        const currentCount = Object.keys(globalUsers).length;
+        myTeam = (currentCount % 4) + 1;
+
+        const myUserRef = usersRef.child(myUID);
+        myUserRef.set({ name: myName, avatar: myAvatar, team: myTeam, localX: 0, localY: 0, lockedX: null, lockedY: null, score: 0 });
+        myUserRef.onDisconnect().remove();
+
+        document.getElementById('wait-avatar').innerText = myAvatar;
+        document.getElementById('wait-name').innerText = myName;
+        document.getElementById('wait-team').innerText = myTeam;
+        switchScreen('screen-waiting');
+    }
+
+    // --- 4. PERSPECTIVE & GRID RENDER ---
     function updateGridUI() {
         if (globalState.phase === 'lobby') return;
-
         const sea = document.getElementById('sea-entities');
+        const grid = document.getElementById('grid-sea');
         let html = '';
 
-        // 1. Draw Treasures
+        // 1. Rotate the Grid based on My Team
+        let rotation = 0;
+        if(myTeam === 2) rotation = -90;
+        if(myTeam === 3) rotation = -180;
+        if(myTeam === 4) rotation = -270;
+        if(isHost) rotation = 0; // Host sees global truth (Team 1)
+
+        grid.style.transform = `rotate(${rotation}deg)`;
+
+        // 2. Draw Treasures
         Object.entries(globalTreasures).forEach(([tid, t]) => {
-            html += `<div class="entity treasure" style="left: ${t.x * 10}%; bottom: ${t.y * 10}%;">💰</div>`;
+            html += `<div class="entity treasure" style="left: ${t.gx * 10}%; bottom: ${t.gy * 10}%; transform: rotate(${-rotation}deg);">💰</div>`;
         });
 
-        // 2. Draw Ships
+        // 3. Draw Ships
         Object.entries(globalUsers).forEach(([uid, u]) => {
             const isMe = (uid === myUID);
             const extraClass = isMe ? 'my-ship' : '';
-            html += `<div class="entity player-ship ${extraClass}" style="left: ${u.x * 10}%; bottom: ${u.y * 10}%;" title="${u.name}">${u.avatar}</div>`;
+            
+            // Map local to global for rendering
+            let gx=0, gy=0;
+            if(u.team===1){ gx=u.localX; gy=u.localY; }
+            if(u.team===2){ gx=10-u.localY; gy=u.localX; }
+            if(u.team===3){ gx=10-u.localX; gy=10-u.localY; }
+            if(u.team===4){ gx=u.localY; gy=10-u.localX; }
+
+            html += `<div class="entity player-ship ${extraClass}" style="left: ${gx * 10}%; bottom: ${gy * 10}%; transform: rotate(${-rotation}deg);">${u.avatar}</div>`;
         });
 
         sea.innerHTML = html;
     }
 
-    // --- 5. HOST ACTIONS ---
+    // --- 5. HOST LOGIC (Collisions & Timers) ---
     function startRound(roundNum) {
         if(!isHost) return;
-        stateRef.set({ phase: 'racing', round: roundNum });
+        stateRef.set({ phase: 'racing', round: roundNum, timer: 0 });
         spawnTreasures();
-    }
-
-    function spawnTreasures() {
-        if(!isHost && !isSolo) return;
-        
-        let newTreasures = {};
-        // Spawn 10 random treasures
-        for(let i=0; i<10; i++) {
-            let tx = Math.floor(Math.random() * 10) + 1; // 1 to 10
-            let ty = Math.floor(Math.random() * 10) + 1; // 1 to 10
-            let tid = `t_${tx}_${ty}`;
-            newTreasures[tid] = { x: tx, y: ty };
-        }
-
-        if(isSolo) {
-            globalTreasures = newTreasures;
-            updateGridUI();
-        } else {
-            treasuresRef.set(newTreasures);
-        }
     }
 
     function resetGame() {
         if(!isHost) return;
         treasuresRef.remove();
-        stateRef.set({ phase: 'lobby', round: 1 });
-        // Reset player positions and scores
-        usersRef.once('value').then(snap => {
-            const users = snap.val() || {};
-            let updates = {};
-            Object.keys(users).forEach(uid => {
-                updates[`${uid}/x`] = 0;
-                updates[`${uid}/y`] = 0;
-                updates[`${uid}/score`] = 0;
-            });
-            usersRef.update(updates);
-        });
+        stateRef.set({ phase: 'lobby', round: 1, timer: 0 });
+        usersRef.remove(); // Kick everyone out to reset teams
     }
 
-    // --- 6. PLAYER CONTROLS & SAILING ---
+    function spawnTreasures() {
+        let newTreasures = {};
+        for(let i=0; i<8; i++) {
+            let tx = Math.floor(Math.random() * 9) + 1;
+            let ty = Math.floor(Math.random() * 9) + 1;
+            newTreasures[`t_${tx}_${ty}`] = { gx: tx, gy: ty };
+        }
+        if(isSolo) globalTreasures = newTreasures;
+        else treasuresRef.set(newTreasures);
+        updateGridUI();
+    }
+
+    function hostStartTimer() {
+        let t = 10;
+        stateRef.update({timer: t});
+        let intv = setInterval(() => {
+            t--;
+            stateRef.update({timer: t});
+            if (t <= 0) clearInterval(intv);
+        }, 1000);
+    }
+
+    function hostResolveTurn() {
+        if(!isHost) return;
+        
+        let targetMap = {}; // { "gx_gy": [ {uid, steps, uref} ] }
+        let updates = {};
+
+        // 1. Convert locked moves to global targets
+        Object.entries(globalUsers).forEach(([uid, u]) => {
+            if (u.lockedX === null || u.lockedY === null) return;
+            
+            let gx=0, gy=0;
+            if(u.team===1){ gx=u.lockedX; gy=u.lockedY; }
+            if(u.team===2){ gx=10-u.lockedY; gy=u.lockedX; }
+            if(u.team===3){ gx=10-u.lockedX; gy=10-u.lockedY; }
+            if(u.team===4){ gx=u.lockedY; gy=10-u.lockedX; }
+
+            let steps = u.lockedX + u.lockedY;
+            let tid = `t_${gx}_${gy}`;
+            
+            // Move them visually first
+            updates[`${uid}/localX`] = u.lockedX;
+            updates[`${uid}/localY`] = u.lockedY;
+            updates[`${uid}/lockedX`] = null;
+            updates[`${uid}/lockedY`] = null;
+
+            if (globalTreasures[tid]) {
+                if(!targetMap[tid]) targetMap[tid] = [];
+                targetMap[tid].push({ uid: uid, steps: steps });
+            }
+        });
+
+        usersRef.update(updates); // Trigger movements
+
+        // 2. Wait for animation to finish, then resolve crashes/wins
+        setTimeout(() => {
+            let scoresToAdd = {};
+            let treasuresToRemove = [];
+            let crashedUsers = [];
+
+            Object.entries(targetMap).forEach(([tid, players]) => {
+                // Find minimum steps
+                let minSteps = Math.min(...players.map(p => p.steps));
+                let candidates = players.filter(p => p.steps === minSteps);
+
+                if (candidates.length > 1) {
+                    // CRASH!
+                    candidates.forEach(c => crashedUsers.push(c.uid));
+                } else {
+                    // WINNER!
+                    let winner = candidates[0].uid;
+                    scoresToAdd[winner] = (globalUsers[winner].score || 0) + 1;
+                    treasuresToRemove.push(tid);
+                }
+            });
+
+            // Apply results
+            treasuresToRemove.forEach(t => treasuresRef.child(t).remove());
+            Object.entries(scoresToAdd).forEach(([uid, sc]) => usersRef.child(uid).update({score: sc}));
+
+            // Alert Crashes (using a temporary DB flag)
+            if(crashedUsers.length > 0) {
+                stateRef.update({crashAlert: Date.now()});
+            }
+
+            // Snap everyone back to origin after result
+            setTimeout(() => {
+                let resets = {};
+                Object.keys(globalUsers).forEach(uid => { resets[`${uid}/localX`] = 0; resets[`${uid}/localY`] = 0; });
+                usersRef.update(resets);
+            }, 1000);
+
+        }, 1200);
+    }
+
+    // Alert Listener
+    stateRef.child('crashAlert').on('value', (snap) => {
+        if(!snap.val()) return;
+        let box = document.getElementById('alert-box');
+        box.style.display = 'block';
+        setTimeout(() => box.style.display = 'none', 3000);
+    });
+
+
+    // --- 6. PLAYER CONTROLS ---
     function changeVal(id, amount) {
         let el = document.getElementById(id);
         let val = parseInt(el.innerText) + amount;
         if(val >= 0 && val <= 10) el.innerText = val;
     }
 
-    function sailShip(roundNum) {
+    function lockMove(roundNum) {
         let targetX = 0, targetY = 0;
-
         if (roundNum === 1) {
             targetX = parseInt(document.getElementById('r1-x').innerText) || 0;
             targetY = parseInt(document.getElementById('r1-y').innerText) || 0;
@@ -423,58 +499,39 @@
             targetY = parseInt(document.getElementById('r3-y').value) || 0;
         }
 
-        // Clamp to grid
         if(targetX < 0) targetX = 0; if(targetX > 10) targetX = 10;
         if(targetY < 0) targetY = 0; if(targetY > 10) targetY = 10;
 
-        if (isSolo) {
-            soloMove(targetX, targetY);
-            return;
-        }
+        if (isSolo) { soloMove(targetX, targetY); return; }
 
-        // Multiplayer Move
-        const myUserRef = usersRef.child(myUID);
-        
-        // 1. Start moving visually
-        myUserRef.update({ x: targetX, y: targetY });
-
-        // 2. Wait for animation to finish (1.5s), then check treasure
-        setTimeout(() => {
-            let tid = `t_${targetX}_${targetY}`;
-            
-            // Firebase Transaction to securely grab treasure
-            treasuresRef.child(tid).transaction((currentData) => {
-                if (currentData === null) return; // Someone else got it!
-                return null; // Delete it
-            }, (error, committed) => {
-                if (committed) {
-                    // I got it! Add score
-                    myUserRef.child('score').transaction(s => (s || 0) + 1);
-                }
-                
-                // Teleport back to Origin to plan next move
-                setTimeout(() => {
-                    myUserRef.update({ x: 0, y: 0 });
-                }, 500); // Slight delay so they see they arrived
-            });
-        }, 1500);
+        // Multiplayer Lock
+        usersRef.child(myUID).update({ lockedX: targetX, lockedY: targetY });
+        document.getElementById(`btn-sail-${roundNum}`).disabled = true;
+        document.getElementById('lock-status').style.display = 'block';
     }
 
-    // --- 7. SOLO MODE LOGIC ---
+    // UI Reset when timer finishes
+    stateRef.child('timer').on('value', snap => {
+        if(snap.val() === 0) {
+            document.querySelectorAll('.btn-green').forEach(b => b.disabled = false);
+            document.getElementById('lock-status').style.display = 'none';
+        }
+    });
+
+    // --- 7. SOLO MODE ---
     function startSoloMode() {
         isSolo = true;
-        globalState = { phase: 'racing', round: 1 };
-        myName = document.getElementById('nameInput').value || "Solo Explorer";
+        myTeam = 1; // Solo is always standard orientation
+        globalState = { phase: 'racing', round: 1, timer: 0 };
+        myName = "Solo Explorer";
         globalUsers = {};
-        globalUsers[myUID] = { name: myName, avatar: myAvatar, x: 0, y: 0, score: 0 };
-        
+        globalUsers[myUID] = { name: myName, avatar: myAvatar, team: 1, localX: 0, localY: 0, score: 0 };
         spawnTreasures();
-        handleStateChange('racing');
+        handlePhaseChange('racing');
     }
 
     function soloMove(x, y) {
-        globalUsers[myUID].x = x;
-        globalUsers[myUID].y = y;
+        globalUsers[myUID].localX = x; globalUsers[myUID].localY = y;
         updateGridUI();
 
         setTimeout(() => {
@@ -484,48 +541,45 @@
                 globalUsers[myUID].score += 1;
                 document.getElementById('my-score').innerText = globalUsers[myUID].score;
             }
-            
             setTimeout(() => {
-                globalUsers[myUID].x = 0;
-                globalUsers[myUID].y = 0;
+                globalUsers[myUID].localX = 0; globalUsers[myUID].localY = 0;
                 updateGridUI();
             }, 500);
-
-        }, 1500);
+        }, 1200);
     }
 
     // --- 8. NAVIGATION ---
-    function handleStateChange(phase) {
+    function handlePhaseChange(phase) {
         document.querySelectorAll('.screen').forEach(s => s.style.display = 'none');
         
         if (phase === 'lobby') {
             document.getElementById('screen-lobby').style.display = 'flex';
+            if(isSolo) {
+                alert("The group game has finished! You are back in the lobby.");
+                isSolo = false; // Reset solo status to allow joining new game
+            }
         } else if (phase === 'racing') {
             document.getElementById('screen-game').style.display = 'flex';
             document.getElementById('top-header').style.display = 'none';
+            document.getElementById('my-team-display').innerText = myTeam;
             
-            // Setup correct UI for Round
             let r = globalState.round;
             document.getElementById('round-display').innerText = r;
             document.getElementById('controls-round1').style.display = (r === 1) ? 'block' : 'none';
             document.getElementById('controls-round2').style.display = (r === 2) ? 'block' : 'none';
             document.getElementById('controls-round3').style.display = (r === 3) ? 'block' : 'none';
-
             updateGridUI();
         } else {
-            // Failsafe Wait Screen
             document.getElementById('screen-waiting').style.display = 'flex';
         }
     }
 
-    function switchScreen(screenId) {
+    function switchScreen(id) {
         document.querySelectorAll('.screen').forEach(s => s.style.display = 'none');
-        document.getElementById(screenId).style.display = 'flex';
+        document.getElementById(id).style.display = 'flex';
     }
 
-    window.addEventListener('beforeunload', () => {
-        if (isHost && !isSolo) hostRef.remove();
-    });
+    window.addEventListener('beforeunload', () => { if (isHost && !isSolo) hostRef.remove(); });
 </script>
 </body>
 </html>
