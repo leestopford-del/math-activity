@@ -80,7 +80,8 @@
     <div class="container">
         
         <div id="screen-lobby" class="screen" style="display:flex;">
-            <div class="box">
+            
+            <div class="box" id="player-login-box">
                 <h2 style="color: var(--accent);">Welcome, Engineer!</h2>
                 
                 <p>1. Enter the <b>first letter</b> of your name.</p>
@@ -116,4 +117,551 @@
                         <div class="team-grid">
                             <div class="team-box" style="border-top: 3px solid #ef4444;"><b style="color:#ef4444;">Team 1</b><div id="host-t1"></div></div>
                             <div class="team-box" style="border-top: 3px solid #3b82f6;"><b style="color:#3b82f6;">Team 2</b><div id="host-t2"></div></div>
-                            <div class="team-box" style="border-top:
+                            <div class="team-box" style="border-top: 3px solid #10b981;"><b style="color:#10b981;">Team 3</b><div id="host-t3"></div></div>
+                            <div class="team-box" style="border-top: 3px solid #f59e0b;"><b style="color:#f59e0b;">Team 4</b><div id="host-t4"></div></div>
+                        </div>
+                    </div>
+                    <div class="host-card" style="flex: 1;">
+                        <h3 style="margin-top:0; color: #cbd5e1;">⚙️ System Controls</h3>
+                        <button class="btn" style="background:#991b1b;" onclick="resetGame()">🛑 Hard Reset Server</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="screen-waiting" class="screen">
+            <div class="box">
+                <h2>Uniform Equipped! <span id="wait-avatar">👨‍🚀</span></h2>
+                <p>Engineer <b id="wait-name" style="color:var(--accent);">...</b>, you are assigned to <b>Team <span id="wait-team">...</span></b>.</p>
+                <p style="color: var(--warning); font-weight: bold; margin-top: 20px;">Standby. Waiting for Lead Instructor to send the first blueprint...</p>
+            </div>
+        </div>
+
+        <div id="screen-game" class="screen">
+            
+            <div class="team-scoreboard">
+                <div class="team-score-badge ts-1">T1: <span id="ts-1">0</span></div>
+                <div class="team-score-badge ts-2">T2: <span id="ts-2">0</span></div>
+                <div class="team-score-badge ts-3">T3: <span id="ts-3">0</span></div>
+                <div class="team-score-badge ts-4">T4: <span id="ts-4">0</span></div>
+            </div>
+
+            <div id="player-score-board" style="display:flex; justify-content:space-between; width:100%; max-width:600px; margin-bottom:15px; background: rgba(0,0,0,0.5); padding: 10px 20px; border-radius: 10px; box-sizing:border-box;">
+                <div style="font-weight: bold; font-size: 1.2em;">Team <span id="my-team-display">1</span></div>
+                <div style="font-weight: bold; font-size: 1.2em;">My Score: <span id="my-score" style="color:var(--gold);">0</span></div>
+            </div>
+
+            <div id="host-game-view" class="box" style="display:none; border-color: var(--warning); max-width: 800px;">
+                <h2 style="color: var(--warning); margin-top:0;">👑 Live Mission Control</h2>
+                <h3 class="blueprint-title">Blueprint <span id="h-bp-num">1</span>: <span id="h-bp-title">Title</span></h3>
+                
+                <div style="background: #0f172a; padding: 15px; border-radius: 10px; margin-bottom: 20px; text-align: left; border: 1px solid #475569;">
+                    <p style="margin: 0 0 10px 0; color: #94a3b8; font-weight: bold;">Correct Chronological Order:</p>
+                    <div id="h-bp-solution" style="color: var(--success); font-weight: bold; font-size: 1.1em; line-height: 1.6;"></div>
+                </div>
+
+                <div style="background: rgba(16, 185, 129, 0.2); border: 2px solid var(--success); padding: 15px; border-radius: 10px; margin-bottom: 20px;">
+                    <h3 style="margin: 0 0 10px 0; color: var(--success);">Engineers Finished: <span id="h-finished-count" style="font-size: 1.5em;">0</span></h3>
+                    <p style="margin:0; font-size:0.9em; color:#cbd5e1;">Discuss the correct imperative verbs with the class, then proceed.</p>
+                </div>
+
+                <button class="btn btn-gold" onclick="pushNextBlueprint()">🚀 PUSH NEXT BLUEPRINT</button>
+                <button class="btn" style="background: transparent; color: #94a3b8; margin-top: 15px; box-shadow: none;" onclick="resetGame()">End Activity & Return to Lobby</button>
+            </div>
+
+            <div id="player-game-view" class="box" style="display:none; max-width: 600px;">
+                <h3 class="blueprint-title">Blueprint <span id="p-bp-num">1</span>: <span id="p-bp-title">Title</span></h3>
+                <p style="color: #cbd5e1; font-size: 1.1em; margin-bottom: 20px;">Tap the steps below to put them in the correct <b>chronological sequence</b>. Look for the bossy verbs!</p>
+                
+                <div id="scrambled-options">
+                    </div>
+
+                <h4 style="margin: 20px 0 5px 0; color: #94a3b8; text-align: left;">Your Assembly Sequence:</h4>
+                <div class="assembly-bay" id="assembly-bay">
+                    <i style="color: #475569; padding: 10px;">Empty. Tap a step above...</i>
+                </div>
+
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn" style="background: #475569; flex: 1;" onclick="clearAssembly()">Clear</button>
+                    <button class="btn btn-blue" style="flex: 2;" id="submit-btn" onclick="submitBlueprint()">SUBMIT REPAIR</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="screen-end" class="screen">
+            <div class="box" style="border-color: var(--success);">
+                <h1 style="font-size: 4em; margin: 0;">🏆</h1>
+                <h2 style="color: var(--success); text-transform: uppercase;">Manuals Restored!</h2>
+                <p>Excellent work, Engineers. You have successfully commanded the sequence.</p>
+                <button class="btn btn-blue" style="margin-top: 20px;" onclick="resetGame()">Return to Base (Lobby)</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="penalty-overlay">
+        <div>❌ SYSTEM ERROR!</div>
+        <div style="font-size: 0.4em; margin-top: 20px; font-weight: normal;">Incorrect Chronological Order.<br>Rebooting in <span id="penalty-timer">3</span>s...</div>
+    </div>
+    
+    <div id="success-overlay">
+        <div>✅ REPAIR SAVED!</div>
+        <div style="font-size: 0.4em; margin-top: 20px; font-weight: normal;">Blueprint accepted.<br>Standby for the Host to send the next task...</div>
+    </div>
+
+<script>
+    // --- FIREBASE CONFIG ---
+    const firebaseConfig = {
+      apiKey: "AIzaSyBXgT_LxFUar6FcfFqKJsuY2YIOjG5JLtM",
+      authDomain: "symmetry-and-nets.firebaseapp.com",
+      databaseURL: "https://symmetry-and-nets-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "symmetry-and-nets"
+    };
+    if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
+    const db = firebase.database();
+
+    // --- GAME DATA (Direct from PDF English Objectives) ---
+    const allBlueprints = [
+        {
+            title: "Washing the Transport Rover",
+            options: [
+                { id: "A", text: "Apply soapy bubbles with a sponge." },
+                { id: "B", text: "Rinse with clean water." },
+                { id: "C", text: "Dry the chassis with a cloth." }
+            ],
+            correct: ["A", "B", "C"] // Soap, Rinse, Dry
+        },
+        {
+            title: "Preparing for a Space Walk",
+            options: [
+                { id: "A", text: "Check your oxygen levels on the dial." },
+                { id: "B", text: "Open the exterior airlock door." },
+                { id: "C", text: "Secure your heavy space helmet tightly." }
+            ],
+            correct: ["A", "C", "B"] // Check O2, Secure Helmet, Open Door
+        },
+        {
+            title: "Planting a Space-Garden Seed",
+            options: [
+                { id: "A", text: "Water the ground gently." },
+                { id: "B", text: "Drop the seed into the bottom." },
+                { id: "C", text: "Dig a small hole in the soil." },
+                { id: "D", text: "Cover the seed with loose soil." }
+            ],
+            correct: ["C", "B", "D", "A"] // Dig, Drop, Cover, Water
+        },
+        {
+            title: "Emergency Evacuation Protocol",
+            options: [
+                { id: "A", text: "Walk calmly to the nearest escape pod." },
+                { id: "B", text: "Leave all your belongings behind." },
+                { id: "C", text: "Listen carefully for the warning alarm." }
+            ],
+            correct: ["C", "B", "A"] // Listen, Leave stuff, Walk calmly
+        },
+        {
+            title: "Sending a Comms Message",
+            options: [
+                { id: "A", text: "Press the flashing send button." },
+                { id: "B", text: "Type your instructions clearly." },
+                { id: "C", text: "Turn on the communication console." }
+            ],
+            correct: ["C", "B", "A"] // Turn on, Type, Press send
+        }
+    ];
+
+    const adjectives = {
+        'A': 'Alpha', 'B': 'Bravo', 'C': 'Cosmic', 'D': 'Delta', 'E': 'Echo',
+        'F': 'Falcon', 'G': 'Gamma', 'H': 'Hyper', 'I': 'Ion', 'J': 'Jet',
+        'K': 'Kilo', 'L': 'Lunar', 'M': 'Nova', 'N': 'Nebula', 'O': 'Orbit',
+        'P': 'Plasma', 'Q': 'Quantum', 'R': 'Radar', 'S': 'Solar', 'T': 'Turbo',
+        'U': 'Ultra', 'V': 'Vector', 'W': 'Warp', 'X': 'X-Ray', 'Y': 'Yankee', 'Z': 'Zenith'
+    };
+
+    // --- GLOBALS ---
+    let myUID = sessionStorage.getItem('bpUid');
+    if (!myUID) {
+        myUID = 'eng_' + Math.random().toString(36).substr(2, 9);
+        sessionStorage.setItem('bpUid', myUID);
+    }
+
+    let myName = "Engineer";
+    let myAvatar = "👨‍🚀";
+    let myTeam = 1;
+    let isHost = false;
+    let isSolo = false;
+    
+    // Player Local State
+    let currentAssembly = [];
+    let hasCompletedCurrentRound = false;
+
+    // Database State
+    let globalState = { phase: 'lobby', bpIndex: -1 };
+    let globalUsers = {};
+
+    const stateRef = db.ref('blueprintGame/state');
+    const usersRef = db.ref('blueprintGame/users');
+    const hostRef = db.ref('blueprintGame/hostExists');
+
+    // --- 1. SETUP ---
+    firebase.auth().signInAnonymously().then(() => {
+        hostRef.transaction((current) => {
+            if (current === null) return true;
+            return;
+        }, (error, committed) => {
+            if (committed) {
+                isHost = true;
+                hostRef.onDisconnect().remove(); 
+                document.getElementById('player-login-box').style.display = 'none';
+                document.getElementById('host-lobby-box').style.display = 'block';
+                resetGame();
+            }
+        });
+    });
+
+    function becomeHost() {
+        isHost = true;
+        hostRef.set(true);
+        hostRef.onDisconnect().remove();
+        document.getElementById('player-login-box').style.display = 'none';
+        document.getElementById('host-lobby-box').style.display = 'block';
+        resetGame();
+    }
+
+    function selectEmoji(element, emoji) {
+        document.querySelectorAll('.emoji-option').forEach(el => el.classList.remove('selected'));
+        element.classList.add('selected');
+        myAvatar = emoji;
+    }
+
+    // --- 2. DATA LISTENERS ---
+    stateRef.on('value', (snap) => {
+        if(isSolo) return;
+        const newState = snap.val() || { phase: 'lobby', bpIndex: -1 };
+        
+        // Detect a new blueprint being pushed
+        if (newState.bpIndex !== globalState.bpIndex && newState.phase === 'racing') {
+            hasCompletedCurrentRound = false;
+            currentAssembly = [];
+            document.getElementById('success-overlay').style.display = 'none';
+            renderPlayerBlueprint(newState.bpIndex);
+            if(isHost) renderHostBlueprint(newState.bpIndex);
+        }
+
+        if (newState.phase !== globalState.phase) {
+            globalState = newState; // Sync state before handling Phase Change
+            handlePhaseChange(newState.phase);
+        } else {
+            globalState = newState;
+        }
+
+        // Lobby warning logic
+        if (globalState.phase === 'racing' && !globalUsers[myUID] && !isHost && !isSolo) {
+            let btn = document.getElementById('btn-join-fleet');
+            if(btn) btn.disabled = true;
+            document.getElementById('join-warning').style.display = 'block';
+        } else {
+            let btn = document.getElementById('btn-join-fleet');
+            if(btn) btn.disabled = false;
+            document.getElementById('join-warning').style.display = 'none';
+        }
+    });
+
+    usersRef.on('value', (snap) => {
+        if(isSolo) return;
+        globalUsers = snap.val() || {};
+        
+        let teamScores = {1:0, 2:0, 3:0, 4:0};
+        let finishedCount = 0;
+        let totalUsers = Object.keys(globalUsers).length;
+
+        let t1='', t2='', t3='', t4='';
+        Object.values(globalUsers).forEach(u => { 
+            let statusIcon = u.finishedCurrent ? "✅" : "⏳";
+            let tag = `<div class="player-list-item"><span style="font-size:1.2em;">${u.avatar}</span> ${u.name} <span>${u.score} pts ${statusIcon}</span></div>`;
+            
+            if(u.team===1) { t1+=tag; teamScores[1] += (u.score || 0); }
+            if(u.team===2) { t2+=tag; teamScores[2] += (u.score || 0); }
+            if(u.team===3) { t3+=tag; teamScores[3] += (u.score || 0); }
+            if(u.team===4) { t4+=tag; teamScores[4] += (u.score || 0); }
+
+            if(u.finishedCurrent) finishedCount++;
+        });
+
+        // Host Updates
+        if (isHost) {
+            if (globalState.phase === 'lobby') {
+                document.getElementById('host-t1').innerHTML = t1 || '<i style="color:#94a3b8">Empty</i>';
+                document.getElementById('host-t2').innerHTML = t2 || '<i style="color:#94a3b8">Empty</i>';
+                document.getElementById('host-t3').innerHTML = t3 || '<i style="color:#94a3b8">Empty</i>';
+                document.getElementById('host-t4').innerHTML = t4 || '<i style="color:#94a3b8">Empty</i>';
+            }
+            if (globalState.phase === 'racing') {
+                document.getElementById('h-finished-count').innerText = `${finishedCount} / ${totalUsers}`;
+            }
+        }
+        
+        // Global Scores
+        document.getElementById('ts-1').innerText = teamScores[1];
+        document.getElementById('ts-2').innerText = teamScores[2];
+        document.getElementById('ts-3').innerText = teamScores[3];
+        document.getElementById('ts-4').innerText = teamScores[4];
+
+        if(globalUsers[myUID] && !isHost) {
+            let scoreEl = document.getElementById('my-score');
+            if (scoreEl) scoreEl.innerText = globalUsers[myUID].score;
+        }
+    });
+
+    // --- 3. JOINING & TEAMS ---
+    function joinFleet() {
+        let letter = document.getElementById('initialInput').value.toUpperCase();
+        if(!letter.match(/[A-Z]/)) letter = 'X';
+        myName = (adjectives[letter] || "Engineer") + " " + letter;
+        
+        const currentCount = Object.keys(globalUsers).length;
+        myTeam = (currentCount % 4) + 1; 
+
+        usersRef.child(myUID).set({ 
+            name: myName, avatar: myAvatar, team: myTeam, 
+            score: 0, finishedCurrent: false
+        });
+        usersRef.child(myUID).onDisconnect().remove();
+
+        document.getElementById('wait-avatar').innerText = myAvatar;
+        document.getElementById('wait-name').innerText = myName;
+        document.getElementById('wait-team').innerText = myTeam;
+        switchScreen('screen-waiting');
+    }
+
+    // --- 4. HOST CONTROLS ---
+    function pushNextBlueprint() {
+        if(!isHost) return;
+        
+        let nextIndex = globalState.bpIndex + 1;
+        
+        if (nextIndex >= allBlueprints.length) {
+            stateRef.set({ phase: 'end', bpIndex: nextIndex });
+            return;
+        }
+
+        let updates = {};
+        Object.keys(globalUsers).forEach(uid => {
+            updates[`${uid}/finishedCurrent`] = false;
+        });
+        
+        // Securely push updates without Firebase empty-object crashing
+        if (Object.keys(updates).length > 0) {
+            usersRef.update(updates).then(() => {
+                stateRef.set({ phase: 'racing', bpIndex: nextIndex });
+            });
+        } else {
+            stateRef.set({ phase: 'racing', bpIndex: nextIndex });
+        }
+    }
+
+    function resetGame() {
+        if(!isHost) return;
+        stateRef.set({ phase: 'lobby', bpIndex: -1 });
+        usersRef.remove(); 
+    }
+
+    function renderHostBlueprint(index) {
+        let bp = allBlueprints[index];
+        document.getElementById('h-bp-num').innerText = index + 1;
+        document.getElementById('h-bp-title').innerText = bp.title;
+        
+        let solHtml = '';
+        bp.correct.forEach((letter, i) => {
+            let opt = bp.options.find(o => o.id === letter);
+            solHtml += `<div>${i+1}. [${letter}] ${opt.text}</div>`;
+        });
+        document.getElementById('h-bp-solution').innerHTML = solHtml;
+    }
+
+    // --- 5. PLAYER GAMEPLAY ---
+    function renderPlayerBlueprint(index) {
+        if (isHost && !isSolo) return;
+        let bp = allBlueprints[index];
+        document.getElementById('p-bp-num').innerText = index + 1;
+        document.getElementById('p-bp-title').innerText = bp.title;
+        
+        let optionsHtml = '';
+        bp.options.forEach(opt => {
+            optionsHtml += `
+                <div class="card-scrambled" id="opt-${opt.id}" onclick="selectOption('${opt.id}', '${opt.text.replace(/'/g, "\\'")}')">
+                    <span class="card-letter">${opt.id}</span>
+                    <span>${opt.text}</span>
+                </div>
+            `;
+        });
+        document.getElementById('scrambled-options').innerHTML = optionsHtml;
+        clearAssembly();
+    }
+
+    function selectOption(id, text) {
+        if (hasCompletedCurrentRound) return;
+        
+        // Add to assembly bay
+        currentAssembly.push(id);
+        
+        // Hide from options
+        document.getElementById(`opt-${id}`).classList.add('hidden');
+        
+        // Render Assembly
+        renderAssembly();
+    }
+
+    function renderAssembly() {
+        let bay = document.getElementById('assembly-bay');
+        if (currentAssembly.length === 0) {
+            bay.innerHTML = '<i style="color: #475569; padding: 10px;">Empty. Tap a step above...</i>';
+            document.getElementById('submit-btn').disabled = true;
+            return;
+        }
+
+        let html = '';
+        currentAssembly.forEach((id, index) => {
+            let bp = allBlueprints[globalState.bpIndex];
+            let text = bp.options.find(o => o.id === id).text;
+            html += `<div class="assembly-item"><span>${index + 1}.</span> <span>${text}</span></div>`;
+        });
+        bay.innerHTML = html;
+        
+        let bp = allBlueprints[globalState.bpIndex];
+        if (currentAssembly.length === bp.options.length) {
+            document.getElementById('submit-btn').disabled = false;
+        } else {
+            document.getElementById('submit-btn').disabled = true;
+        }
+    }
+
+    function clearAssembly() {
+        currentAssembly = [];
+        document.querySelectorAll('.card-scrambled').forEach(el => el.classList.remove('hidden'));
+        renderAssembly();
+    }
+
+    function submitBlueprint() {
+        if (hasCompletedCurrentRound) return;
+
+        let bp = allBlueprints[globalState.bpIndex];
+        let isCorrect = true;
+
+        for (let i = 0; i < bp.correct.length; i++) {
+            if (currentAssembly[i] !== bp.correct[i]) {
+                isCorrect = false; break;
+            }
+        }
+
+        if (isCorrect) {
+            // SUCCESS
+            hasCompletedCurrentRound = true;
+            document.getElementById('success-overlay').style.display = 'flex';
+            
+            if (isSolo) {
+                globalUsers[myUID].score += 1;
+                let scoreEl = document.getElementById('my-score');
+                if (scoreEl) scoreEl.innerText = globalUsers[myUID].score;
+                setTimeout(() => { pushNextBlueprintSolo(); }, 2000);
+            } else {
+                usersRef.child(myUID).once('value').then(snap => {
+                    let u = snap.val();
+                    usersRef.child(myUID).update({
+                        score: (u.score || 0) + 1,
+                        finishedCurrent: true
+                    });
+                });
+            }
+
+        } else {
+            // FAIL - PENALTY
+            let overlay = document.getElementById('penalty-overlay');
+            let timerEl = document.getElementById('penalty-timer');
+            overlay.style.display = 'flex';
+            
+            let timeLeft = 3;
+            timerEl.innerText = timeLeft;
+            clearAssembly();
+
+            let countdown = setInterval(() => {
+                timeLeft--;
+                timerEl.innerText = timeLeft;
+                if (timeLeft <= 0) {
+                    clearInterval(countdown);
+                    overlay.style.display = 'none';
+                }
+            }, 1000);
+        }
+    }
+
+    // --- 6. SOLO MODE ---
+    function startSoloMode() {
+        let letter = document.getElementById('initialInput').value.toUpperCase();
+        if(!letter.match(/[A-Z]/)) letter = 'X';
+        myName = (adjectives[letter] || "Engineer") + " " + letter;
+        
+        isSolo = true; myTeam = 1; globalState = { phase: 'racing', bpIndex: 0 };
+        globalUsers = {};
+        globalUsers[myUID] = { name: myName, avatar: myAvatar, team: 1, score: 0, finishedCurrent: false };
+        
+        handlePhaseChange('racing');
+        renderPlayerBlueprint(0);
+    }
+
+    function pushNextBlueprintSolo() {
+        globalState.bpIndex++;
+        if (globalState.bpIndex >= allBlueprints.length) {
+            handlePhaseChange('end');
+        } else {
+            hasCompletedCurrentRound = false;
+            currentAssembly = [];
+            document.getElementById('success-overlay').style.display = 'none';
+            renderPlayerBlueprint(globalState.bpIndex);
+        }
+    }
+
+    // --- 7. NAVIGATION ---
+    function handlePhaseChange(phase) {
+        document.querySelectorAll('.screen').forEach(s => s.style.display = 'none');
+        
+        if (phase === 'lobby') {
+            document.getElementById('screen-lobby').style.display = 'flex';
+            if(isSolo) { isSolo = false; }
+        } 
+        else if (phase === 'racing') {
+            
+            // LOBBY LEAK FIX
+            if (!isHost && !isSolo && (!globalUsers || !globalUsers[myUID])) {
+                document.getElementById('screen-lobby').style.display = 'flex';
+                return;
+            }
+
+            document.getElementById('screen-game').style.display = 'flex';
+            
+            let teamDisplay = document.getElementById('my-team-display');
+            if (teamDisplay) teamDisplay.innerText = myTeam;
+            
+            if (isHost && !isSolo) {
+                document.getElementById('host-game-view').style.display = 'block';
+                document.getElementById('player-game-view').style.display = 'none';
+                document.getElementById('player-score-board').style.display = 'none';
+            } else {
+                document.getElementById('host-game-view').style.display = 'none';
+                document.getElementById('player-game-view').style.display = 'block';
+                document.getElementById('player-score-board').style.display = 'flex';
+            }
+        } 
+        else if (phase === 'end') {
+            document.getElementById('screen-end').style.display = 'flex';
+            document.getElementById('success-overlay').style.display = 'none';
+        }
+        else { document.getElementById('screen-waiting').style.display = 'flex'; }
+    }
+
+    function switchScreen(id) {
+        document.querySelectorAll('.screen').forEach(s => s.style.display = 'none');
+        document.getElementById(id).style.display = 'flex';
+    }
+</script>
+</body>
+</html>
