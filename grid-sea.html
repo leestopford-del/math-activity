@@ -23,6 +23,7 @@
         
         /* UI Elements */
         .box { background: var(--card-bg); border: 2px solid #475569; border-radius: 15px; padding: 20px; width: 95%; max-width: 500px; box-sizing: border-box; margin-bottom: 15px; box-shadow: 0 10px 20px rgba(0,0,0,0.3); text-align: center;}
+        .input-text { padding: 15px; font-size: 1.2em; border-radius: 8px; border: none; width: 60px; text-align: center; text-transform: uppercase; font-weight: bold; margin-bottom: 15px;}
         .btn { padding: 15px 25px; font-size: 1.2em; font-weight: bold; border: none; border-radius: 10px; cursor: pointer; transition: 0.2s; color: white; width: 100%; box-sizing: border-box; margin-bottom: 10px;}
         .btn:active { transform: scale(0.95); }
         .btn:disabled { background: #475569 !important; cursor: not-allowed; box-shadow: none !important; opacity: 0.7;}
@@ -47,7 +48,6 @@
             background-size: 10% 10%;
         }
 
-        /* Axes Labels */
         .axis-label { position: absolute; font-weight: bold; font-size: 1.2em; color: #94a3b8;}
         .y-axis-label { top: -25px; left: -15px; }
         .x-axis-label { bottom: -30px; right: -15px; }
@@ -78,8 +78,13 @@
         .score-card { background: rgba(0,0,0,0.5); padding: 10px 20px; border-radius: 10px; font-weight: bold; font-size: 1.2em;}
 
         #alert-box { display:none; background:#ef4444; padding:10px; border-radius:10px; font-weight:bold; margin-bottom:10px; text-align:center;}
+        
+        /* Host Lobby Roster */
         .host-panel { width: 100%; max-width: 800px; display: flex; gap: 20px; flex-wrap: wrap; margin-top: 20px;}
         .host-card { flex: 1; background: #1e293b; padding: 15px; border-radius: 10px; border: 2px solid #475569; min-width: 250px;}
+        .team-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .team-box { background: rgba(0,0,0,0.3); padding: 10px; border-radius: 10px; min-height: 80px;}
+        .player-list-item { background: #334155; padding: 5px; border-radius: 5px; margin-bottom: 5px; font-size: 0.9em; }
     </style>
 </head>
 <body>
@@ -92,13 +97,17 @@
         <div id="screen-lobby" class="screen" style="display:flex;">
             <div class="box">
                 <h2>Welcome, Navigator!</h2>
+                
+                <p>1. Enter the <b>first letter</b> of your name.</p>
+                <input type="text" id="initialInput" class="input-text" maxlength="1" placeholder="A">
+
+                <p>2. Choose your Vessel.</p>
                 <div class="emoji-selector" id="emoji-picker">
                     <div class="emoji-option selected" onclick="selectEmoji(this, '⛵')">⛵</div>
                     <div class="emoji-option" onclick="selectEmoji(this, '🚤')">🚤</div>
                     <div class="emoji-option" onclick="selectEmoji(this, '🚢')">🚢</div>
                     <div class="emoji-option" onclick="selectEmoji(this, '🛶')">🛶</div>
                 </div>
-                <input type="text" id="nameInput" style="padding: 10px; font-size: 1.2em; width: 80%; text-align: center; border-radius: 5px; margin-bottom: 15px;" placeholder="Captain Name...">
                 
                 <div id="join-warning" style="display:none; color:#f59e0b; font-weight:bold; margin-bottom:10px;">
                     A group expedition is currently underway!
@@ -118,11 +127,16 @@
                 </div>
                 
                 <div class="host-panel">
-                    <div class="host-card">
+                    <div class="host-card" style="flex: 2;">
                         <h3 style="margin-top:0;">📋 Fleet Roster</h3>
-                        <div id="host-roster"></div>
+                        <div class="team-grid">
+                            <div class="team-box" style="border-top: 3px solid #ef4444;"><b style="color:#ef4444;">Team 1</b><div id="host-t1"></div></div>
+                            <div class="team-box" style="border-top: 3px solid #3b82f6;"><b style="color:#3b82f6;">Team 2</b><div id="host-t2"></div></div>
+                            <div class="team-box" style="border-top: 3px solid #10b981;"><b style="color:#10b981;">Team 3</b><div id="host-t3"></div></div>
+                            <div class="team-box" style="border-top: 3px solid #f59e0b;"><b style="color:#f59e0b;">Team 4</b><div id="host-t4"></div></div>
+                        </div>
                     </div>
-                    <div class="host-card">
+                    <div class="host-card" style="flex: 1;">
                         <h3 style="margin-top:0;">⚙️ Sea Controls</h3>
                         <button class="btn" style="background:#991b1b;" onclick="resetGame()">🛑 End Game & Reset</button>
                     </div>
@@ -206,7 +220,14 @@
     if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
     const db = firebase.database();
 
-    // Generate a unique ID per tab for testing multi-player easily
+    const adjectives = {
+        'A': 'Atomic', 'B': 'Bionic', 'C': 'Cosmic', 'D': 'Digital', 'E': 'Electric',
+        'F': 'Fusion', 'G': 'Galactic', 'H': 'Hyper', 'I': 'Ionic', 'J': 'Jumping',
+        'K': 'Kinetic', 'L': 'Laser', 'M': 'Magnetic', 'N': 'Neon', 'O': 'Optic',
+        'P': 'Plasma', 'Q': 'Quantum', 'R': 'Robotic', 'S': 'Sonic', 'T': 'Thermal',
+        'U': 'Ultra', 'V': 'Viral', 'W': 'Warp', 'X': 'Xenon', 'Y': 'Yellow', 'Z': 'Zero'
+    };
+
     let myUID = sessionStorage.getItem('gridUid');
     if (!myUID) {
         myUID = 'user_' + Math.random().toString(36).substr(2, 9);
@@ -227,7 +248,6 @@
     const usersRef = db.ref('gridGame/users');
     const treasuresRef = db.ref('gridGame/treasures');
 
-    // Make sure we have write access (anonymous login)
     firebase.auth().signInAnonymously();
 
     // Math Transformers
@@ -292,9 +312,16 @@
         updateGridUI(); 
         
         if (isHost && globalState.phase === 'lobby') {
-            let html = '';
-            Object.values(globalUsers).forEach(u => { html += `<div>T${u.team}: ${u.avatar} ${u.name} (Score: ${u.score})</div>`; });
-            document.getElementById('host-roster').innerHTML = html;
+            let t1='', t2='', t3='', t4='';
+            Object.values(globalUsers).forEach(u => { 
+                let tag = `<div class="player-list-item">${u.avatar} ${u.name}</div>`;
+                if(u.team===1) t1+=tag; if(u.team===2) t2+=tag;
+                if(u.team===3) t3+=tag; if(u.team===4) t4+=tag;
+            });
+            document.getElementById('host-t1').innerHTML = t1 || '<i>Empty</i>';
+            document.getElementById('host-t2').innerHTML = t2 || '<i>Empty</i>';
+            document.getElementById('host-t3').innerHTML = t3 || '<i>Empty</i>';
+            document.getElementById('host-t4').innerHTML = t4 || '<i>Empty</i>';
         }
         if(globalUsers[myUID]) document.getElementById('my-score').innerText = globalUsers[myUID].score;
     });
@@ -306,9 +333,12 @@
     });
 
     function joinFleet() {
-        myName = document.getElementById('nameInput').value.trim() || "Captain";
+        let letter = document.getElementById('initialInput').value.toUpperCase();
+        if(!letter.match(/[A-Z]/)) letter = 'X';
+        myName = (adjectives[letter] || "Captain") + " " + letter;
+        
         const currentCount = Object.keys(globalUsers).length;
-        myTeam = (currentCount % 4) + 1; // Round robin assignment 1, 2, 3, 4
+        myTeam = (currentCount % 4) + 1; 
 
         usersRef.child(myUID).set({ 
             name: myName, avatar: myAvatar, team: myTeam, 
@@ -328,7 +358,6 @@
         const sea = document.getElementById('sea-entities');
         let html = '';
 
-        // If Host, see Team 1's view (Global). Else see own Team view.
         let viewTeam = isHost ? 1 : myTeam;
 
         Object.entries(globalTreasures).forEach(([tid, t]) => {
@@ -389,7 +418,6 @@
         Object.entries(globalUsers).forEach(([uid, u]) => {
             if (u.lockedLocalX === null || u.lockedLocalY === null) return;
             
-            // Translate their local locked coordinate to a Global target
             let targetGlobal = localToGlobal(u.lockedLocalX, u.lockedLocalY, u.team);
             let steps = u.lockedLocalX + u.lockedLocalY; 
             let tid = `t_${targetGlobal.x}_${targetGlobal.y}`;
@@ -424,7 +452,7 @@
             setTimeout(() => {
                 let resets = {};
                 Object.values(globalUsers).forEach(u => {
-                    let home = localToGlobal(0,0, u.team); // Send back to their respective corners
+                    let home = localToGlobal(0,0, u.team); 
                     resets[`${Object.keys(globalUsers).find(k=>globalUsers[k]===u)}/globalX`] = home.x;
                     resets[`${Object.keys(globalUsers).find(k=>globalUsers[k]===u)}/globalY`] = home.y;
                 });
@@ -471,8 +499,12 @@
 
     // Solo Mode
     function startSoloMode() {
+        let letter = document.getElementById('initialInput').value.toUpperCase();
+        if(!letter.match(/[A-Z]/)) letter = 'X';
+        myName = (adjectives[letter] || "Captain") + " " + letter;
+        
         isSolo = true; myTeam = 1; globalState = { phase: 'racing', round: 1, timer: 0 };
-        myName = "Solo Explorer"; globalUsers = {};
+        globalUsers = {};
         globalUsers[myUID] = { name: myName, avatar: myAvatar, team: 1, globalX: 0, globalY: 0, score: 0 };
         spawnTreasures(); handlePhaseChange('racing');
     }
