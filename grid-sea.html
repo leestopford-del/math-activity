@@ -43,7 +43,7 @@
             position: relative; width: 100%; max-width: 500px; aspect-ratio: 1 / 1;
             background-color: var(--ocean); border: 2px solid rgba(255,255,255,0.5);
             border-left: 5px solid white; border-bottom: 5px solid white;
-            margin: 20px 0 30px 20px; box-sizing: border-box;
+            margin: 10px 0 20px 20px; box-sizing: border-box;
             background-image: linear-gradient(var(--grid-line) 1px, transparent 1px), linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
             background-size: 10% 10%;
         }
@@ -74,6 +74,15 @@
         .stepper button { background: #475569; border: none; color: white; font-size: 1.2em; width: 35px; height: 35px; border-radius: 5px; cursor: pointer; font-weight: bold;}
         .input-box { width: 50px; padding: 10px; font-size: 1.2em; text-align: center; border-radius: 5px; border: 2px solid #cbd5e1; background: #0f172a; color: white;}
         .bracket-input { display: flex; justify-content: center; align-items: center; gap: 10px; font-size: 2em; font-weight: bold; }
+        
+        /* Scoreboards */
+        .team-scoreboard { display: flex; gap: 10px; margin-bottom: 10px; width: 100%; max-width: 500px; justify-content: space-between; }
+        .team-score-badge { padding: 8px 10px; border-radius: 8px; font-weight: bold; flex: 1; text-align: center; background: rgba(0,0,0,0.5); font-size: 1.1em;}
+        .ts-1 { border-bottom: 4px solid #ef4444; }
+        .ts-2 { border-bottom: 4px solid #3b82f6; }
+        .ts-3 { border-bottom: 4px solid #10b981; }
+        .ts-4 { border-bottom: 4px solid #f59e0b; }
+
         .score-board { display: flex; justify-content: space-between; width: 100%; max-width: 500px; margin-bottom: 10px; }
         .score-card { background: rgba(0,0,0,0.5); padding: 10px 20px; border-radius: 10px; font-weight: bold; font-size: 1.2em;}
 
@@ -155,8 +164,15 @@
 
         <div id="screen-game" class="screen">
             
+            <div class="team-scoreboard">
+                <div class="team-score-badge ts-1">T1: <span id="ts-1">0</span></div>
+                <div class="team-score-badge ts-2">T2: <span id="ts-2">0</span></div>
+                <div class="team-score-badge ts-3">T3: <span id="ts-3">0</span></div>
+                <div class="team-score-badge ts-4">T4: <span id="ts-4">0</span></div>
+            </div>
+
             <div class="score-board" id="player-score-board">
-                <div class="score-card">Team <span id="my-team-display">1</span> Score: <span id="my-score" style="color:var(--gold);">0</span></div>
+                <div class="score-card">My Total Score: <span id="my-score" style="color:var(--gold);">0</span></div>
                 <div class="score-card" style="background: rgba(14, 165, 233, 0.3);">Round <span id="round-display">1</span></div>
             </div>
 
@@ -212,6 +228,26 @@
             </div>
             
             <p id="lock-status" style="color:#10b981; font-weight:bold; display:none;">✅ Coordinates locked! Waiting for timer...</p>
+        </div>
+
+        <div id="screen-round-end" class="screen">
+            <div class="box" style="border-color: #10b981;">
+                <h1 style="font-size: 4em; margin: 0;">🗺️</h1>
+                <h2 style="color: #10b981; text-transform: uppercase;">Ocean Cleared!</h2>
+                <p>All treasure in this sector has been claimed.</p>
+                
+                <div id="host-round-end-controls" style="display:none; margin-top: 20px;">
+                    <h3 style="color:#f59e0b;">Captain's Orders:</h3>
+                    <button class="btn btn-green" onclick="startRound(1)">Play Round 1 Again</button>
+                    <button class="btn btn-blue" onclick="startRound(2)">Advance to Round 2</button>
+                    <button class="btn btn-gold" onclick="startRound(3)">Advance to Round 3</button>
+                    <button class="btn" style="background:#475569; margin-top:10px;" onclick="resetGame()">End Game (Return to Lobby)</button>
+                </div>
+
+                <div id="player-round-end-msg" style="display:none; margin-top: 20px;">
+                    <p style="color: #f59e0b; font-weight: bold;">Waiting for the Host to set the next course...</p>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -345,21 +381,31 @@
         globalUsers = snap.val() || {};
         updateGridUI(); 
         
-        // Update 2x2 Host Roster
+        let teamScores = {1:0, 2:0, 3:0, 4:0};
+
+        // Update 2x2 Host Roster & Tally Scores
+        let t1='', t2='', t3='', t4='';
+        Object.values(globalUsers).forEach(u => { 
+            let tag = `<div class="player-list-item"><span style="font-size:1.5em;">${u.avatar}</span> ${u.name} (Score: ${u.score})</div>`;
+            if(u.team===1) { t1+=tag; teamScores[1] += (u.score || 0); }
+            if(u.team===2) { t2+=tag; teamScores[2] += (u.score || 0); }
+            if(u.team===3) { t3+=tag; teamScores[3] += (u.score || 0); }
+            if(u.team===4) { t4+=tag; teamScores[4] += (u.score || 0); }
+        });
+
         if (isHost && globalState.phase === 'lobby') {
-            let t1='', t2='', t3='', t4='';
-            Object.values(globalUsers).forEach(u => { 
-                let tag = `<div class="player-list-item"><span style="font-size:1.5em;">${u.avatar}</span> ${u.name} (Score: ${u.score})</div>`;
-                if(u.team===1) t1+=tag; if(u.team===2) t2+=tag;
-                if(u.team===3) t3+=tag; if(u.team===4) t4+=tag;
-            });
             document.getElementById('host-t1').innerHTML = t1 || '<i style="color:#94a3b8">Empty</i>';
             document.getElementById('host-t2').innerHTML = t2 || '<i style="color:#94a3b8">Empty</i>';
             document.getElementById('host-t3').innerHTML = t3 || '<i style="color:#94a3b8">Empty</i>';
             document.getElementById('host-t4').innerHTML = t4 || '<i style="color:#94a3b8">Empty</i>';
         }
         
-        // Update my own score
+        // Update Live Scoreboard
+        document.getElementById('ts-1').innerText = teamScores[1];
+        document.getElementById('ts-2').innerText = teamScores[2];
+        document.getElementById('ts-3').innerText = teamScores[3];
+        document.getElementById('ts-4').innerText = teamScores[4];
+
         if(globalUsers[myUID] && !isHost) {
             document.getElementById('my-score').innerText = globalUsers[myUID].score;
         }
@@ -394,9 +440,9 @@
         switchScreen('screen-waiting');
     }
 
-    // --- Dynamic DOM Grid Renderer (Allows smooth CSS Transitions) ---
+    // --- Dynamic DOM Grid Renderer ---
     function updateGridUI() {
-        if (globalState.phase === 'lobby') return;
+        if (globalState.phase === 'lobby' || globalState.phase === 'round_end') return;
         const sea = document.getElementById('sea-entities');
 
         let viewTeam = isHost ? 1 : myTeam; 
@@ -474,13 +520,14 @@
         }, 1000);
     }
 
-    // --- The Collision & Movement Engine ---
+    // --- The Sequential Movement & Collision Engine ---
     function hostResolveTurn() {
         if(!isHost) return;
         let targetMap = {}; 
-        let updates = {};
+        let updatesX = {};
+        let updatesY = {};
 
-        // 1. Calculate Movements securely
+        // 1. Calculate Target Coordinates
         Object.entries(globalUsers).forEach(([uid, u]) => {
             if (typeof u.lockedLocalX !== 'number' || typeof u.lockedLocalY !== 'number') return;
             
@@ -488,10 +535,13 @@
             let steps = u.lockedLocalX + u.lockedLocalY; 
             let tid = `t_${targetGlobal.x}_${targetGlobal.y}`;
             
-            updates[`${uid}/globalX`] = targetGlobal.x;
-            updates[`${uid}/globalY`] = targetGlobal.y;
-            updates[`${uid}/lockedLocalX`] = null;
-            updates[`${uid}/lockedLocalY`] = null;
+            // X (Corridor) then Y (Stairs)
+            updatesX[`${uid}/globalX`] = targetGlobal.x;
+            updatesY[`${uid}/globalY`] = targetGlobal.y;
+            
+            // Clear locked coordinates
+            updatesY[`${uid}/lockedLocalX`] = null;
+            updatesY[`${uid}/lockedLocalY`] = null;
 
             if (globalTreasures[tid]) {
                 if(!targetMap[tid]) targetMap[tid] = [];
@@ -499,56 +549,71 @@
             }
         });
 
-        // Broadcast Movements to trigger CSS Animations
-        if (Object.keys(updates).length > 0) {
-            usersRef.update(updates); 
-        }
+        if (Object.keys(updatesX).length === 0) return; // Nobody moved
 
-        // 2. Wait for ships to sail (1.2 seconds), then resolve outcomes
+        // 2. Animate Horizontal (Corridor)
+        usersRef.update(updatesX); 
+
+        // 3. Animate Vertical (Stairs) after 1 second
         setTimeout(() => {
-            let scoresToAdd = {}; let treasuresToRemove = []; let crashedUsers = [];
+            usersRef.update(updatesY);
             
-            Object.entries(targetMap).forEach(([tid, players]) => {
-                let minSteps = Math.min(...players.map(p => p.steps));
-                let candidates = players.filter(p => p.steps === minSteps);
-                
-                if (candidates.length > 1) { 
-                    candidates.forEach(c => crashedUsers.push(c.uid)); 
-                } else { 
-                    scoresToAdd[candidates[0].uid] = (globalUsers[candidates[0].uid].score || 0) + 1; 
-                    treasuresToRemove.push(tid); 
-                }
-            });
-
-            // Apply Treasure Deletions
-            if(treasuresToRemove.length > 0) {
-                let tUpdates = {};
-                treasuresToRemove.forEach(t => tUpdates[t] = null);
-                treasuresRef.update(tUpdates);
-            }
-
-            // Apply Scores
-            if(Object.keys(scoresToAdd).length > 0) {
-                let sUpdates = {};
-                Object.entries(scoresToAdd).forEach(([uid, sc]) => sUpdates[`${uid}/score`] = sc);
-                usersRef.update(sUpdates);
-            }
-
-            if(crashedUsers.length > 0) stateRef.update({crashAlert: Date.now()});
-
-            // 3. Teleport back to origin after showing the crash/success
+            // 4. Resolve Crashes & Treasures after Vertical animation (1 sec)
             setTimeout(() => {
-                let resets = {};
-                Object.values(globalUsers).forEach(u => {
-                    let home = localToGlobal(0,0, u.team); 
-                    let uid = Object.keys(globalUsers).find(k=>globalUsers[k]===u);
-                    resets[`${uid}/globalX`] = home.x;
-                    resets[`${uid}/globalY`] = home.y;
+                let scoresToAdd = {}; let treasuresToRemove = []; let crashedUsers = [];
+                
+                Object.entries(targetMap).forEach(([tid, players]) => {
+                    let minSteps = Math.min(...players.map(p => p.steps));
+                    let candidates = players.filter(p => p.steps === minSteps);
+                    
+                    if (candidates.length > 1) { 
+                        candidates.forEach(c => crashedUsers.push(c.uid)); 
+                    } else { 
+                        scoresToAdd[candidates[0].uid] = (globalUsers[candidates[0].uid].score || 0) + 1; 
+                        treasuresToRemove.push(tid); 
+                    }
                 });
-                if(Object.keys(resets).length > 0) usersRef.update(resets);
-            }, 1500);
-            
-        }, 1200);
+
+                // Apply Treasure Deletions
+                if(treasuresToRemove.length > 0) {
+                    let tUpdates = {};
+                    treasuresToRemove.forEach(t => tUpdates[t] = null);
+                    treasuresRef.update(tUpdates);
+                }
+
+                // Apply Scores
+                if(Object.keys(scoresToAdd).length > 0) {
+                    let sUpdates = {};
+                    Object.entries(scoresToAdd).forEach(([uid, sc]) => sUpdates[`${uid}/score`] = sc);
+                    usersRef.update(sUpdates);
+                }
+
+                if(crashedUsers.length > 0) stateRef.update({crashAlert: Date.now()});
+
+                // Check for Round End Condition
+                let remainingTreasures = Object.keys(globalTreasures).length - treasuresToRemove.length;
+
+                // 5. Teleport back to origin diagonally
+                setTimeout(() => {
+                    let resets = {};
+                    Object.values(globalUsers).forEach(u => {
+                        let home = localToGlobal(0,0, u.team); 
+                        let uid = Object.keys(globalUsers).find(k=>globalUsers[k]===u);
+                        resets[`${uid}/globalX`] = home.x;
+                        resets[`${uid}/globalY`] = home.y;
+                    });
+                    if(Object.keys(resets).length > 0) usersRef.update(resets);
+
+                    // End the round officially if sea is clear
+                    if (remainingTreasures <= 0) {
+                        stateRef.update({ phase: 'round_end' });
+                    }
+
+                }, 1500);
+                
+            }, 1000); // Wait for Y CSS animation
+
+        }, 1000); // Wait for X CSS animation
     }
 
     stateRef.child('crashAlert').on('value', (snap) => {
@@ -600,17 +665,38 @@
     }
 
     function soloMove(x, y) {
-        globalUsers[myUID].globalX = x; globalUsers[myUID].globalY = y; updateGridUI();
+        let targetGlobal = localToGlobal(x, y, 1);
+        
+        // Step 1: Horizontal Corridor
+        globalUsers[myUID].globalX = targetGlobal.x;
+        updateGridUI();
+        
+        // Step 2: Vertical Stairs
         setTimeout(() => {
-            let tid = `t_${x}_${y}`;
-            if(globalTreasures[tid]) { 
-                delete globalTreasures[tid]; 
-                globalUsers[myUID].score += 1; 
-                document.getElementById('my-score').innerText = globalUsers[myUID].score; 
-            }
-            updateGridUI(); // Update DOM immediately to remove treasure visual
-            setTimeout(() => { globalUsers[myUID].globalX = 0; globalUsers[myUID].globalY = 0; updateGridUI(); }, 1000);
-        }, 1000); // Wait for CSS transition
+            globalUsers[myUID].globalY = targetGlobal.y; 
+            updateGridUI();
+            
+            // Step 3: Resolve
+            setTimeout(() => {
+                let tid = `t_${targetGlobal.x}_${targetGlobal.y}`;
+                if(globalTreasures[tid]) { 
+                    delete globalTreasures[tid]; 
+                    globalUsers[myUID].score += 1; 
+                    document.getElementById('my-score').innerText = globalUsers[myUID].score; 
+                }
+                updateGridUI(); 
+
+                // Check Round End
+                if (Object.keys(globalTreasures).length === 0) {
+                    setTimeout(() => handlePhaseChange('round_end'), 1000);
+                } else {
+                    setTimeout(() => { 
+                        globalUsers[myUID].globalX = 0; globalUsers[myUID].globalY = 0; 
+                        updateGridUI(); 
+                    }, 1000);
+                }
+            }, 1000);
+        }, 1000);
     }
 
     // --- Screen Navigation ---
@@ -619,7 +705,7 @@
         
         if (phase === 'lobby') {
             document.getElementById('screen-lobby').style.display = 'flex';
-            if(isSolo) { alert("Group game finished! Back to lobby."); isSolo = false; }
+            if(isSolo) { isSolo = false; }
         } 
         else if (phase === 'racing') {
             document.getElementById('screen-game').style.display = 'flex';
@@ -645,13 +731,25 @@
                 document.getElementById('controls-round3').style.display = (r === 3) ? 'block' : 'none';
             }
             
-            // Reset local visual inputs just in case
             document.getElementById('r1-x').innerText = "0"; document.getElementById('r1-y').innerText = "0";
             document.getElementById('r2-x').value = "0"; document.getElementById('r2-y').value = "0";
             document.getElementById('r3-x').value = ""; document.getElementById('r3-y').value = "";
 
             updateGridUI();
         } 
+        else if (phase === 'round_end') {
+            document.getElementById('screen-round-end').style.display = 'flex';
+            if (isHost && !isSolo) {
+                document.getElementById('host-round-end-controls').style.display = 'block';
+                document.getElementById('player-round-end-msg').style.display = 'none';
+            } else if (isSolo) {
+                document.getElementById('host-round-end-controls').style.display = 'block';
+                document.getElementById('player-round-end-msg').style.display = 'none';
+            } else {
+                document.getElementById('host-round-end-controls').style.display = 'none';
+                document.getElementById('player-round-end-msg').style.display = 'block';
+            }
+        }
         else { document.getElementById('screen-waiting').style.display = 'flex'; }
     }
 
