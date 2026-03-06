@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Great Grid Sea Expedition</title>
+    
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+
+    <style>
+        :root {
+            --bg-dark: #0f172a; --card-bg: #1e293b;
+            --ocean: #0ea5e9; --ocean-dark: #0284c7;
+            --grid-line: rgba(255,255,255,0.3);
+            --gold: #fbbf24;
+        }
+        body {
+            margin: 0; padding: 0; background-color: var(--bg-dark); color: white;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex; flex-direction: column; align-items: center; height: 100vh; overflow: hidden;
+        }
+        
+        .header-bar { width: 100%; background: #000; padding: 10px 0; text-align: center; border-bottom: 4px solid #475569; flex-shrink: 0;}
+        
+        /* Layouts */
+        .container { flex-grow: 1; display: flex; flex-direction: column; width: 100%; max-width: 900px; padding: 10px; box-sizing: border-box; overflow-y: auto; align-items: center;}
+        .screen { display: none; width: 100%; flex-direction: column; align-items: center; }
+        
+        /* UI Elements */
+        .box { background: var(--card-bg); border: 2px solid #475569; border-radius: 15px; padding: 20px; width: 95%; max-width: 500px; box-sizing: border-box; margin-bottom: 15px; box-shadow: 0 10px 20px rgba(0,0,0,0.3); text-align: center;}
+        .btn { padding: 15px 25px; font-size: 1.2em; font-weight: bold; border: none; border-radius: 10px; cursor: pointer; transition: 0.2s; color: white; width: 100%; box-sizing: border-box;}
+        .btn:active { transform: scale(0.95); }
+        .btn-blue { background: #2563eb; box-shadow: 0 5px 0 #1d4ed8; }
+        .btn-green { background: #16a34a; box-shadow: 0 5px 0 #14532d; }
+        .btn-gold { background: #d97706; box-shadow: 0 5px 0 #b45309; }
+        
+        /* Avatar Selector */
+        .emoji-selector { display: flex; justify-content: center; gap: 10px; margin-bottom: 15px; font-size: 2em; cursor: pointer; flex-wrap: wrap;}
+        .emoji-option { padding: 5px; border-radius: 10px; border: 2px solid transparent; transition: 0.2s; }
+        .emoji-option.selected { background: rgba(255,255,255,0.2); border-color: #3b82f6; transform: scale(1.1); }
+
+        /* The Grid Sea */
+        .grid-container {
+            position: relative; width: 100%; max-width: 500px; aspect-ratio: 1 / 1;
+            background-color: var(--ocean); border: 3px solid white; border-left: 5px solid white; border-bottom: 5px solid white;
+            margin: 20px 0 30px 20px; box-sizing: border-box;
+            background-image: 
+                linear-gradient(var(--grid-line) 1px, transparent 1px),
+                linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+            background-size: 10% 10%; /* 10x10 Grid */
+        }
+
+        /* Axes Labels */
+        .axis-label { position: absolute; font-weight: bold; font-size: 1.2em; color: #94a3b8;}
+        .y-axis-label { top: -25px; left: -15px; }
+        .x-axis-label { bottom: -30px; right: -15px; }
+        .origin-label { position: absolute; bottom: -25px; left: -25px; font-weight: bold; font-size: 1.2em;}
+        
+        .axis-numbers-y { position: absolute; left: -25px; height: 100%; display: flex; flex-direction: column-reverse; justify-content: space-between; font-size: 0.8em; }
+        .axis-numbers-x { position: absolute; bottom: -25px; width: 100%; display: flex; justify-content: space-between; font-size: 0.8em; margin-left: -4px;}
+
+        /* Entities on the Grid */
+        .entity {
+            position: absolute; width: 10%; height: 10%; margin-left: -5%; margin-bottom: -5%;
+            display: flex; justify-content: center; align-items: center; font-size: 1.5em;
+            transition: left 1.5s ease-in-out, bottom 1.5s ease-in-out; z-index: 5;
+        }
+        .treasure { z-index: 2; font-size: 1.8em; filter: drop-shadow(0 0 5px var(--gold)); animation: float 2s infinite ease-in-out;}
+        .player-ship { z-index: 5; }
+        .my-ship { z-index: 10; font-size: 2em; filter: drop-shadow(0 0 10px white); }
+
+        @keyframes float { 0% { transform: translateY(0); } 50% { transform: translateY(-5px); } 100% { transform: translateY(0); } }
+
+        /* Game Controls */
+        .controls-box { background: #334155; padding: 15px; border-radius: 15px; width: 100%; max-width: 500px; box-sizing: border-box; margin-bottom: 10px;}
+        .control-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-size: 1.2em; font-weight: bold;}
+        .stepper { display: flex; align-items: center; gap: 10px; background: #0f172a; padding: 5px 10px; border-radius: 10px;}
+        .stepper button { background: #475569; border: none; color: white; font-size: 1.2em; width: 35px; height: 35px; border-radius: 5px; cursor: pointer; font-weight: bold;}
+        .stepper button:active { background: #64748b; }
+        
+        .input-box { width: 50px; padding: 10px; font-size: 1.2em; text-align: center; border-radius: 5px; border: 2px solid #cbd5e1; background: #0f172a; color: white;}
+        .bracket-input { display: flex; justify-content: center; align-items: center; gap: 10px; font-size: 2em; font-weight: bold; }
+
+        .score-board { display: flex; justify-content: space-between; width: 100%; max-width: 500px; margin-bottom: 10px; }
+        .score-card { background: rgba(0,0,0,0.5); padding: 10px 20px; border-radius: 10px; font-weight: bold; font-size: 1.2em;}
+
+        /* Host Dashboard */
+        .host-panel { width: 100%; max-width: 800px; display: flex; gap: 20px; flex-wrap: wrap; margin-top: 20px;}
+        .host-card { flex: 1; background: #1e293b; padding: 15px; border-radius: 10px; border: 2px solid #475569; min-width: 250px;}
+        .player-list-item { background: #334155; padding: 5px 10px; border-radius: 5px; margin-bottom: 5px; display: flex; justify-content: space-between;}
+    </style>
+</head>
+<body>
+
+    <div class="header-bar" id="top-header">
+        <h2 style="margin:0;">⚓ THE GREAT GRID SEA</h2>
+    </div>
+
+    <div class="container">
+        
+        <div id="screen-lobby" class="screen" style="display:flex;">
+            <div class="box">
+                <h2>Welcome, Navigator!</h2>
+                <p>Choose your vessel before setting sail:</p>
+                <div class="emoji-selector" id="emoji-picker">
+                    <div class="emoji-option selected" onclick="selectEmoji(this, '⛵')">⛵</div>
+                    <div class="emoji-option" onclick="selectEmoji(this, '🚤')">🚤</div>
+                    <div class="emoji-option" onclick="selectEmoji(this, '🚢')">🚢</div>
+                    <div class="emoji-option" onclick="selectEmoji(this, '🛶')">🛶</div>
+                    <div class="emoji-option" onclick="selectEmoji(this, '🏴‍☠️')">🏴‍☠️</div>
+                </div>
+
+                <p>Enter your Captain Name:</p>
+                <input type="text" id="nameInput" style="padding: 10px; font-size: 1.2em; width: 80%; text-align: center; border-radius: 5px; margin-bottom: 15px;" placeholder="Captain...">
+                
+                <button class="btn btn-blue" onclick="joinFleet()">JOIN FLEET</button>
+            </div>
+
+            <div id="host-lobby-box" class="box" style="display:none; border-color: #f59e0b; width: 100%; max-width: 800px;">
+                <h2 style="color: #f59e0b; margin-top:0;">👑 Captain's Quarters (Host)</h2>
+                <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+                    <button class="btn btn-green" style="width: auto;" onclick="startRound(1)">START Round 1 (Informal)</button>
+                    <button class="btn btn-blue" style="width: auto;" onclick="startRound(2)">START Round 2 (Axes)</button>
+                    <button class="btn btn-gold" style="width: auto;" onclick="startRound(3)">START Round 3 (Coordinates)</button>
+                </div>
+                
+                <div class="host-panel">
+                    <div class="host-card">
+                        <h3 style="margin-top:0; color:#cbd5e1;">📋 Fleet Roster</h3>
+                        <div id="host-roster"></div>
+                    </div>
+                    <div class="host-card">
+                        <h3 style="margin-top:0; color:#cbd5e1;">⚙️ Sea Controls</h3>
+                        <button class="btn" style="background:#475569; margin-bottom: 10px;" onclick="spawnTreasures()">💰 Scatter Treasure</button>
+                        <button class="btn" style="background:#991b1b;" onclick="resetGame()">🛑 Hard Reset Server</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="solo-prompt" style="display:none; margin-top: 20px; text-align: center;">
+                <p style="color: #94a3b8;">No active lesson detected.</p>
+                <button class="btn" style="background: transparent; border: 2px solid #94a3b8; color: #cbd5e1; width: auto;" onclick="startSoloMode()">Play Solo Practice</button>
+            </div>
+        </div>
+
+        <div id="screen-waiting" class="screen">
+            <div class="box">
+                <h2>Vessel Prepared! <span id="wait-avatar">⛵</span></h2>
+                <p>Captain <b id="wait-name" style="color:#0ea5e9;">...</b>, your ship is docked at the origin <b>(0,0)</b>.</p>
+                <p style="color: #f59e0b; font-weight: bold; margin-top: 20px;">Waiting for Host to sound the horn...</p>
+            </div>
+        </div>
+
+        <div id="screen-game" class="screen">
+            
+            <div class="score-board">
+                <div class="score-card">🏆 My Score: <span id="my-score" style="color:var(--gold);">0</span></div>
+                <div class="score-card" style="background: rgba(14, 165, 233, 0.3);">Round <span id="round-display">1</span></div>
+            </div>
+
+            <div class="grid-container" id="grid-sea">
+                <div class="axis-label y-axis-label">y</div>
+                <div class="axis-label x-axis-label">x</div>
+                <div class="origin-label">0</div>
+                
+                <div class="axis-numbers-y"><span>10</span><span>9</span><span>8</span><span>7</span><span>6</span><span>5</span><span>4</span><span>3</span><span>2</span><span>1</span></div>
+                <div class="axis-numbers-x"><span>0</span><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span></div>
+
+                <div id="sea-entities"></div>
+            </div>
+
+            <div class="controls-box" id="controls-round1" style="display:none;">
+                <p style="margin: 0 0 10px 0; color: #94a3b8; font-size: 0.9em;">Navigate from Home Port (0,0):</p>
+                <div class="control-row">
+                    <span>Along the Corridor ➡️</span>
+                    <div class="stepper">
+                        <button onclick="changeVal('r1-x', -1)">-</button>
+                        <span id="r1-x" style="width: 20px; text-align: center;">0</span>
+                        <button onclick="changeVal('r1-x', 1)">+</button>
+                    </div>
+                </div>
+                <div class="control-row">
+                    <span>Up the Stairs ⬆️</span>
+                    <div class="stepper">
+                        <button onclick="changeVal('r1-y', -1)">-</button>
+                        <span id="r1-y" style="width: 20px; text-align: center;">0</span>
+                        <button onclick="changeVal('r1-y', 1)">+</button>
+                    </div>
+                </div>
+                <button class="btn btn-green" onclick="sailShip(1)" style="margin-top: 10px;">SAIL!</button>
+            </div>
+
+            <div class="controls-box" id="controls-round2" style="display:none;">
+                <p style="margin: 0 0 10px 0; color: #94a3b8; font-size: 0.9em;">Navigate from Home Port (0,0):</p>
+                <div class="control-row">
+                    <span>X-Axis (Horizontal) ➡️</span>
+                    <input type="number" id="r2-x" class="input-box" min="0" max="10" value="0">
+                </div>
+                <div class="control-row">
+                    <span>Y-Axis (Vertical) ⬆️</span>
+                    <input type="number" id="r2-y" class="input-box" min="0" max="10" value="0">
+                </div>
+                <button class="btn btn-green" onclick="sailShip(2)" style="margin-top: 10px;">SAIL!</button>
+            </div>
+
+            <div class="controls-box" id="controls-round3" style="display:none;">
+                <p style="margin: 0 0 10px 0; color: #94a3b8; font-size: 0.9em;">Enter Target Coordinates from (0,0):</p>
+                <div class="bracket-input">
+                    ( <input type="number" id="r3-x" class="input-box" min="0" max="10" placeholder="x"> , 
+                      <input type="number" id="r3-y" class="input-box" min="0" max="10" placeholder="y"> )
+                </div>
+                <button class="btn btn-green" onclick="sailShip(3)" style="margin-top: 15px;">SAIL!</button>
+            </div>
+
+        </div>
+    </div>
+
+<script>
+    // --- FIREBASE CONFIG ---
+    const firebaseConfig = {
+      apiKey: "AIzaSyBXgT_LxFUar6FcfFqKJsuY2YIOjG5JLtM",
+      authDomain: "symmetry-and-nets.firebaseapp.com",
+      databaseURL: "https://symmetry-and-nets-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "symmetry-and-nets",
+      storageBucket: "symmetry-and-nets.firebasestorage.app",
+      messagingSenderId: "250211420064",
+      appId: "1:250211420064:web:fe4a064715042bedf546c5"
+    };
+
+    if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
+    const db = firebase.database();
+
+    // --- GLOBALS ---
+    let myUID = null;
+    let myName = "";
+    let myAvatar = "⛵";
+    let isHost = false;
+    let isSolo = false;
+    let myScore = 0;
+    
+    // Data Caches
+    let globalState = { phase: 'lobby', round: 1 };
+    let globalUsers = {};
+    let globalTreasures = {};
+
+    // References
+    const stateRef = db.ref('gridGame/state');
+    const usersRef = db.ref('gridGame/users');
+    const treasuresRef = db.ref('gridGame/treasures');
+    const hostRef = db.ref('gridGame/hostExists');
+
+    // --- 1. SETUP & HOST ELECTION ---
+    firebase.auth().setPersistence('none').then(() => {
+        return firebase.auth().signInAnonymously();
+    }).then((userCred) => {
+        myUID = userCred.user.uid;
+        
+        hostRef.transaction((current) => {
+            if (current === null) return true;
+            return;
+        }, (error, committed) => {
+            if (committed) {
+                // I AM HOST
+                isHost = true;
+                document.getElementById('host-lobby-box').style.display = 'block';
+                document.getElementById('solo-prompt').style.display = 'none';
+                resetGame(); 
+            } else {
+                // I AM PLAYER
+                document.getElementById('solo-prompt').style.display = 'block';
+            }
+        });
+    });
+
+    // Avatar Selection UI
+    function selectEmoji(element, emoji) {
+        document.querySelectorAll('.emoji-option').forEach(el => el.classList.remove('selected'));
+        element.classList.add('selected');
+        myAvatar = emoji;
+    }
+
+    // --- 2. JOINING THE FLEET ---
+    function joinFleet() {
+        myName = document.getElementById('nameInput').value.trim() || "Captain Unknown";
+        
+        if (isSolo) {
+            startSoloMode();
+            return;
+        }
+
+        // Save to DB
+        const myUserRef = usersRef.child(myUID);
+        myUserRef.set({ name: myName, avatar: myAvatar, x: 0, y: 0, score: 0, joinedAt: firebase.database.ServerValue.TIMESTAMP });
+        myUserRef.onDisconnect().remove();
+
+        document.getElementById('wait-avatar').innerText = myAvatar;
+        document.getElementById('wait-name').innerText = myName;
+
+        if(globalState.phase === 'lobby') switchScreen('screen-waiting');
+        else handleStateChange(globalState.phase);
+    }
+
+    // --- 3. DATA LISTENERS ---
+    stateRef.on('value', (snap) => {
+        if(isSolo) return;
+        globalState = snap.val() || { phase: 'lobby', round: 1 };
+        handleStateChange(globalState.phase);
+    });
+
+    usersRef.on('value', (snap) => {
+        if(isSolo) return;
+        globalUsers = snap.val() || {};
+        updateGridUI(); 
+        
+        // Host Dashboard Update
+        if (isHost && globalState.phase === 'lobby') {
+            let html = '';
+            Object.values(globalUsers).forEach(u => {
+                html += `<div class="player-list-item"><span>${u.avatar} ${u.name}</span> <span>Score: ${u.score}</span></div>`;
+            });
+            document.getElementById('host-roster').innerHTML = html || '<i style="color:#94a3b8">No ships docked yet.</i>';
+        }
+
+        // Update my local score
+        if(globalUsers[myUID]) {
+            myScore = globalUsers[myUID].score;
+            document.getElementById('my-score').innerText = myScore;
+        }
+    });
+
+    treasuresRef.on('value', (snap) => {
+        if(isSolo) return;
+        globalTreasures = snap.val() || {};
+        updateGridUI(); 
+    });
+
+    // --- 4. RENDER GRID (The Magic) ---
+    function updateGridUI() {
+        if (globalState.phase === 'lobby') return;
+
+        const sea = document.getElementById('sea-entities');
+        let html = '';
+
+        // 1. Draw Treasures
+        Object.entries(globalTreasures).forEach(([tid, t]) => {
+            html += `<div class="entity treasure" style="left: ${t.x * 10}%; bottom: ${t.y * 10}%;">💰</div>`;
+        });
+
+        // 2. Draw Ships
+        Object.entries(globalUsers).forEach(([uid, u]) => {
+            const isMe = (uid === myUID);
+            const extraClass = isMe ? 'my-ship' : '';
+            html += `<div class="entity player-ship ${extraClass}" style="left: ${u.x * 10}%; bottom: ${u.y * 10}%;" title="${u.name}">${u.avatar}</div>`;
+        });
+
+        sea.innerHTML = html;
+    }
+
+    // --- 5. HOST ACTIONS ---
+    function startRound(roundNum) {
+        if(!isHost) return;
+        stateRef.set({ phase: 'racing', round: roundNum });
+        spawnTreasures();
+    }
+
+    function spawnTreasures() {
+        if(!isHost && !isSolo) return;
+        
+        let newTreasures = {};
+        // Spawn 10 random treasures
+        for(let i=0; i<10; i++) {
+            let tx = Math.floor(Math.random() * 10) + 1; // 1 to 10
+            let ty = Math.floor(Math.random() * 10) + 1; // 1 to 10
+            let tid = `t_${tx}_${ty}`;
+            newTreasures[tid] = { x: tx, y: ty };
+        }
+
+        if(isSolo) {
+            globalTreasures = newTreasures;
+            updateGridUI();
+        } else {
+            treasuresRef.set(newTreasures);
+        }
+    }
+
+    function resetGame() {
+        if(!isHost) return;
+        treasuresRef.remove();
+        stateRef.set({ phase: 'lobby', round: 1 });
+        // Reset player positions and scores
+        usersRef.once('value').then(snap => {
+            const users = snap.val() || {};
+            let updates = {};
+            Object.keys(users).forEach(uid => {
+                updates[`${uid}/x`] = 0;
+                updates[`${uid}/y`] = 0;
+                updates[`${uid}/score`] = 0;
+            });
+            usersRef.update(updates);
+        });
+    }
+
+    // --- 6. PLAYER CONTROLS & SAILING ---
+    function changeVal(id, amount) {
+        let el = document.getElementById(id);
+        let val = parseInt(el.innerText) + amount;
+        if(val >= 0 && val <= 10) el.innerText = val;
+    }
+
+    function sailShip(roundNum) {
+        let targetX = 0, targetY = 0;
+
+        if (roundNum === 1) {
+            targetX = parseInt(document.getElementById('r1-x').innerText) || 0;
+            targetY = parseInt(document.getElementById('r1-y').innerText) || 0;
+        } else if (roundNum === 2) {
+            targetX = parseInt(document.getElementById('r2-x').value) || 0;
+            targetY = parseInt(document.getElementById('r2-y').value) || 0;
+        } else if (roundNum === 3) {
+            targetX = parseInt(document.getElementById('r3-x').value) || 0;
+            targetY = parseInt(document.getElementById('r3-y').value) || 0;
+        }
+
+        // Clamp to grid
+        if(targetX < 0) targetX = 0; if(targetX > 10) targetX = 10;
+        if(targetY < 0) targetY = 0; if(targetY > 10) targetY = 10;
+
+        if (isSolo) {
+            soloMove(targetX, targetY);
+            return;
+        }
+
+        // Multiplayer Move
+        const myUserRef = usersRef.child(myUID);
+        
+        // 1. Start moving visually
+        myUserRef.update({ x: targetX, y: targetY });
+
+        // 2. Wait for animation to finish (1.5s), then check treasure
+        setTimeout(() => {
+            let tid = `t_${targetX}_${targetY}`;
+            
+            // Firebase Transaction to securely grab treasure
+            treasuresRef.child(tid).transaction((currentData) => {
+                if (currentData === null) return; // Someone else got it!
+                return null; // Delete it
+            }, (error, committed) => {
+                if (committed) {
+                    // I got it! Add score
+                    myUserRef.child('score').transaction(s => (s || 0) + 1);
+                }
+                
+                // Teleport back to Origin to plan next move
+                setTimeout(() => {
+                    myUserRef.update({ x: 0, y: 0 });
+                }, 500); // Slight delay so they see they arrived
+            });
+        }, 1500);
+    }
+
+    // --- 7. SOLO MODE LOGIC ---
+    function startSoloMode() {
+        isSolo = true;
+        globalState = { phase: 'racing', round: 1 };
+        myName = document.getElementById('nameInput').value || "Solo Explorer";
+        globalUsers = {};
+        globalUsers[myUID] = { name: myName, avatar: myAvatar, x: 0, y: 0, score: 0 };
+        
+        spawnTreasures();
+        handleStateChange('racing');
+    }
+
+    function soloMove(x, y) {
+        globalUsers[myUID].x = x;
+        globalUsers[myUID].y = y;
+        updateGridUI();
+
+        setTimeout(() => {
+            let tid = `t_${x}_${y}`;
+            if(globalTreasures[tid]) {
+                delete globalTreasures[tid];
+                globalUsers[myUID].score += 1;
+                document.getElementById('my-score').innerText = globalUsers[myUID].score;
+            }
+            
+            setTimeout(() => {
+                globalUsers[myUID].x = 0;
+                globalUsers[myUID].y = 0;
+                updateGridUI();
+            }, 500);
+
+        }, 1500);
+    }
+
+    // --- 8. NAVIGATION ---
+    function handleStateChange(phase) {
+        document.querySelectorAll('.screen').forEach(s => s.style.display = 'none');
+        
+        if (phase === 'lobby') {
+            document.getElementById('screen-lobby').style.display = 'flex';
+        } else if (phase === 'racing') {
+            document.getElementById('screen-game').style.display = 'flex';
+            document.getElementById('top-header').style.display = 'none';
+            
+            // Setup correct UI for Round
+            let r = globalState.round;
+            document.getElementById('round-display').innerText = r;
+            document.getElementById('controls-round1').style.display = (r === 1) ? 'block' : 'none';
+            document.getElementById('controls-round2').style.display = (r === 2) ? 'block' : 'none';
+            document.getElementById('controls-round3').style.display = (r === 3) ? 'block' : 'none';
+
+            updateGridUI();
+        } else {
+            // Failsafe Wait Screen
+            document.getElementById('screen-waiting').style.display = 'flex';
+        }
+    }
+
+    function switchScreen(screenId) {
+        document.querySelectorAll('.screen').forEach(s => s.style.display = 'none');
+        document.getElementById(screenId).style.display = 'flex';
+    }
+
+    window.addEventListener('beforeunload', () => {
+        if (isHost && !isSolo) hostRef.remove();
+    });
+</script>
+</body>
+</html>
