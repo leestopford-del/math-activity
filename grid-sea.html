@@ -365,12 +365,13 @@
             if (isHost) hostResolveTurn();
         }
 
-        // Phase Transitions
-        if (newState.phase !== globalState.phase) {
-            globalState = newState; // Sync before handling
-            handlePhaseChange(newState.phase);
-        } else {
-            globalState = newState;
+        // Detect Phase OR Round changes to force UI refresh
+        let phaseChanged = newState.phase !== globalState.phase;
+        let roundChanged = newState.round !== globalState.round;
+        globalState = newState;
+
+        if (phaseChanged || roundChanged) {
+            handlePhaseChange(globalState.phase);
         }
 
         updateLobbyWarnings();
@@ -708,10 +709,16 @@
             if(isSolo) { isSolo = false; }
         } 
         else if (phase === 'racing') {
+            // LOBBY LEAK FIX
+            if (!isHost && !isSolo && (!globalUsers || !globalUsers[myUID])) {
+                document.getElementById('screen-lobby').style.display = 'flex';
+                return;
+            }
+
             document.getElementById('screen-game').style.display = 'flex';
             document.getElementById('top-header').style.display = 'none';
             
-            let r = globalState.round; 
+            let r = Number(globalState.round) || 1; 
             document.getElementById('round-display').innerText = r;
             
             if (isHost && !isSolo) {
@@ -729,6 +736,13 @@
                 document.getElementById('controls-round1').style.display = (r === 1) ? 'block' : 'none';
                 document.getElementById('controls-round2').style.display = (r === 2) ? 'block' : 'none';
                 document.getElementById('controls-round3').style.display = (r === 3) ? 'block' : 'none';
+            }
+            
+            // Re-enable controls safely on every phase change
+            document.querySelectorAll('.btn-green').forEach(b => b.disabled = false);
+            document.getElementById('lock-status').style.display = 'none';
+            if (globalUsers[myUID] && !isSolo && !isHost) {
+                usersRef.child(myUID).update({ lockedLocalX: null, lockedLocalY: null });
             }
             
             document.getElementById('r1-x').innerText = "0"; document.getElementById('r1-y').innerText = "0";
