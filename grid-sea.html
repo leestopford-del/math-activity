@@ -35,21 +35,26 @@
         .emoji-option { padding: 5px; border-radius: 10px; border: 2px solid transparent; transition: 0.2s; }
         .emoji-option.selected { background: rgba(255,255,255,0.2); border-color: #3b82f6; transform: scale(1.1); }
 
-        /* Timer UI */
         #timer-display { font-size: 3em; font-weight: bold; color: #ef4444; margin: 10px 0; text-shadow: 0 0 10px rgba(239,68,68,0.5); display:none;}
 
-        /* The Grid Sea */
-        .grid-wrapper { position: relative; width: 100%; max-width: 500px; aspect-ratio: 1 / 1; margin: 20px 0 30px 0;}
+        /* The Grid Sea - Fixed Orientation */
         .grid-container {
-            position: absolute; top:0; left:0; width: 100%; height: 100%;
+            position: relative; width: 100%; max-width: 500px; aspect-ratio: 1 / 1;
             background-color: var(--ocean); border: 2px solid rgba(255,255,255,0.5);
-            box-sizing: border-box; transition: transform 1s ease-in-out;
+            border-left: 5px solid white; border-bottom: 5px solid white;
+            margin: 20px 0 30px 20px; box-sizing: border-box;
             background-image: linear-gradient(var(--grid-line) 1px, transparent 1px), linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
             background-size: 10% 10%;
         }
 
-        /* Perspective Borders */
-        .border-bl { border-left: 5px solid white; border-bottom: 5px solid white; }
+        /* Axes Labels */
+        .axis-label { position: absolute; font-weight: bold; font-size: 1.2em; color: #94a3b8;}
+        .y-axis-label { top: -25px; left: -15px; }
+        .x-axis-label { bottom: -30px; right: -15px; }
+        .origin-label { position: absolute; bottom: -25px; left: -25px; font-weight: bold; font-size: 1.2em;}
+        
+        .axis-numbers-y { position: absolute; left: -25px; height: 100%; display: flex; flex-direction: column-reverse; justify-content: space-between; font-size: 0.8em; }
+        .axis-numbers-x { position: absolute; bottom: -25px; width: 100%; display: flex; justify-content: space-between; font-size: 0.8em; margin-left: -4px;}
 
         .entity {
             position: absolute; width: 10%; height: 10%; margin-left: -5%; margin-bottom: -5%;
@@ -59,7 +64,6 @@
         .treasure { z-index: 2; font-size: 1.8em; filter: drop-shadow(0 0 5px var(--gold)); animation: float 2s infinite ease-in-out;}
         .player-ship { z-index: 5; }
         .my-ship { z-index: 10; font-size: 2em; filter: drop-shadow(0 0 10px white); }
-        .crash-icon { z-index: 20; font-size: 2.5em; display:none; }
 
         @keyframes float { 0% { transform: translateY(0); } 50% { transform: translateY(-5px); } 100% { transform: translateY(0); } }
 
@@ -73,9 +77,7 @@
         .score-board { display: flex; justify-content: space-between; width: 100%; max-width: 500px; margin-bottom: 10px; }
         .score-card { background: rgba(0,0,0,0.5); padding: 10px 20px; border-radius: 10px; font-weight: bold; font-size: 1.2em;}
 
-        /* Alerts */
         #alert-box { display:none; background:#ef4444; padding:10px; border-radius:10px; font-weight:bold; margin-bottom:10px; text-align:center;}
-        
         .host-panel { width: 100%; max-width: 800px; display: flex; gap: 20px; flex-wrap: wrap; margin-top: 20px;}
         .host-card { flex: 1; background: #1e293b; padding: 15px; border-radius: 10px; border: 2px solid #475569; min-width: 250px;}
     </style>
@@ -87,7 +89,6 @@
     </div>
 
     <div class="container">
-        
         <div id="screen-lobby" class="screen" style="display:flex;">
             <div class="box">
                 <h2>Welcome, Navigator!</h2>
@@ -97,7 +98,6 @@
                     <div class="emoji-option" onclick="selectEmoji(this, '🚢')">🚢</div>
                     <div class="emoji-option" onclick="selectEmoji(this, '🛶')">🛶</div>
                 </div>
-
                 <input type="text" id="nameInput" style="padding: 10px; font-size: 1.2em; width: 80%; text-align: center; border-radius: 5px; margin-bottom: 15px;" placeholder="Captain Name...">
                 
                 <div id="join-warning" style="display:none; color:#f59e0b; font-weight:bold; margin-bottom:10px;">
@@ -106,6 +106,7 @@
                 
                 <button class="btn btn-blue" id="btn-join-fleet" onclick="joinFleet()">JOIN MULTIPLAYER FLEET</button>
                 <button class="btn btn-solo" onclick="startSoloMode()">PLAY SOLO PRACTICE</button>
+                <button class="btn" style="background: transparent; color: #64748b; font-size: 0.9em; margin-top: 10px; box-shadow: none;" onclick="becomeHost()">Become Host (Teacher)</button>
             </div>
 
             <div id="host-lobby-box" class="box" style="display:none; border-color: #f59e0b; width: 100%; max-width: 800px;">
@@ -118,7 +119,7 @@
                 
                 <div class="host-panel">
                     <div class="host-card">
-                        <h3 style="margin-top:0;">📋 Fleet (Max 4 Teams)</h3>
+                        <h3 style="margin-top:0;">📋 Fleet Roster</h3>
                         <div id="host-roster"></div>
                     </div>
                     <div class="host-card">
@@ -138,21 +139,23 @@
         </div>
 
         <div id="screen-game" class="screen">
-            
             <div class="score-board">
                 <div class="score-card">Team <span id="my-team-display">1</span> Score: <span id="my-score" style="color:var(--gold);">0</span></div>
                 <div class="score-card" style="background: rgba(14, 165, 233, 0.3);">Round <span id="round-display">1</span></div>
             </div>
 
             <div id="timer-display">10</div>
-            <div id="alert-box">💥 CRASH! Both ships destroyed at those coordinates!</div>
+            <div id="alert-box">💥 CRASH! Ships collided at the same coordinates!</div>
 
             <button class="btn btn-gold" id="host-exec-btn" style="display:none; max-width:300px;" onclick="hostStartTimer()">⏰ START 10s TURN TIMER</button>
 
-            <div class="grid-wrapper">
-                <div class="grid-container border-bl" id="grid-sea">
-                    <div id="sea-entities"></div>
-                </div>
+            <div class="grid-container" id="grid-sea">
+                <div class="axis-label y-axis-label">y</div>
+                <div class="axis-label x-axis-label">x</div>
+                <div class="origin-label">0</div>
+                <div class="axis-numbers-y"><span>10</span><span>9</span><span>8</span><span>7</span><span>6</span><span>5</span><span>4</span><span>3</span><span>2</span><span>1</span></div>
+                <div class="axis-numbers-x"><span>0</span><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span></div>
+                <div id="sea-entities"></div>
             </div>
 
             <div class="controls-box" id="controls-round1" style="display:none;">
@@ -190,12 +193,10 @@
             </div>
             
             <p id="lock-status" style="color:#10b981; font-weight:bold; display:none;">✅ Coordinates locked! Waiting for timer...</p>
-
         </div>
     </div>
 
 <script>
-    // --- FIREBASE CONFIG ---
     const firebaseConfig = {
       apiKey: "AIzaSyBXgT_LxFUar6FcfFqKJsuY2YIOjG5JLtM",
       authDomain: "symmetry-and-nets.firebaseapp.com",
@@ -205,41 +206,53 @@
     if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
     const db = firebase.database();
 
-    // --- GLOBALS ---
-    let myUID = null;
+    // Generate a unique ID per tab for testing multi-player easily
+    let myUID = sessionStorage.getItem('gridUid');
+    if (!myUID) {
+        myUID = 'user_' + Math.random().toString(36).substr(2, 9);
+        sessionStorage.setItem('gridUid', myUID);
+    }
+
     let myName = "Captain";
     let myAvatar = "⛵";
     let myTeam = 1;
     let isHost = false;
     let isSolo = false;
-    let myScore = 0;
     
-    // Caches
     let globalState = { phase: 'lobby', round: 1, timer: 0 };
     let globalUsers = {};
     let globalTreasures = {};
 
-    // Refs
     const stateRef = db.ref('gridGame/state');
     const usersRef = db.ref('gridGame/users');
     const treasuresRef = db.ref('gridGame/treasures');
-    const hostRef = db.ref('gridGame/hostExists');
 
-    // --- 1. SETUP ---
-    firebase.auth().signInAnonymously().then((userCred) => {
-        myUID = userCred.user.uid;
-        hostRef.transaction((current) => {
-            if (current === null) return true;
-            return;
-        }, (error, committed) => {
-            if (committed) {
-                isHost = true;
-                document.getElementById('host-lobby-box').style.display = 'block';
-                document.getElementById('host-exec-btn').style.display = 'block';
-                resetGame(); 
-            }
-        });
-    });
+    // Make sure we have write access (anonymous login)
+    firebase.auth().signInAnonymously();
+
+    // Math Transformers
+    function localToGlobal(lx, ly, team) {
+        if(team === 1) return {x: lx, y: ly};
+        if(team === 2) return {x: 10 - lx, y: ly};
+        if(team === 3) return {x: 10 - lx, y: 10 - ly};
+        if(team === 4) return {x: lx, y: 10 - ly};
+        return {x: lx, y: ly};
+    }
+
+    function globalToLocal(gx, gy, team) {
+        if(team === 1) return {x: gx, y: gy};
+        if(team === 2) return {x: 10 - gx, y: gy};
+        if(team === 3) return {x: 10 - gx, y: 10 - gy};
+        if(team === 4) return {x: gx, y: 10 - gy};
+        return {x: gx, y: gy};
+    }
+
+    function becomeHost() {
+        isHost = true;
+        document.getElementById('host-lobby-box').style.display = 'block';
+        document.getElementById('host-exec-btn').style.display = 'block';
+        resetGame();
+    }
 
     function selectEmoji(element, emoji) {
         document.querySelectorAll('.emoji-option').forEach(el => el.classList.remove('selected'));
@@ -247,12 +260,11 @@
         myAvatar = emoji;
     }
 
-    // --- 2. DATA LISTENERS ---
+    // Data Listeners
     stateRef.on('value', (snap) => {
         if(isSolo) return;
         const newState = snap.val() || { phase: 'lobby', round: 1, timer: 0 };
         
-        // Timer Logic
         if (newState.timer > 0) {
             document.getElementById('timer-display').style.display = 'block';
             document.getElementById('timer-display').innerText = newState.timer;
@@ -261,12 +273,8 @@
             if (isHost) hostResolveTurn();
         }
 
-        // Phase change
-        if (newState.phase !== globalState.phase) {
-            handlePhaseChange(newState.phase);
-        }
-
-        // Lobby Leak Protection
+        if (newState.phase !== globalState.phase) handlePhaseChange(newState.phase);
+        
         if (newState.phase === 'racing' && globalState.phase === 'lobby' && !globalUsers[myUID]) {
             document.getElementById('btn-join-fleet').disabled = true;
             document.getElementById('join-warning').style.display = 'block';
@@ -285,16 +293,10 @@
         
         if (isHost && globalState.phase === 'lobby') {
             let html = '';
-            Object.values(globalUsers).forEach(u => {
-                html += `<div>T${u.team}: ${u.avatar} ${u.name} (Score: ${u.score})</div>`;
-            });
+            Object.values(globalUsers).forEach(u => { html += `<div>T${u.team}: ${u.avatar} ${u.name} (Score: ${u.score})</div>`; });
             document.getElementById('host-roster').innerHTML = html;
         }
-
-        if(globalUsers[myUID]) {
-            myScore = globalUsers[myUID].score;
-            document.getElementById('my-score').innerText = myScore;
-        }
+        if(globalUsers[myUID]) document.getElementById('my-score').innerText = globalUsers[myUID].score;
     });
 
     treasuresRef.on('value', (snap) => {
@@ -303,17 +305,17 @@
         updateGridUI(); 
     });
 
-    // --- 3. JOINING & TEAMS ---
     function joinFleet() {
         myName = document.getElementById('nameInput').value.trim() || "Captain";
-        
-        // Assign Team (Round Robin 1-4)
         const currentCount = Object.keys(globalUsers).length;
-        myTeam = (currentCount % 4) + 1;
+        myTeam = (currentCount % 4) + 1; // Round robin assignment 1, 2, 3, 4
 
-        const myUserRef = usersRef.child(myUID);
-        myUserRef.set({ name: myName, avatar: myAvatar, team: myTeam, localX: 0, localY: 0, lockedX: null, lockedY: null, score: 0 });
-        myUserRef.onDisconnect().remove();
+        usersRef.child(myUID).set({ 
+            name: myName, avatar: myAvatar, team: myTeam, 
+            globalX: localToGlobal(0,0,myTeam).x, globalY: localToGlobal(0,0,myTeam).y, 
+            lockedLocalX: null, lockedLocalY: null, score: 0 
+        });
+        usersRef.child(myUID).onDisconnect().remove();
 
         document.getElementById('wait-avatar').innerText = myAvatar;
         document.getElementById('wait-name').innerText = myName;
@@ -321,46 +323,30 @@
         switchScreen('screen-waiting');
     }
 
-    // --- 4. PERSPECTIVE & GRID RENDER ---
     function updateGridUI() {
         if (globalState.phase === 'lobby') return;
         const sea = document.getElementById('sea-entities');
-        const grid = document.getElementById('grid-sea');
         let html = '';
 
-        // 1. Rotate the Grid based on My Team
-        let rotation = 0;
-        if(myTeam === 2) rotation = -90;
-        if(myTeam === 3) rotation = -180;
-        if(myTeam === 4) rotation = -270;
-        if(isHost) rotation = 0; // Host sees global truth (Team 1)
+        // If Host, see Team 1's view (Global). Else see own Team view.
+        let viewTeam = isHost ? 1 : myTeam;
 
-        grid.style.transform = `rotate(${rotation}deg)`;
-
-        // 2. Draw Treasures
         Object.entries(globalTreasures).forEach(([tid, t]) => {
-            html += `<div class="entity treasure" style="left: ${t.gx * 10}%; bottom: ${t.gy * 10}%; transform: rotate(${-rotation}deg);">💰</div>`;
+            let loc = globalToLocal(t.gx, t.gy, viewTeam);
+            html += `<div class="entity treasure" style="left: ${loc.x * 10}%; bottom: ${loc.y * 10}%;">💰</div>`;
         });
 
-        // 3. Draw Ships
         Object.entries(globalUsers).forEach(([uid, u]) => {
             const isMe = (uid === myUID);
             const extraClass = isMe ? 'my-ship' : '';
-            
-            // Map local to global for rendering
-            let gx=0, gy=0;
-            if(u.team===1){ gx=u.localX; gy=u.localY; }
-            if(u.team===2){ gx=10-u.localY; gy=u.localX; }
-            if(u.team===3){ gx=10-u.localX; gy=10-u.localY; }
-            if(u.team===4){ gx=u.localY; gy=10-u.localX; }
-
-            html += `<div class="entity player-ship ${extraClass}" style="left: ${gx * 10}%; bottom: ${gy * 10}%; transform: rotate(${-rotation}deg);">${u.avatar}</div>`;
+            let loc = globalToLocal(u.globalX, u.globalY, viewTeam);
+            html += `<div class="entity player-ship ${extraClass}" style="left: ${loc.x * 10}%; bottom: ${loc.y * 10}%;">${u.avatar}</div>`;
         });
 
         sea.innerHTML = html;
     }
 
-    // --- 5. HOST LOGIC (Collisions & Timers) ---
+    // Host Controls
     function startRound(roundNum) {
         if(!isHost) return;
         stateRef.set({ phase: 'racing', round: roundNum, timer: 0 });
@@ -371,7 +357,7 @@
         if(!isHost) return;
         treasuresRef.remove();
         stateRef.set({ phase: 'lobby', round: 1, timer: 0 });
-        usersRef.remove(); // Kick everyone out to reset teams
+        usersRef.remove(); 
     }
 
     function spawnTreasures() {
@@ -390,36 +376,28 @@
         let t = 10;
         stateRef.update({timer: t});
         let intv = setInterval(() => {
-            t--;
-            stateRef.update({timer: t});
+            t--; stateRef.update({timer: t});
             if (t <= 0) clearInterval(intv);
         }, 1000);
     }
 
     function hostResolveTurn() {
         if(!isHost) return;
-        
-        let targetMap = {}; // { "gx_gy": [ {uid, steps, uref} ] }
+        let targetMap = {}; 
         let updates = {};
 
-        // 1. Convert locked moves to global targets
         Object.entries(globalUsers).forEach(([uid, u]) => {
-            if (u.lockedX === null || u.lockedY === null) return;
+            if (u.lockedLocalX === null || u.lockedLocalY === null) return;
             
-            let gx=0, gy=0;
-            if(u.team===1){ gx=u.lockedX; gy=u.lockedY; }
-            if(u.team===2){ gx=10-u.lockedY; gy=u.lockedX; }
-            if(u.team===3){ gx=10-u.lockedX; gy=10-u.lockedY; }
-            if(u.team===4){ gx=u.lockedY; gy=10-u.lockedX; }
-
-            let steps = u.lockedX + u.lockedY;
-            let tid = `t_${gx}_${gy}`;
+            // Translate their local locked coordinate to a Global target
+            let targetGlobal = localToGlobal(u.lockedLocalX, u.lockedLocalY, u.team);
+            let steps = u.lockedLocalX + u.lockedLocalY; 
+            let tid = `t_${targetGlobal.x}_${targetGlobal.y}`;
             
-            // Move them visually first
-            updates[`${uid}/localX`] = u.lockedX;
-            updates[`${uid}/localY`] = u.lockedY;
-            updates[`${uid}/lockedX`] = null;
-            updates[`${uid}/lockedY`] = null;
+            updates[`${uid}/globalX`] = targetGlobal.x;
+            updates[`${uid}/globalY`] = targetGlobal.y;
+            updates[`${uid}/lockedLocalX`] = null;
+            updates[`${uid}/lockedLocalY`] = null;
 
             if (globalTreasures[tid]) {
                 if(!targetMap[tid]) targetMap[tid] = [];
@@ -427,50 +405,34 @@
             }
         });
 
-        usersRef.update(updates); // Trigger movements
+        usersRef.update(updates); 
 
-        // 2. Wait for animation to finish, then resolve crashes/wins
         setTimeout(() => {
-            let scoresToAdd = {};
-            let treasuresToRemove = [];
-            let crashedUsers = [];
-
+            let scoresToAdd = {}; let treasuresToRemove = []; let crashedUsers = [];
             Object.entries(targetMap).forEach(([tid, players]) => {
-                // Find minimum steps
                 let minSteps = Math.min(...players.map(p => p.steps));
                 let candidates = players.filter(p => p.steps === minSteps);
-
-                if (candidates.length > 1) {
-                    // CRASH!
-                    candidates.forEach(c => crashedUsers.push(c.uid));
-                } else {
-                    // WINNER!
-                    let winner = candidates[0].uid;
-                    scoresToAdd[winner] = (globalUsers[winner].score || 0) + 1;
-                    treasuresToRemove.push(tid);
-                }
+                if (candidates.length > 1) { candidates.forEach(c => crashedUsers.push(c.uid)); } 
+                else { scoresToAdd[candidates[0].uid] = (globalUsers[candidates[0].uid].score || 0) + 1; treasuresToRemove.push(tid); }
             });
 
-            // Apply results
             treasuresToRemove.forEach(t => treasuresRef.child(t).remove());
             Object.entries(scoresToAdd).forEach(([uid, sc]) => usersRef.child(uid).update({score: sc}));
 
-            // Alert Crashes (using a temporary DB flag)
-            if(crashedUsers.length > 0) {
-                stateRef.update({crashAlert: Date.now()});
-            }
+            if(crashedUsers.length > 0) stateRef.update({crashAlert: Date.now()});
 
-            // Snap everyone back to origin after result
             setTimeout(() => {
                 let resets = {};
-                Object.keys(globalUsers).forEach(uid => { resets[`${uid}/localX`] = 0; resets[`${uid}/localY`] = 0; });
+                Object.values(globalUsers).forEach(u => {
+                    let home = localToGlobal(0,0, u.team); // Send back to their respective corners
+                    resets[`${Object.keys(globalUsers).find(k=>globalUsers[k]===u)}/globalX`] = home.x;
+                    resets[`${Object.keys(globalUsers).find(k=>globalUsers[k]===u)}/globalY`] = home.y;
+                });
                 usersRef.update(resets);
-            }, 1000);
-
+            }, 1500);
         }, 1200);
     }
 
-    // Alert Listener
     stateRef.child('crashAlert').on('value', (snap) => {
         if(!snap.val()) return;
         let box = document.getElementById('alert-box');
@@ -478,39 +440,28 @@
         setTimeout(() => box.style.display = 'none', 3000);
     });
 
-
-    // --- 6. PLAYER CONTROLS ---
+    // Player Controls
     function changeVal(id, amount) {
-        let el = document.getElementById(id);
-        let val = parseInt(el.innerText) + amount;
+        let el = document.getElementById(id); let val = parseInt(el.innerText) + amount;
         if(val >= 0 && val <= 10) el.innerText = val;
     }
 
     function lockMove(roundNum) {
-        let targetX = 0, targetY = 0;
-        if (roundNum === 1) {
-            targetX = parseInt(document.getElementById('r1-x').innerText) || 0;
-            targetY = parseInt(document.getElementById('r1-y').innerText) || 0;
-        } else if (roundNum === 2) {
-            targetX = parseInt(document.getElementById('r2-x').value) || 0;
-            targetY = parseInt(document.getElementById('r2-y').value) || 0;
-        } else if (roundNum === 3) {
-            targetX = parseInt(document.getElementById('r3-x').value) || 0;
-            targetY = parseInt(document.getElementById('r3-y').value) || 0;
-        }
+        let tx = 0, ty = 0;
+        if (roundNum === 1) { tx = parseInt(document.getElementById('r1-x').innerText)||0; ty = parseInt(document.getElementById('r1-y').innerText)||0; } 
+        else if (roundNum === 2) { tx = parseInt(document.getElementById('r2-x').value)||0; ty = parseInt(document.getElementById('r2-y').value)||0; } 
+        else if (roundNum === 3) { tx = parseInt(document.getElementById('r3-x').value)||0; ty = parseInt(document.getElementById('r3-y').value)||0; }
 
-        if(targetX < 0) targetX = 0; if(targetX > 10) targetX = 10;
-        if(targetY < 0) targetY = 0; if(targetY > 10) targetY = 10;
+        if(tx < 0) tx = 0; if(tx > 10) tx = 10;
+        if(ty < 0) ty = 0; if(ty > 10) ty = 10;
 
-        if (isSolo) { soloMove(targetX, targetY); return; }
+        if (isSolo) { soloMove(tx, ty); return; }
 
-        // Multiplayer Lock
-        usersRef.child(myUID).update({ lockedX: targetX, lockedY: targetY });
+        usersRef.child(myUID).update({ lockedLocalX: tx, lockedLocalY: ty });
         document.getElementById(`btn-sail-${roundNum}`).disabled = true;
         document.getElementById('lock-status').style.display = 'block';
     }
 
-    // UI Reset when timer finishes
     stateRef.child('timer').on('value', snap => {
         if(snap.val() === 0) {
             document.querySelectorAll('.btn-green').forEach(b => b.disabled = false);
@@ -518,68 +469,44 @@
         }
     });
 
-    // --- 7. SOLO MODE ---
+    // Solo Mode
     function startSoloMode() {
-        isSolo = true;
-        myTeam = 1; // Solo is always standard orientation
-        globalState = { phase: 'racing', round: 1, timer: 0 };
-        myName = "Solo Explorer";
-        globalUsers = {};
-        globalUsers[myUID] = { name: myName, avatar: myAvatar, team: 1, localX: 0, localY: 0, score: 0 };
-        spawnTreasures();
-        handlePhaseChange('racing');
+        isSolo = true; myTeam = 1; globalState = { phase: 'racing', round: 1, timer: 0 };
+        myName = "Solo Explorer"; globalUsers = {};
+        globalUsers[myUID] = { name: myName, avatar: myAvatar, team: 1, globalX: 0, globalY: 0, score: 0 };
+        spawnTreasures(); handlePhaseChange('racing');
     }
 
     function soloMove(x, y) {
-        globalUsers[myUID].localX = x; globalUsers[myUID].localY = y;
-        updateGridUI();
-
+        globalUsers[myUID].globalX = x; globalUsers[myUID].globalY = y; updateGridUI();
         setTimeout(() => {
             let tid = `t_${x}_${y}`;
-            if(globalTreasures[tid]) {
-                delete globalTreasures[tid];
-                globalUsers[myUID].score += 1;
-                document.getElementById('my-score').innerText = globalUsers[myUID].score;
-            }
-            setTimeout(() => {
-                globalUsers[myUID].localX = 0; globalUsers[myUID].localY = 0;
-                updateGridUI();
-            }, 500);
+            if(globalTreasures[tid]) { delete globalTreasures[tid]; globalUsers[myUID].score += 1; document.getElementById('my-score').innerText = globalUsers[myUID].score; }
+            setTimeout(() => { globalUsers[myUID].globalX = 0; globalUsers[myUID].globalY = 0; updateGridUI(); }, 500);
         }, 1200);
     }
 
-    // --- 8. NAVIGATION ---
     function handlePhaseChange(phase) {
         document.querySelectorAll('.screen').forEach(s => s.style.display = 'none');
-        
         if (phase === 'lobby') {
             document.getElementById('screen-lobby').style.display = 'flex';
-            if(isSolo) {
-                alert("The group game has finished! You are back in the lobby.");
-                isSolo = false; // Reset solo status to allow joining new game
-            }
+            if(isSolo) { alert("Group game finished! Back to lobby."); isSolo = false; }
         } else if (phase === 'racing') {
             document.getElementById('screen-game').style.display = 'flex';
             document.getElementById('top-header').style.display = 'none';
             document.getElementById('my-team-display').innerText = myTeam;
-            
-            let r = globalState.round;
-            document.getElementById('round-display').innerText = r;
+            let r = globalState.round; document.getElementById('round-display').innerText = r;
             document.getElementById('controls-round1').style.display = (r === 1) ? 'block' : 'none';
             document.getElementById('controls-round2').style.display = (r === 2) ? 'block' : 'none';
             document.getElementById('controls-round3').style.display = (r === 3) ? 'block' : 'none';
             updateGridUI();
-        } else {
-            document.getElementById('screen-waiting').style.display = 'flex';
-        }
+        } else { document.getElementById('screen-waiting').style.display = 'flex'; }
     }
 
     function switchScreen(id) {
         document.querySelectorAll('.screen').forEach(s => s.style.display = 'none');
         document.getElementById(id).style.display = 'flex';
     }
-
-    window.addEventListener('beforeunload', () => { if (isHost && !isSolo) hostRef.remove(); });
 </script>
 </body>
 </html>
