@@ -154,11 +154,13 @@
         </div>
 
         <div id="screen-game" class="screen">
-            <div class="score-board">
+            
+            <div class="score-board" id="player-score-board">
                 <div class="score-card">Team <span id="my-team-display">1</span> Score: <span id="my-score" style="color:var(--gold);">0</span></div>
                 <div class="score-card" style="background: rgba(14, 165, 233, 0.3);">Round <span id="round-display">1</span></div>
             </div>
 
+            <h3 id="host-game-title" style="display:none; color:#f59e0b; margin: 0 0 10px 0;">👑 Host Observer View (Team 1 Origin)</h3>
             <div id="timer-display">10</div>
             <div id="alert-box">💥 CRASH! Ships collided at the same coordinates!</div>
 
@@ -173,38 +175,40 @@
                 <div id="sea-entities"></div>
             </div>
 
-            <div class="controls-box" id="controls-round1" style="display:none;">
-                <div class="control-row">
-                    <span>Along the Corridor ➡️</span>
-                    <div class="stepper">
-                        <button onclick="changeVal('r1-x', -1)">-</button><span id="r1-x" style="width: 20px; text-align: center;">0</span><button onclick="changeVal('r1-x', 1)">+</button>
+            <div id="player-controls-wrapper" style="width: 100%; display: flex; justify-content: center;">
+                <div class="controls-box" id="controls-round1" style="display:none;">
+                    <div class="control-row">
+                        <span>Along the Corridor ➡️</span>
+                        <div class="stepper">
+                            <button onclick="changeVal('r1-x', -1)">-</button><span id="r1-x" style="width: 20px; text-align: center;">0</span><button onclick="changeVal('r1-x', 1)">+</button>
+                        </div>
                     </div>
-                </div>
-                <div class="control-row">
-                    <span>Up the Stairs ⬆️</span>
-                    <div class="stepper">
-                        <button onclick="changeVal('r1-y', -1)">-</button><span id="r1-y" style="width: 20px; text-align: center;">0</span><button onclick="changeVal('r1-y', 1)">+</button>
+                    <div class="control-row">
+                        <span>Up the Stairs ⬆️</span>
+                        <div class="stepper">
+                            <button onclick="changeVal('r1-y', -1)">-</button><span id="r1-y" style="width: 20px; text-align: center;">0</span><button onclick="changeVal('r1-y', 1)">+</button>
+                        </div>
                     </div>
+                    <button class="btn btn-green" id="btn-sail-1" onclick="lockMove(1)">LOCK IN MOVE</button>
                 </div>
-                <button class="btn btn-green" id="btn-sail-1" onclick="lockMove(1)">LOCK IN MOVE</button>
-            </div>
 
-            <div class="controls-box" id="controls-round2" style="display:none;">
-                <div class="control-row">
-                    <span>X-Axis (Horizontal) ➡️</span><input type="number" id="r2-x" class="input-box" min="0" max="10" value="0">
+                <div class="controls-box" id="controls-round2" style="display:none;">
+                    <div class="control-row">
+                        <span>X-Axis (Horizontal) ➡️</span><input type="number" id="r2-x" class="input-box" min="0" max="10" value="0">
+                    </div>
+                    <div class="control-row">
+                        <span>Y-Axis (Vertical) ⬆️</span><input type="number" id="r2-y" class="input-box" min="0" max="10" value="0">
+                    </div>
+                    <button class="btn btn-green" id="btn-sail-2" onclick="lockMove(2)">LOCK IN MOVE</button>
                 </div>
-                <div class="control-row">
-                    <span>Y-Axis (Vertical) ⬆️</span><input type="number" id="r2-y" class="input-box" min="0" max="10" value="0">
-                </div>
-                <button class="btn btn-green" id="btn-sail-2" onclick="lockMove(2)">LOCK IN MOVE</button>
-            </div>
 
-            <div class="controls-box" id="controls-round3" style="display:none;">
-                <div class="bracket-input">
-                    ( <input type="number" id="r3-x" class="input-box" min="0" max="10" placeholder="x"> , 
-                      <input type="number" id="r3-y" class="input-box" min="0" max="10" placeholder="y"> )
+                <div class="controls-box" id="controls-round3" style="display:none;">
+                    <div class="bracket-input">
+                        ( <input type="number" id="r3-x" class="input-box" min="0" max="10" placeholder="x"> , 
+                          <input type="number" id="r3-y" class="input-box" min="0" max="10" placeholder="y"> )
+                    </div>
+                    <button class="btn btn-green" id="btn-sail-3" style="margin-top:15px;" onclick="lockMove(3)">LOCK IN MOVE</button>
                 </div>
-                <button class="btn btn-green" id="btn-sail-3" style="margin-top:15px;" onclick="lockMove(3)">LOCK IN MOVE</button>
             </div>
             
             <p id="lock-status" style="color:#10b981; font-weight:bold; display:none;">✅ Coordinates locked! Waiting for timer...</p>
@@ -260,7 +264,7 @@
         }, (error, committed) => {
             if (committed) {
                 isHost = true;
-                hostRef.onDisconnect().remove(); // The Crucial Ghost Fix
+                hostRef.onDisconnect().remove(); 
                 document.getElementById('host-lobby-box').style.display = 'block';
                 document.getElementById('host-exec-btn').style.display = 'block';
                 resetGame();
@@ -287,7 +291,6 @@
 
     // --- UI Controls ---
     function becomeHost() {
-        // Teacher Override: Forcibly claim host, clear ghost data, and reset
         isHost = true;
         hostRef.set(true);
         hostRef.onDisconnect().remove();
@@ -357,7 +360,7 @@
         }
         
         // Update my own score
-        if(globalUsers[myUID]) {
+        if(globalUsers[myUID] && !isHost) {
             document.getElementById('my-score').innerText = globalUsers[myUID].score;
         }
         updateLobbyWarnings();
@@ -391,28 +394,49 @@
         switchScreen('screen-waiting');
     }
 
+    // --- Dynamic DOM Grid Renderer (Allows smooth CSS Transitions) ---
     function updateGridUI() {
         if (globalState.phase === 'lobby') return;
         const sea = document.getElementById('sea-entities');
-        let html = '';
 
-        let viewTeam = isHost ? 1 : myTeam; // Host always views from Standard Origin (Team 1)
+        let viewTeam = isHost ? 1 : myTeam; 
 
-        // Draw Treasures from local perspective
+        // Update Treasures via ID
+        document.querySelectorAll('.treasure').forEach(el => el.dataset.keep = "false");
         Object.entries(globalTreasures).forEach(([tid, t]) => {
             let loc = globalToLocal(t.gx, t.gy, viewTeam);
-            html += `<div class="entity treasure" style="left: ${loc.x * 10}%; bottom: ${loc.y * 10}%;">💰</div>`;
+            let el = document.getElementById(tid);
+            if (!el) {
+                el = document.createElement('div');
+                el.id = tid;
+                el.className = 'entity treasure';
+                el.innerHTML = '💰';
+                sea.appendChild(el);
+            }
+            el.dataset.keep = "true";
+            el.style.left = `${loc.x * 10}%`;
+            el.style.bottom = `${loc.y * 10}%`;
         });
+        document.querySelectorAll('.treasure[data-keep="false"]').forEach(el => el.remove());
 
-        // Draw Ships from local perspective
+        // Update Ships via ID
+        document.querySelectorAll('.player-ship').forEach(el => el.dataset.keep = "false");
         Object.entries(globalUsers).forEach(([uid, u]) => {
-            const isMe = (uid === myUID);
-            const extraClass = isMe ? 'my-ship' : '';
             let loc = globalToLocal(u.globalX, u.globalY, viewTeam);
-            html += `<div class="entity player-ship ${extraClass}" style="left: ${loc.x * 10}%; bottom: ${loc.y * 10}%;">${u.avatar}</div>`;
+            let el = document.getElementById('ship_' + uid);
+            if (!el) {
+                el = document.createElement('div');
+                el.id = 'ship_' + uid;
+                el.className = `entity player-ship`;
+                sea.appendChild(el);
+            }
+            el.className = `entity player-ship ${uid === myUID ? 'my-ship' : ''}`;
+            el.dataset.keep = "true";
+            el.innerHTML = u.avatar;
+            el.style.left = `${loc.x * 10}%`;
+            el.style.bottom = `${loc.y * 10}%`;
         });
-
-        sea.innerHTML = html;
+        document.querySelectorAll('.player-ship[data-keep="false"]').forEach(el => el.remove());
     }
 
     // --- Host Controls ---
@@ -450,18 +474,18 @@
         }, 1000);
     }
 
-    // --- The Collision Engine ---
+    // --- The Collision & Movement Engine ---
     function hostResolveTurn() {
         if(!isHost) return;
         let targetMap = {}; 
         let updates = {};
 
-        // 1. Convert locked local moves to global targets
+        // 1. Calculate Movements securely
         Object.entries(globalUsers).forEach(([uid, u]) => {
-            if (u.lockedLocalX === null || u.lockedLocalY === null) return;
+            if (typeof u.lockedLocalX !== 'number' || typeof u.lockedLocalY !== 'number') return;
             
             let targetGlobal = localToGlobal(u.lockedLocalX, u.lockedLocalY, u.team);
-            let steps = u.lockedLocalX + u.lockedLocalY; // Distance traveled from corner
+            let steps = u.lockedLocalX + u.lockedLocalY; 
             let tid = `t_${targetGlobal.x}_${targetGlobal.y}`;
             
             updates[`${uid}/globalX`] = targetGlobal.x;
@@ -475,9 +499,12 @@
             }
         });
 
-        usersRef.update(updates); 
+        // Broadcast Movements to trigger CSS Animations
+        if (Object.keys(updates).length > 0) {
+            usersRef.update(updates); 
+        }
 
-        // 2. Resolve crashes after animation
+        // 2. Wait for ships to sail (1.2 seconds), then resolve outcomes
         setTimeout(() => {
             let scoresToAdd = {}; let treasuresToRemove = []; let crashedUsers = [];
             
@@ -493,22 +520,32 @@
                 }
             });
 
-            treasuresToRemove.forEach(t => treasuresRef.child(t).remove());
-            Object.entries(scoresToAdd).forEach(([uid, sc]) => usersRef.child(uid).update({score: sc}));
+            // Apply Treasure Deletions
+            if(treasuresToRemove.length > 0) {
+                let tUpdates = {};
+                treasuresToRemove.forEach(t => tUpdates[t] = null);
+                treasuresRef.update(tUpdates);
+            }
+
+            // Apply Scores
+            if(Object.keys(scoresToAdd).length > 0) {
+                let sUpdates = {};
+                Object.entries(scoresToAdd).forEach(([uid, sc]) => sUpdates[`${uid}/score`] = sc);
+                usersRef.update(sUpdates);
+            }
 
             if(crashedUsers.length > 0) stateRef.update({crashAlert: Date.now()});
 
-            // 3. Teleport back to origin
+            // 3. Teleport back to origin after showing the crash/success
             setTimeout(() => {
                 let resets = {};
                 Object.values(globalUsers).forEach(u => {
                     let home = localToGlobal(0,0, u.team); 
-                    // Find correct key for the user to update
                     let uid = Object.keys(globalUsers).find(k=>globalUsers[k]===u);
                     resets[`${uid}/globalX`] = home.x;
                     resets[`${uid}/globalY`] = home.y;
                 });
-                usersRef.update(resets);
+                if(Object.keys(resets).length > 0) usersRef.update(resets);
             }, 1500);
             
         }, 1200);
@@ -566,25 +603,47 @@
         globalUsers[myUID].globalX = x; globalUsers[myUID].globalY = y; updateGridUI();
         setTimeout(() => {
             let tid = `t_${x}_${y}`;
-            if(globalTreasures[tid]) { delete globalTreasures[tid]; globalUsers[myUID].score += 1; document.getElementById('my-score').innerText = globalUsers[myUID].score; }
-            setTimeout(() => { globalUsers[myUID].globalX = 0; globalUsers[myUID].globalY = 0; updateGridUI(); }, 500);
-        }, 1200);
+            if(globalTreasures[tid]) { 
+                delete globalTreasures[tid]; 
+                globalUsers[myUID].score += 1; 
+                document.getElementById('my-score').innerText = globalUsers[myUID].score; 
+            }
+            updateGridUI(); // Update DOM immediately to remove treasure visual
+            setTimeout(() => { globalUsers[myUID].globalX = 0; globalUsers[myUID].globalY = 0; updateGridUI(); }, 1000);
+        }, 1000); // Wait for CSS transition
     }
 
     // --- Screen Navigation ---
     function handlePhaseChange(phase) {
         document.querySelectorAll('.screen').forEach(s => s.style.display = 'none');
+        
         if (phase === 'lobby') {
             document.getElementById('screen-lobby').style.display = 'flex';
             if(isSolo) { alert("Group game finished! Back to lobby."); isSolo = false; }
-        } else if (phase === 'racing') {
+        } 
+        else if (phase === 'racing') {
             document.getElementById('screen-game').style.display = 'flex';
             document.getElementById('top-header').style.display = 'none';
-            document.getElementById('my-team-display').innerText = myTeam;
-            let r = globalState.round; document.getElementById('round-display').innerText = r;
-            document.getElementById('controls-round1').style.display = (r === 1) ? 'block' : 'none';
-            document.getElementById('controls-round2').style.display = (r === 2) ? 'block' : 'none';
-            document.getElementById('controls-round3').style.display = (r === 3) ? 'block' : 'none';
+            
+            let r = globalState.round; 
+            document.getElementById('round-display').innerText = r;
+            
+            if (isHost && !isSolo) {
+                document.getElementById('host-game-title').style.display = 'block';
+                document.getElementById('host-exec-btn').style.display = 'block';
+                document.getElementById('player-controls-wrapper').style.display = 'none';
+                document.getElementById('player-score-board').style.display = 'none';
+            } else {
+                document.getElementById('host-game-title').style.display = 'none';
+                document.getElementById('host-exec-btn').style.display = 'none';
+                document.getElementById('player-controls-wrapper').style.display = 'flex';
+                document.getElementById('player-score-board').style.display = 'flex';
+                document.getElementById('my-team-display').innerText = myTeam;
+                
+                document.getElementById('controls-round1').style.display = (r === 1) ? 'block' : 'none';
+                document.getElementById('controls-round2').style.display = (r === 2) ? 'block' : 'none';
+                document.getElementById('controls-round3').style.display = (r === 3) ? 'block' : 'none';
+            }
             
             // Reset local visual inputs just in case
             document.getElementById('r1-x').innerText = "0"; document.getElementById('r1-y').innerText = "0";
@@ -592,7 +651,8 @@
             document.getElementById('r3-x').value = ""; document.getElementById('r3-y').value = "";
 
             updateGridUI();
-        } else { document.getElementById('screen-waiting').style.display = 'flex'; }
+        } 
+        else { document.getElementById('screen-waiting').style.display = 'flex'; }
     }
 
     function switchScreen(id) {
