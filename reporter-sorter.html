@@ -30,23 +30,31 @@
             padding: 12px;
             margin: 8px 4px;
             border-radius: 8px;
-            border: none;
+            border: 2px solid #475569;
             font-size: 16px;
-            width: 90%;
-            max-width: 300px;
+            width: 100%;
+            max-width: 320px;
+            background: #1e293b;
+            color: white;
+            box-sizing: border-box;
         }
         button {
             background-color: #fbbf24;
             color: #000;
             font-weight: bold;
             cursor: pointer;
+            border: none;
             box-shadow: 0 4px 6px rgba(0,0,0,0.3);
             transition: transform 0.1s;
         }
         button:active { transform: scale(0.95); }
         .host-btn { background-color: #10b981; color: white; }
-        .fact-btn { background-color: #8b5cf6; color: white; height: 80px; font-size: 20px;}
-        .opinion-btn { background-color: #f97316; color: white; height: 80px; font-size: 20px;}
+        
+        /* Scaffolding Buttons */
+        .fact-btn { background-color: #8b5cf6; color: white; min-height: 80px; font-size: 18px; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.2;}
+        .opinion-btn { background-color: #f97316; color: white; min-height: 80px; font-size: 18px; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.2;}
+        .informal-text { font-size: 1.1em; font-weight: bold; }
+        .formal-text { font-size: 0.8em; opacity: 0.9; margin-top: 5px; font-style: italic;}
 
         /* --- CONTAINERS --- */
         #login-screen, #lobby-screen, #game-screen, #host-dashboard {
@@ -64,8 +72,8 @@
         .scoreboard {
             display: flex;
             justify-content: space-around;
-            margin-bottom: 20px;
-            font-size: 22px;
+            margin-bottom: 15px;
+            font-size: 20px;
             font-weight: bold;
             background: #000;
             padding: 10px;
@@ -78,24 +86,38 @@
             background: #334155;
             padding: 20px;
             border-radius: 8px;
-            font-size: 20px;
-            min-height: 80px;
+            min-height: 100px;
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
             margin-bottom: 20px;
             border: 2px dashed #fbbf24;
+            gap: 15px;
         }
+        
+        /* Dual Language Display */
+        .lang-english { font-size: 22px; font-weight: bold; color: #fbbf24; }
+        .lang-native { font-size: 18px; color: #cbd5e1; font-style: italic; border-top: 1px solid #475569; padding-top: 10px; width: 100%;}
     </style>
 </head>
 <body>
 
     <div id="login-screen">
         <h1>IWS Science Division</h1>
-        <p>Enter your recruit name to join the sorting fleet.</p>
+        <p>Enter your recruit name and select your support language.</p>
+        
         <input type="text" id="player-name" placeholder="Recruit Name" maxlength="15">
-        <br>
-        <button id="btn-join">Join Fleet</button>
+        
+        <select id="player-lang">
+            <option value="en">English (Only)</option>
+            <option value="pt">Português (Brazilian)</option>
+            <option value="fr">Français (Congolese)</option>
+            <option value="es">Español</option>
+        </select>
+
+        <button id="btn-join" style="margin-top: 15px;">Join Fleet</button>
+        
         <hr style="border-color: #334155; margin: 30px 0;">
         <button id="btn-host-login" class="host-btn">Captain Alby (Host) Login</button>
     </div>
@@ -112,11 +134,11 @@
         <p>Recruits connected: <span id="player-count">0</span></p>
         
         <select id="packet-selector">
-            <option value="fact|The school has 500 enrolled students.">Fact: The school has 500 enrolled students.</option>
-            <option value="opinion|Our playground is really great.">Opinion: Our playground is really great.</option>
-            <option value="fact|The science lab is located on the second floor.">Fact: The science lab is located on the second floor.</option>
-            <option value="opinion|Maths is the most difficult subject.">Opinion: Maths is the most difficult subject.</option>
-            <option value="fact|Lessons begin at 9:00 AM every weekday.">Fact: Lessons begin at 9:00 AM every weekday.</option>
+            <option value="q1">Fact: The school has 500 enrolled students.</option>
+            <option value="q2">Opinion: Our playground is really great.</option>
+            <option value="q3">Fact: The science lab is on the second floor.</option>
+            <option value="q4">Opinion: Maths is the most difficult subject.</option>
+            <option value="q5">Fact: Lessons begin at 9:00 AM.</option>
         </select>
         <button id="btn-send-packet">Beam Data Packet</button>
         
@@ -130,12 +152,20 @@
             <div class="team2-score">Blue Fleet: <span id="score2">0</span></div>
         </div>
         
-        <h3>Incoming Data Packet:</h3>
-        <div id="data-display">Waiting for Captain Alby...</div>
+        <h3 style="color: #94a3b8; font-size: 16px;">Incoming Data Packet:</h3>
+        <div id="data-display">
+            Waiting for Captain Alby...
+        </div>
         
-        <div id="action-buttons" class="hidden">
-            <button class="fact-btn" onclick="submitAnswer('fact')">Objective FACT</button>
-            <button class="opinion-btn" onclick="submitAnswer('opinion')">Subjective OPINION</button>
+        <div id="action-buttons" class="hidden" style="display: flex; gap: 10px; width: 100%;">
+            <button class="fact-btn" style="flex: 1;" onclick="submitAnswer('fact')">
+                <span class="informal-text" id="ui-fact-informal">Provable Truth</span>
+                <span class="formal-text">➔ Objective FACT</span>
+            </button>
+            <button class="opinion-btn" style="flex: 1;" onclick="submitAnswer('opinion')">
+                <span class="informal-text" id="ui-op-informal">Personal Feeling</span>
+                <span class="formal-text">➔ Subjective OPINION</span>
+            </button>
         </div>
     </div>
 
@@ -155,7 +185,52 @@
         const auth = getAuth();
         const db = getDatabase();
 
+        // --- CLIL DUAL-LANGUAGE DICTIONARY ---
+        const dictionary = {
+            q1: {
+                type: 'fact',
+                en: "The school has 500 enrolled students.",
+                pt: "A escola tem 500 alunos matriculados.",
+                fr: "L'école compte 500 élèves inscrits.",
+                es: "La escuela tiene 500 estudiantes matriculados."
+            },
+            q2: {
+                type: 'opinion',
+                en: "Our playground is really great.",
+                pt: "Nosso parquinho é muito legal.",
+                fr: "Notre cour de récréation est vraiment super.",
+                es: "Nuestro patio de recreo es realmente genial."
+            },
+            q3: {
+                type: 'fact',
+                en: "The science lab is on the second floor.",
+                pt: "O laboratório de ciências fica no segundo andar.",
+                fr: "Le laboratoire de sciences est au deuxième étage.",
+                es: "El laboratorio de ciencias está en el segundo piso."
+            },
+            q4: {
+                type: 'opinion',
+                en: "Maths is the most difficult subject.",
+                pt: "Matemática é a matéria mais difícil.",
+                fr: "Les mathématiques sont la matière la plus difficile.",
+                es: "Las matemáticas son la materia más difícil."
+            },
+            q5: {
+                type: 'fact',
+                en: "Lessons begin at 9:00 AM.",
+                pt: "As aulas começam às 9:00 da manhã.",
+                fr: "Les cours commencent à 9h00.",
+                es: "Las clases comienzan a las 9:00 AM."
+            }
+        };
+
+        const uiTranslations = {
+            factInformal: { en: "Can be proven", pt: "Pode ser provado", fr: "Peut être prouvé", es: "Se puede probar" },
+            opinionInformal: { en: "A feeling or thought", pt: "Um sentimento ou ideia", fr: "Un sentiment ou pensée", es: "Un sentimiento o idea" }
+        };
+
         let myTeam = "";
+        let myLang = "en";
         let isHost = false;
         let currentCorrectAnswer = "";
 
@@ -179,13 +254,18 @@
         // --- STUDENT LOGIN ---
         document.getElementById('btn-join').addEventListener('click', () => {
             const name = document.getElementById('player-name').value.trim();
+            myLang = document.getElementById('player-lang').value;
             if(!name) return alert("Please enter a name!");
             
+            // Translate UI Buttons immediately
+            document.getElementById('ui-fact-informal').innerText = uiTranslations.factInformal[myLang];
+            document.getElementById('ui-op-informal').innerText = uiTranslations.opinionInformal[myLang];
+
             signInAnonymously(auth).then(() => {
                 myTeam = Math.random() < 0.5 ? "team1" : "team2"; 
                 const teamDisplay = myTeam === "team1" ? "Red Fleet" : "Blue Fleet";
                 
-                set(ref(db, 'reportGame/players/' + auth.currentUser.uid), { name: name, team: myTeam });
+                set(ref(db, 'reportGame/players/' + auth.currentUser.uid), { name: name, team: myTeam, lang: myLang });
                 
                 document.getElementById('display-name').innerText = name;
                 document.getElementById('team-assignment').innerText = "You are in the " + teamDisplay;
@@ -208,51 +288,62 @@
 
         // --- GAME SYNC ---
         function listenToGame() {
-            // Sync Scores
             onValue(ref(db, 'reportGame/scores'), (snap) => {
                 const scores = snap.val() || { team1: 0, team2: 0 };
                 document.getElementById('score1').innerText = scores.team1;
                 document.getElementById('score2').innerText = scores.team2;
             });
 
-            // Sync Data Packets
             onValue(ref(db, 'reportGame/currentPacket'), (snap) => {
-                const packet = snap.val();
+                const packetID = snap.val();
                 const display = document.getElementById('data-display');
                 const actions = document.getElementById('action-buttons');
                 
-                if (packet && packet.active) {
+                if (packetID && packetID !== "clear") {
                     if(!isHost) showScreen('game');
-                    display.innerText = '"' + packet.text + '"';
-                    currentCorrectAnswer = packet.type;
-                    if(!isHost) actions.classList.remove('hidden');
+                    
+                    const packetData = dictionary[packetID];
+                    currentCorrectAnswer = packetData.type;
+                    
+                    // Render Dual-Language
+                    let html = `<div class="lang-english">"${packetData.en}"</div>`;
+                    if(myLang !== 'en') {
+                        html += `<div class="lang-native">↳ ${packetData[myLang]}</div>`;
+                    }
+                    display.innerHTML = html;
+
+                    if(!isHost) {
+                        actions.classList.remove('hidden');
+                        actions.style.display = "flex";
+                    }
                 } else {
-                    display.innerText = "Awaiting next data packet...";
+                    display.innerHTML = '<div style="color:#94a3b8;">Awaiting next data packet...</div>';
                     actions.classList.add('hidden');
-                    if(!isHost && !packet) showScreen('lobby'); 
+                    if(!isHost && !packetID) showScreen('lobby'); 
                 }
             });
         }
 
         // --- STUDENT GAMEPLAY ---
         window.submitAnswer = function(chosenType) {
-            document.getElementById('action-buttons').classList.add('hidden'); // Hide buttons instantly
+            document.getElementById('action-buttons').classList.add('hidden'); 
             
             if(chosenType === currentCorrectAnswer) {
                 // Correct! Award point and clear packet
                 get(ref(db, `reportGame/scores/${myTeam}`)).then(snap => {
                     set(ref(db, `reportGame/scores/${myTeam}`), (snap.val() || 0) + 1);
-                    set(ref(db, 'reportGame/currentPacket/active'), false); // Clear for everyone
+                    set(ref(db, 'reportGame/currentPacket'), "clear"); // Clear for everyone
                 });
             } else {
                 // Wrong! 
-                alert("Incorrect classification! Let your fleet mates try.");
+                alert("System mismatch! Re-calibrating...");
                 setTimeout(() => {
-                    // Check if packet is still active before re-showing buttons
-                    get(ref(db, 'reportGame/currentPacket/active')).then(snap => {
-                        if(snap.val()) document.getElementById('action-buttons').classList.remove('hidden');
+                    get(ref(db, 'reportGame/currentPacket')).then(snap => {
+                        if(snap.val() && snap.val() !== "clear") {
+                            document.getElementById('action-buttons').classList.remove('hidden');
+                        }
                     });
-                }, 2000); // 2 second penalty
+                }, 2000); 
             }
         };
 
@@ -263,12 +354,8 @@
             });
 
             document.getElementById('btn-send-packet').onclick = () => {
-                const selection = document.getElementById('packet-selector').value.split('|');
-                set(ref(db, 'reportGame/currentPacket'), {
-                    type: selection[0],
-                    text: selection[1],
-                    active: true
-                });
+                const qID = document.getElementById('packet-selector').value;
+                set(ref(db, 'reportGame/currentPacket'), qID);
             };
 
             document.getElementById('btn-reset').onclick = () => {
