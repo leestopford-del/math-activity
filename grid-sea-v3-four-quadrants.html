@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Great Grid Sea Expedition v3</title>
+    
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+
+    <style>
+        :root {
+            --bg-dark: #0f172a; --card-bg: #1e293b;
+            --ocean: #0ea5e9; --ocean-dark: #0284c7;
+            --grid-line: rgba(255,255,255,0.3);
+            --gold: #fbbf24;
+        }
+        body { margin: 0; padding: 0; background-color: var(--bg-dark); color: white; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; flex-direction: column; align-items: center; height: 100vh; overflow: hidden; }
+        .header-bar { width: 100%; background: #000; padding: 10px 0; text-align: center; border-bottom: 4px solid #475569; flex-shrink: 0;}
+        .container { flex-grow: 1; display: flex; flex-direction: column; width: 100%; max-width: 900px; padding: 10px; box-sizing: border-box; overflow-y: auto; align-items: center;}
+        .screen { display: none; width: 100%; flex-direction: column; align-items: center; }
+        
+        /* UI Elements */
+        .box { background: var(--card-bg); border: 2px solid #475569; border-radius: 15px; padding: 20px; width: 95%; max-width: 500px; box-sizing: border-box; margin-bottom: 15px; box-shadow: 0 10px 20px rgba(0,0,0,0.3); text-align: center;}
+        .input-text { padding: 15px; font-size: 1.2em; border-radius: 8px; border: none; width: 60px; text-align: center; text-transform: uppercase; font-weight: bold; margin-bottom: 15px; background: #0f172a; color: white;}
+        .btn { padding: 15px 25px; font-size: 1.2em; font-weight: bold; border: none; border-radius: 10px; cursor: pointer; transition: 0.2s; color: white; width: 100%; box-sizing: border-box; margin-bottom: 10px;}
+        .btn:active { transform: scale(0.95); }
+        .btn:disabled { background: #475569 !important; cursor: not-allowed; box-shadow: none !important; opacity: 0.7;}
+        .btn-blue { background: #2563eb; box-shadow: 0 5px 0 #1d4ed8; }
+        .btn-green { background: #16a34a; box-shadow: 0 5px 0 #14532d; }
+        .btn-gold { background: #d97706; box-shadow: 0 5px 0 #b45309; }
+        .btn-purple { background: #8b5cf6; box-shadow: 0 5px 0 #6d28d9; }
+        .btn-solo { background: transparent; border: 2px solid #cbd5e1; color: #cbd5e1; }
+        
+        .emoji-selector { display: flex; justify-content: center; gap: 10px; margin-bottom: 15px; font-size: 2em; cursor: pointer; flex-wrap: wrap;}
+        .emoji-option { padding: 5px; border-radius: 10px; border: 2px solid transparent; transition: 0.2s; }
+        .emoji-option.selected { background: rgba(255,255,255,0.2); border-color: #3b82f6; transform: scale(1.1); }
+
+        #timer-display { font-size: 3em; font-weight: bold; color: #ef4444; margin: 10px 0; text-shadow: 0 0 10px rgba(239,68,68,0.5); display:none;}
+
+        /* The Grid Sea */
+        .grid-container {
+            position: relative; width: 100%; max-width: 500px; aspect-ratio: 1 / 1;
+            background-color: var(--ocean); border: 2px solid rgba(255,255,255,0.5);
+            border-left: 5px solid white; border-bottom: 5px solid white;
+            margin: 10px 0 20px 20px; box-sizing: border-box;
+            background-image: linear-gradient(var(--grid-line) 1px, transparent 1px), linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+            background-size: 10% 10%;
+        }
+
+        /* Round 4 specific overlays */
+        .cartesian-axes { position: absolute; width: 100%; height: 100%; pointer-events: none; display: none; z-index: 1;}
+        .cartesian-axes.active { display: block; }
+        .c-axis-x { position: absolute; top: 50%; left: 0; width: 100%; height: 4px; background: white; transform: translateY(-50%); box-shadow: 0 0 10px rgba(0,0,0,0.5);}
+        .c-axis-y { position: absolute; top: 0; left: 50%; width: 4px; height: 100%; background: white; transform: translateX(-50%); box-shadow: 0 0 10px rgba(0,0,0,0.5);}
+
+        .axis-label { position: absolute; font-weight: bold; font-size: 1.2em; color: #94a3b8;}
+        .y-axis-label { top: -25px; left: -15px; }
+        .x-axis-label { bottom: -30px; right: -15px; }
+        .origin-label { position: absolute; bottom: -25px; left: -25px; font-weight: bold; font-size: 1.2em;}
+        
+        .axis-numbers-y { position: absolute; left: -25px; height: 100%; display: flex; flex-direction: column-reverse; justify-content: space-between; font-size: 0.8em; }
+        .axis-numbers-x { position: absolute; bottom: -25px; width: 100%; display: flex; justify-content: space-between; font-size: 0.8em; margin-left: -4px;}
+
+        .entity {
+            position: absolute; width: 10%; height: 10%; margin-left: -5%; margin-bottom: -5%;
+            display: flex; justify-content: center; align-items: center; font-size: 1.5em;
+            transition: left 1s ease-in-out, bottom 1s ease-in-out; z-index: 5;
+        }
+        .treasure { z-index: 2; font-size: 1.8em; filter: drop-shadow(0 0 5px var(--gold)); animation: float 2s infinite ease-in-out;}
+        .player-ship { z-index: 5; }
+        .my-ship { z-index: 10; font-size: 2em; filter: drop-shadow(0 0 10px white); }
+
+        @keyframes float { 0% { transform: translateY(0); } 50% { transform: translateY(-5px); } 100% { transform: translateY(0); } }
+
+        /* Controls */
+        .controls-box { background: #334155; padding: 15px; border-radius: 15px; width: 100%; max-width: 500px; box-sizing: border-box; margin-bottom: 10px;}
+        .control-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-size: 1.2em; font-weight: bold;}
+        .stepper { display: flex; align-items: center; gap: 10px; background: #0f172a; padding: 5px 10px; border-radius: 10px;}
+        .stepper button { background: #475569; border: none; color: white; font-size: 1.2em; width: 35px; height: 35px; border-radius: 5px; cursor: pointer; font-weight: bold;}
+        .input-box { width: 55px; padding: 10px; font-size: 1.2em; text-align: center; border-radius: 5px; border: 2px solid #cbd5e1; background: #0f172a; color: white;}
+        .bracket-input { display: flex; justify-content: center; align-items: center; gap: 10px; font-size: 2em; font-weight: bold; }
+        
+        /* Scoreboards */
+        .team-scoreboard { display: flex; gap: 10px; margin-bottom: 10px; width: 100%; max-width: 500px; justify-content: space-between; }
+        .team-score-badge { padding: 8px 10px; border-radius: 8px; font-weight: bold; flex: 1; text-align: center; background: rgba(0,0,0,0.5); font-size: 1.1em;}
+        .ts-1 { border-bottom: 4px solid #ef4444; }
+        .ts-2 { border-bottom: 4px solid #3b82f6; }
+        .ts-3 { border-bottom: 4px solid #10b981; }
+        .ts-4 { border-bottom: 4px solid #f59e0b; }
+
+        .score-board { display: flex; justify-content: space-between; width: 100%; max-width: 500px; margin-bottom: 10px; }
+        .score-card { background: rgba(0,0,0,0.5); padding: 10px 20px; border-radius: 10px; font-weight: bold; font-size: 1.2em;}
+
+        #alert-box { display:none; background:#ef4444; padding:10px; border-radius:10px; font-weight:bold; margin-bottom:10px; text-align:center;}
+        
+        /* Host Lobby Roster */
+        .host-panel { width: 100%; max-width: 800px; display: flex; gap: 20px; flex-wrap: wrap; margin-top: 20px;}
+        .host-card { flex: 1; background: #1e293b; padding: 15px; border-radius: 10px; border: 2px solid #475569; min-width: 250px;}
+        .team-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .team-box { background: rgba(0,0,0,0.3); padding: 10px; border-radius: 10px; min-height: 80px;}
+        .player-list-item { background: #334155; padding: 5px; border-radius: 5px; margin-bottom: 5px; font-size: 0.9em; display: flex; align-items: center; gap: 5px;}
+    </style>
+</head>
+<body>
+
+    <div class="header-bar" id="top-header">
+        <h2 style="margin:0;">⚓ THE GREAT GRID SEA</h2>
+    </div>
+
+    <div class="container">
+        <div id="screen-lobby" class="screen" style="display:flex;">
+            <div class="box">
+                <h2>Welcome, Navigator!</h2>
+                
+                <p>1. Enter the <b>first letter</b> of your name.</p>
+                <input type="text" id="initialInput" class="input-text" maxlength="1" placeholder="A">
+
+                <p>2. Choose your Vessel.</p>
+                <div class="emoji-selector" id="emoji-picker">
+                    <div class="emoji-option selected" onclick="selectEmoji(this, '⛵')">⛵</div>
+                    <div class="emoji-option" onclick="selectEmoji(this, '🚤')">🚤</div>
+                    <div class="emoji-option" onclick="selectEmoji(this, '🚢')">🚢</div>
+                    <div class="emoji-option" onclick="selectEmoji(this, '🛶')">🛶</div>
+                </div>
+                
+                <div id="join-warning" style="display:none; color:#f59e0b; font-weight:bold; margin-bottom:15px; background: rgba(245, 158, 11, 0.2); padding: 10px; border-radius: 10px;">
+                    A group expedition is currently underway! Please play Solo Practice until the next round begins.
+                </div>
+                
+                <button class="btn btn-blue" id="btn-join-fleet" onclick="joinFleet()">JOIN MULTIPLAYER FLEET</button>
+                <button class="btn btn-solo" onclick="startSoloMode()">PLAY SOLO PRACTICE</button>
+                
+                <button class="btn" style="background: transparent; border: 1px dashed #64748b; color: #94a3b8; font-size: 0.8em; margin-top: 20px; padding: 10px;" onclick="becomeHost()">Teacher Override (Force Claim Host & Reset)</button>
+            </div>
+
+            <div id="host-lobby-box" class="box" style="display:none; border-color: #f59e0b; width: 100%; max-width: 800px;">
+                <h2 style="color: #f59e0b; margin-top:0;">👑 Captain's Quarters (Host)</h2>
+                <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+                    <button class="btn btn-green" style="width: auto;" onclick="startRound(1)">Round 1 (Informal)</button>
+                    <button class="btn btn-blue" style="width: auto;" onclick="startRound(2)">Round 2 (Axes)</button>
+                    <button class="btn btn-gold" style="width: auto;" onclick="startRound(3)">Round 3 (Coordinates)</button>
+                    <button class="btn btn-purple" style="width: auto;" onclick="startRound(4)">Round 4 (4 Quadrants)</button>
+                </div>
+                
+                <div class="host-panel">
+                    <div class="host-card" style="flex: 2;">
+                        <h3 style="margin-top:0; color: #cbd5e1;">📋 Fleet Roster</h3>
+                        <div class="team-grid">
+                            <div class="team-box" style="border-top: 3px solid #ef4444;"><b style="color:#ef4444;">Team 1</b><div id="host-t1"></div></div>
+                            <div class="team-box" style="border-top: 3px solid #3b82f6;"><b style="color:#3b82f6;">Team 2</b><div id="host-t2"></div></div>
+                            <div class="team-box" style="border-top: 3px solid #10b981;"><b style="color:#10b981;">Team 3</b><div id="host-t3"></div></div>
+                            <div class="team-box" style="border-top: 3px solid #f59e0b;"><b style="color:#f59e0b;">Team 4</b><div id="host-t4"></div></div>
+                        </div>
+                    </div>
+                    <div class="host-card" style="flex: 1;">
+                        <h3 style="margin-top:0; color: #cbd5e1;">⚙️ Sea Controls</h3>
+                        <button class="btn" style="background:#991b1b;" onclick="resetGame()">🛑 End Game & Reset</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="screen-waiting" class="screen">
+            <div class="box">
+                <h2>Vessel Prepared! <span id="wait-avatar">⛵</span></h2>
+                <p>Captain <b id="wait-name" style="color:#0ea5e9;">...</b>, you are assigned to <b>Team <span id="wait-team">...</span></b>.</p>
+                <p style="color: #f59e0b; font-weight: bold; margin-top: 20px;">Waiting for Host to begin...</p>
+            </div>
+        </div>
+
+        <div id="screen-game" class="screen">
+            
+            <div class="team-scoreboard">
+                <div class="team-score-badge ts-1">T1: <span id="ts-1">0</span></div>
+                <div class="team-score-badge ts-2">T2: <span id="ts-2">0</span></div>
+                <div class="team-score-badge ts-3">T3: <span id="ts-3">0</span></div>
+                <div class="team-score-badge ts-4">T4: <span id="ts-4">0</span></div>
+            </div>
+
+            <div class="score-board" id="player-score-board">
+                <div class="score-card">My Total Score: <span id="my-score" style="color:var(--gold);">0</span></div>
+                <div class="score-card" style="background: rgba(14, 165, 233, 0.3);">Round <span id="round-display">1</span></div>
+            </div>
+
+            <h3 id="host-game-title" style="display:none; color:#f59e0b; margin: 0 0 10px 0;">👑 Host Observer View</h3>
+            <div id="timer-display">10</div>
+            <div id="alert-box">💥 CRASH! Ships collided at the same coordinates!</div>
+
+            <button class="btn btn-gold" id="host-exec-btn" style="display:none; max-width:300px;" onclick="hostStartTimer()">⏰ START 10s TURN TIMER</button>
+
+            <div class="grid-container" id="grid-sea">
+                <div class="cartesian-axes" id="cartesian-overlay">
+                    <div class="c-axis-x"></div>
+                    <div class="c-axis-y"></div>
+                </div>
+                <div class="axis-label y-axis-label">y</div>
+                <div class="axis-label x-axis-label">x</div>
+                <div class="origin-label" id="origin-label">0</div>
+                
+                <div class="axis-numbers-y" id="axis-y-nums"></div>
+                <div class="axis-numbers-x" id="axis-x-nums"></div>
+                
+                <div id="sea-entities"></div>
+            </div>
+
+            <div id="player-controls-wrapper" style="width: 100%; display: flex; justify-content: center;">
+                <div class="controls-box" id="controls-round1" style="display:none;">
+                    <div class="control-row">
+                        <span>Along the Corridor ➡️</span>
+                        <div class="stepper">
+                            <button onclick="changeVal('r1-x', -1)">-</button><span id="r1-x" style="width: 20px; text-align: center;">0</span><button onclick="changeVal('r1-x', 1)">+</button>
+                        </div>
+                    </div>
+                    <div class="control-row">
+                        <span>Up the Stairs ⬆️</span>
+                        <div class="stepper">
+                            <button onclick="changeVal('r1-y', -1)">-</button><span id="r1-y" style="width: 20px; text-align: center;">0</span><button onclick="changeVal('r1-y', 1)">+</button>
+                        </div>
+                    </div>
+                    <button class="btn btn-green" id="btn-sail-1" onclick="lockMove(1)">LOCK IN MOVE</button>
+                </div>
+
+                <div class="controls-box" id="controls-round2" style="display:none;">
+                    <div class="control-row">
+                        <span>X-Axis (Horizontal) ➡️</span><input type="number" id="r2-x" class="input-box" min="0" max="10" value="0">
+                    </div>
+                    <div class="control-row">
+                        <span>Y-Axis (Vertical) ⬆️</span><input type="number" id="r2-y" class="input-box" min="0" max="10" value="0">
+                    </div>
+                    <button class="btn btn-green" id="btn-sail-2" onclick="lockMove(2)">LOCK IN MOVE</button>
+                </div>
+
+                <div class="controls-box" id="controls-round3" style="display:none;">
+                    <div class="bracket-input">
+                        ( <input type="number" id="r3-x" class="input-box" min="0" max="10" placeholder="x"> , 
+                          <input type="number" id="r3-y" class="input-box" min="0" max="10" placeholder="y"> )
+                    </div>
+                    <button class="btn btn-green" id="btn-sail-3" style="margin-top:15px;" onclick="lockMove(3)">LOCK IN MOVE</button>
+                </div>
+
+                <div class="controls-box" id="controls-round4" style="display:none; border: 2px solid #8b5cf6;">
+                    <h4 style="color: #8b5cf6; margin-top: 0; margin-bottom: 10px;">Quadrant Mode (Absolute)</h4>
+                    <div class="bracket-input">
+                        ( <input type="number" id="r4-x" class="input-box" min="-5" max="5" placeholder="x"> , 
+                          <input type="number" id="r4-y" class="input-box" min="-5" max="5" placeholder="y"> )
+                    </div>
+                    <button class="btn btn-purple" id="btn-sail-4" style="margin-top:15px;" onclick="lockMove(4)">LOCK IN MOVE</button>
+                </div>
+            </div>
+            
+            <p id="lock-status" style="color:#10b981; font-weight:bold; display:none;">✅ Coordinates locked! Waiting for timer...</p>
+        </div>
+
+        <div id="screen-round-end" class="screen">
+            <div class="box" style="border-color: #10b981;">
+                <h1 style="font-size: 4em; margin: 0;">🗺️</h1>
+                <h2 style="color: #10b981; text-transform: uppercase;">Ocean Cleared!</h2>
+                <p>All treasure in this sector has been claimed.</p>
+                
+                <div id="host-round-end-controls" style="display:none; margin-top: 20px;">
+                    <h3 style="color:#f59e0b;">Captain's Orders:</h3>
+                    <button class="btn btn-green" onclick="startRound(1)">Play Round 1</button>
+                    <button class="btn btn-blue" onclick="startRound(2)">Play Round 2</button>
+                    <button class="btn btn-gold" onclick="startRound(3)">Play Round 3</button>
+                    <button class="btn btn-purple" onclick="startRound(4)">Play Round 4 (Quadrants)</button>
+                    <button class="btn" style="background:#475569; margin-top:10px;" onclick="resetGame()">End Game (Return to Lobby)</button>
+                </div>
+
+                <div id="player-round-end-msg" style="display:none; margin-top: 20px;">
+                    <p style="color: #f59e0b; font-weight: bold;">Waiting for the Host to set the next course...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyBXgT_LxFUar6FcfFqKJsuY2YIOjG5JLtM",
+      authDomain: "symmetry-and-nets.firebaseapp.com",
+      databaseURL: "https://symmetry-and-nets-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "symmetry-and-nets"
+    };
+    if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
+    const db = firebase.database();
+
+    const adjectives = {
+        'A': 'Atomic', 'B': 'Bionic', 'C': 'Cosmic', 'D': 'Digital', 'E': 'Electric',
+        'F': 'Fusion', 'G': 'Galactic', 'H': 'Hyper', 'I': 'Ionic', 'J': 'Jumping',
+        'K': 'Kinetic', 'L': 'Laser', 'M': 'Magnetic', 'N': 'Neon', 'O': 'Optic',
+        'P': 'Plasma', 'Q': 'Quantum', 'R': 'Robotic', 'S': 'Sonic', 'T': 'Thermal',
+        'U': 'Ultra', 'V': 'Viral', 'W': 'Warp', 'X': 'Xenon', 'Y': 'Yellow', 'Z': 'Zero'
+    };
+
+    let myUID = sessionStorage.getItem('gridUid');
+    if (!myUID) {
+        myUID = 'user_' + Math.random().toString(36).substr(2, 9);
+        sessionStorage.setItem('gridUid', myUID);
+    }
+
+    let myName = "Captain";
+    let myAvatar = "⛵";
+    let myTeam = 1;
+    let isHost = false;
+    let isSolo = false;
+    
+    let globalState = { phase: 'lobby', round: 1, timer: 0 };
+    let globalUsers = {};
+    let globalTreasures = {};
+
+    const stateRef = db.ref('gridGame/state');
+    const usersRef = db.ref('gridGame/users');
+    const treasuresRef = db.ref('gridGame/treasures');
+    const hostRef = db.ref('gridGame/hostExists');
+
+    firebase.auth().signInAnonymously().then(() => {
+        hostRef.transaction((current) => {
+            if (current === null) return true;
+            return;
+        }, (error, committed) => {
+            if (committed) {
+                isHost = true;
+                hostRef.onDisconnect().remove(); 
+                document.getElementById('host-lobby-box').style.display = 'block';
+                document.getElementById('host-exec-btn').style.display = 'block';
+                resetGame();
+            }
+        });
+    });
+
+    // --- Math Transformers (The Perspective Matrix vs Cartesian Absolute) ---
+    function getHome(team) {
+        if(team === 1) return {x: 0, y: 0};
+        if(team === 2) return {x: 10, y: 0};
+        if(team === 3) return {x: 10, y: 10};
+        if(team === 4) return {x: 0, y: 10};
+        return {x: 0, y: 0};
+    }
+
+    function localToGlobal(lx, ly, team, round) {
+        // ROUND 4 RULE: Absolute coordinates. Input maps -5 to +5 -> 0 to 10.
+        if (round === 4) return { x: lx + 5, y: ly + 5 };
+        
+        // ROUNDS 1-3 RULE: Perspective Matrix.
+        if(team === 1) return {x: lx, y: ly};
+        if(team === 2) return {x: 10 - lx, y: ly};
+        if(team === 3) return {x: 10 - lx, y: 10 - ly};
+        if(team === 4) return {x: lx, y: 10 - ly};
+        return {x: lx, y: ly};
+    }
+
+    function globalToLocal(gx, gy, team, round) {
+        // ROUND 4 RULE: UI rendering shares absolute perspective. No matrix translation needed.
+        if (round === 4) return { x: gx, y: gy };
+
+        // ROUNDS 1-3 RULE: Perspective Matrix.
+        if(team === 1) return {x: gx, y: gy};
+        if(team === 2) return {x: 10 - gx, y: gy};
+        if(team === 3) return {x: 10 - gx, y: 10 - gy};
+        if(team === 4) return {x: gx, y: 10 - gy};
+        return {x: gx, y: gy};
+    }
+
+    // --- UI Controls ---
+    function becomeHost() {
+        isHost = true;
+        hostRef.set(true);
+        hostRef.onDisconnect().remove();
+        document.getElementById('host-lobby-box').style.display = 'block';
+        document.getElementById('host-exec-btn').style.display = 'block';
+        resetGame();
+    }
+
+    function selectEmoji(element, emoji) {
+        document.querySelectorAll('.emoji-option').forEach(el => el.classList.remove('selected'));
+        element.classList.add('selected');
+        myAvatar = emoji;
+    }
+
+    function updateLobbyWarnings() {
+        if (globalState.phase === 'racing' && !globalUsers[myUID] && !isHost && !isSolo) {
+            document.getElementById('btn-join-fleet').disabled = true;
+            document.getElementById('join-warning').style.display = 'block';
+        } else {
+            document.getElementById('btn-join-fleet').disabled = false;
+            document.getElementById('join-warning').style.display = 'none';
+        }
+    }
+
+    // --- Data Listeners ---
+    stateRef.on('value', (snap) => {
+        if(isSolo) return;
+        const newState = snap.val() || { phase: 'lobby', round: 1, timer: 0 };
+        
+        if (newState.timer > 0) {
+            document.getElementById('timer-display').style.display = 'block';
+            document.getElementById('timer-display').innerText = newState.timer;
+        } else if (newState.timer === 0 && globalState.timer > 0) {
+            document.getElementById('timer-display').style.display = 'none';
+            if (isHost) hostResolveTurn();
+        }
+
+        let phaseChanged = newState.phase !== globalState.phase;
+        let roundChanged = newState.round !== globalState.round;
+        globalState = newState;
+
+        if (phaseChanged || roundChanged) {
+            handlePhaseChange(globalState.phase);
+        }
+
+        updateLobbyWarnings();
+    });
+
+    usersRef.on('value', (snap) => {
+        if(isSolo) return;
+        globalUsers = snap.val() || {};
+        updateGridUI(); 
+        
+        let teamScores = {1:0, 2:0, 3:0, 4:0};
+
+        let t1='', t2='', t3='', t4='';
+        Object.values(globalUsers).forEach(u => { 
+            let tag = `<div class="player-list-item"><span style="font-size:1.5em;">${u.avatar}</span> ${u.name} (Score: ${u.score})</div>`;
+            if(u.team===1) { t1+=tag; teamScores[1] += (u.score || 0); }
+            if(u.team===2) { t2+=tag; teamScores[2] += (u.score || 0); }
+            if(u.team===3) { t3+=tag; teamScores[3] += (u.score || 0); }
+            if(u.team===4) { t4+=tag; teamScores[4] += (u.score || 0); }
+        });
+
+        if (isHost && globalState.phase === 'lobby') {
+            document.getElementById('host-t1').innerHTML = t1 || '<i style="color:#94a3b8">Empty</i>';
+            document.getElementById('host-t2').innerHTML = t2 || '<i style="color:#94a3b8">Empty</i>';
+            document.getElementById('host-t3').innerHTML = t3 || '<i style="color:#94a3b8">Empty</i>';
+            document.getElementById('host-t4').innerHTML = t4 || '<i style="color:#94a3b8">Empty</i>';
+        }
+        
+        document.getElementById('ts-1').innerText = teamScores[1];
+        document.getElementById('ts-2').innerText = teamScores[2];
+        document.getElementById('ts-3').innerText = teamScores[3];
+        document.getElementById('ts-4').innerText = teamScores[4];
+
+        if(globalUsers[myUID] && !isHost) {
+            document.getElementById('my-score').innerText = globalUsers[myUID].score;
+        }
+        updateLobbyWarnings();
+    });
+
+    treasuresRef.on('value', (snap) => {
+        if(isSolo) return;
+        globalTreasures = snap.val() || {};
+        updateGridUI(); 
+    });
+
+    // --- Joining the Game ---
+    function joinFleet() {
+        let letter = document.getElementById('initialInput').value.toUpperCase();
+        if(!letter.match(/[A-Z]/)) letter = 'X';
+        myName = (adjectives[letter] || "Captain") + " " + letter;
+        
+        const currentCount = Object.keys(globalUsers).length;
+        myTeam = (currentCount % 4) + 1; 
+
+        let home = getHome(myTeam);
+
+        usersRef.child(myUID).set({ 
+            name: myName, avatar: myAvatar, team: myTeam, 
+            globalX: home.x, globalY: home.y, 
+            lockedLocalX: null, lockedLocalY: null, score: 0 
+        });
+        usersRef.child(myUID).onDisconnect().remove();
+
+        document.getElementById('wait-avatar').innerText = myAvatar;
+        document.getElementById('wait-name').innerText = myName;
+        document.getElementById('wait-team').innerText = myTeam;
+        switchScreen('screen-waiting');
+    }
+
+    // --- Dynamic DOM Grid Renderer ---
+    function updateGridUI() {
+        if (globalState.phase === 'lobby' || globalState.phase === 'round_end') return;
+        const sea = document.getElementById('sea-entities');
+
+        let viewTeam = isHost ? 1 : myTeam; 
+        let currentRound = Number(globalState.round) || 1;
+
+        document.querySelectorAll('.treasure').forEach(el => el.dataset.keep = "false");
+        Object.entries(globalTreasures).forEach(([tid, t]) => {
+            let loc = globalToLocal(t.gx, t.gy, viewTeam, currentRound);
+            let el = document.getElementById(tid);
+            if (!el) {
+                el = document.createElement('div');
+                el.id = tid;
+                el.className = 'entity treasure';
+                el.innerHTML = '💰';
+                sea.appendChild(el);
+            }
+            el.dataset.keep = "true";
+            el.style.left = `${loc.x * 10}%`;
+            el.style.bottom = `${loc.y * 10}%`;
+        });
+        document.querySelectorAll('.treasure[data-keep="false"]').forEach(el => el.remove());
+
+        document.querySelectorAll('.player-ship').forEach(el => el.dataset.keep = "false");
+        Object.entries(globalUsers).forEach(([uid, u]) => {
+            let loc = globalToLocal(u.globalX, u.globalY, viewTeam, currentRound);
+            let el = document.getElementById('ship_' + uid);
+            if (!el) {
+                el = document.createElement('div');
+                el.id = 'ship_' + uid;
+                el.className = `entity player-ship`;
+                sea.appendChild(el);
+            }
+            el.className = `entity player-ship ${uid === myUID ? 'my-ship' : ''}`;
+            el.dataset.keep = "true";
+            el.innerHTML = u.avatar;
+            el.style.left = `${loc.x * 10}%`;
+            el.style.bottom = `${loc.y * 10}%`;
+        });
+        document.querySelectorAll('.player-ship[data-keep="false"]').forEach(el => el.remove());
+    }
+
+    // --- Host Controls ---
+    function startRound(roundNum) {
+        if(!isHost) return;
+        stateRef.set({ phase: 'racing', round: roundNum, timer: 0 });
+        spawnTreasures();
+    }
+
+    function resetGame() {
+        if(!isHost) return;
+        treasuresRef.remove();
+        stateRef.set({ phase: 'lobby', round: 1, timer: 0 });
+        usersRef.remove(); 
+    }
+
+    function spawnTreasures() {
+        let newTreasures = {};
+        for(let i=0; i<8; i++) {
+            let tx = Math.floor(Math.random() * 9) + 1;
+            let ty = Math.floor(Math.random() * 9) + 1;
+            newTreasures[`t_${tx}_${ty}`] = { gx: tx, gy: ty };
+        }
+        if(isSolo) globalTreasures = newTreasures;
+        else treasuresRef.set(newTreasures);
+        updateGridUI();
+    }
+
+    function hostStartTimer() {
+        let t = 10;
+        stateRef.update({timer: t});
+        let intv = setInterval(() => {
+            t--; stateRef.update({timer: t});
+            if (t <= 0) clearInterval(intv);
+        }, 1000);
+    }
+
+    // --- The Sequential Movement & Collision Engine ---
+    function hostResolveTurn() {
+        if(!isHost) return;
+        let targetMap = {}; 
+        let updatesX = {};
+        let updatesY = {};
+        let currentRound = Number(globalState.round) || 1;
+
+        Object.entries(globalUsers).forEach(([uid, u]) => {
+            if (typeof u.lockedLocalX !== 'number' || typeof u.lockedLocalY !== 'number') return;
+            
+            let targetGlobal = localToGlobal(u.lockedLocalX, u.lockedLocalY, u.team, currentRound);
+            let steps = Math.abs(u.lockedLocalX) + Math.abs(u.lockedLocalY); // Support for negative steps in R4
+            let tid = `t_${targetGlobal.x}_${targetGlobal.y}`;
+            
+            updatesX[`${uid}/globalX`] = targetGlobal.x;
+            updatesY[`${uid}/globalY`] = targetGlobal.y;
+            
+            updatesY[`${uid}/lockedLocalX`] = null;
+            updatesY[`${uid}/lockedLocalY`] = null;
+
+            if (globalTreasures[tid]) {
+                if(!targetMap[tid]) targetMap[tid] = [];
+                targetMap[tid].push({ uid: uid, steps: steps });
+            }
+        });
+
+        if (Object.keys(updatesX).length === 0) return; 
+
+        usersRef.update(updatesX); 
+
+        setTimeout(() => {
+            usersRef.update(updatesY);
+            
+            setTimeout(() => {
+                let scoresToAdd = {}; let treasuresToRemove = []; let crashedUsers = [];
+                
+                Object.entries(targetMap).forEach(([tid, players]) => {
+                    let minSteps = Math.min(...players.map(p => p.steps));
+                    let candidates = players.filter(p => p.steps === minSteps);
+                    
+                    if (candidates.length > 1) { 
+                        candidates.forEach(c => crashedUsers.push(c.uid)); 
+                    } else { 
+                        scoresToAdd[candidates[0].uid] = (globalUsers[candidates[0].uid].score || 0) + 1; 
+                        treasuresToRemove.push(tid); 
+                    }
+                });
+
+                if(treasuresToRemove.length > 0) {
+                    let tUpdates = {};
+                    treasuresToRemove.forEach(t => tUpdates[t] = null);
+                    treasuresRef.update(tUpdates);
+                }
+
+                if(Object.keys(scoresToAdd).length > 0) {
+                    let sUpdates = {};
+                    Object.entries(scoresToAdd).forEach(([uid, sc]) => sUpdates[`${uid}/score`] = sc);
+                    usersRef.update(sUpdates);
+                }
+
+                if(crashedUsers.length > 0) stateRef.update({crashAlert: Date.now()});
+
+                let remainingTreasures = Object.keys(globalTreasures).length - treasuresToRemove.length;
+
+                setTimeout(() => {
+                    let resets = {};
+                    Object.values(globalUsers).forEach(u => {
+                        let home = getHome(u.team); 
+                        let uid = Object.keys(globalUsers).find(k=>globalUsers[k]===u);
+                        resets[`${uid}/globalX`] = home.x;
+                        resets[`${uid}/globalY`] = home.y;
+                    });
+                    if(Object.keys(resets).length > 0) usersRef.update(resets);
+
+                    if (remainingTreasures <= 0) {
+                        stateRef.update({ phase: 'round_end' });
+                    }
+
+                }, 1500);
+            }, 1000); 
+        }, 1000); 
+    }
+
+    stateRef.child('crashAlert').on('value', (snap) => {
+        if(!snap.val()) return;
+        let box = document.getElementById('alert-box');
+        box.style.display = 'block';
+        setTimeout(() => box.style.display = 'none', 3000);
+    });
+
+    // --- Player Controls ---
+    function changeVal(id, amount) {
+        let el = document.getElementById(id); let val = parseInt(el.innerText) + amount;
+        if(val >= 0 && val <= 10) el.innerText = val;
+    }
+
+    function lockMove(roundNum) {
+        let tx = 0, ty = 0;
+        if (roundNum === 1) { tx = parseInt(document.getElementById('r1-x').innerText)||0; ty = parseInt(document.getElementById('r1-y').innerText)||0; } 
+        else if (roundNum === 2) { tx = parseInt(document.getElementById('r2-x').value)||0; ty = parseInt(document.getElementById('r2-y').value)||0; } 
+        else if (roundNum === 3) { tx = parseInt(document.getElementById('r3-x').value)||0; ty = parseInt(document.getElementById('r3-y').value)||0; }
+        else if (roundNum === 4) { tx = parseInt(document.getElementById('r4-x').value)||0; ty = parseInt(document.getElementById('r4-y').value)||0; }
+
+        if (roundNum === 4) {
+            if(tx < -5) tx = -5; if(tx > 5) tx = 5;
+            if(ty < -5) ty = -5; if(ty > 5) ty = 5;
+        } else {
+            if(tx < 0) tx = 0; if(tx > 10) tx = 10;
+            if(ty < 0) ty = 0; if(ty > 10) ty = 10;
+        }
+
+        if (isSolo) { soloMove(tx, ty); return; }
+
+        usersRef.child(myUID).update({ lockedLocalX: tx, lockedLocalY: ty });
+        document.getElementById(`btn-sail-${roundNum}`).disabled = true;
+        document.getElementById('lock-status').style.display = 'block';
+    }
+
+    stateRef.child('timer').on('value', snap => {
+        if(snap.val() === 0) {
+            document.querySelectorAll('.btn-green, .btn-purple').forEach(b => b.disabled = false);
+            document.getElementById('lock-status').style.display = 'none';
+        }
+    });
+
+    // --- Solo Mode ---
+    function startSoloMode() {
+        let letter = document.getElementById('initialInput').value.toUpperCase();
+        if(!letter.match(/[A-Z]/)) letter = 'X';
+        myName = (adjectives[letter] || "Captain") + " " + letter;
+        
+        isSolo = true; myTeam = 1; globalState = { phase: 'racing', round: 1, timer: 0 };
+        globalUsers = {};
+        
+        let home = getHome(1);
+        globalUsers[myUID] = { name: myName, avatar: myAvatar, team: 1, globalX: home.x, globalY: home.y, score: 0 };
+        
+        spawnTreasures(); handlePhaseChange('racing');
+    }
+
+    function soloMove(x, y) {
+        let currentRound = Number(globalState.round) || 1;
+        let targetGlobal = localToGlobal(x, y, 1, currentRound);
+        
+        globalUsers[myUID].globalX = targetGlobal.x;
+        updateGridUI();
+        
+        setTimeout(() => {
+            globalUsers[myUID].globalY = targetGlobal.y; 
+            updateGridUI();
+            
+            setTimeout(() => {
+                let tid = `t_${targetGlobal.x}_${targetGlobal.y}`;
+                if(globalTreasures[tid]) { 
+                    delete globalTreasures[tid]; 
+                    globalUsers[myUID].score += 1; 
+                    document.getElementById('my-score').innerText = globalUsers[myUID].score; 
+                }
+                updateGridUI(); 
+
+                if (Object.keys(globalTreasures).length === 0) {
+                    setTimeout(() => handlePhaseChange('round_end'), 1000);
+                } else {
+                    setTimeout(() => { 
+                        let home = getHome(1);
+                        globalUsers[myUID].globalX = home.x; globalUsers[myUID].globalY = home.y; 
+                        updateGridUI(); 
+                    }, 1000);
+                }
+            }, 1000);
+        }, 1000);
+    }
+
+    // --- Screen Navigation & Dynamic Visuals ---
+    function handlePhaseChange(phase) {
+        document.querySelectorAll('.screen').forEach(s => s.style.display = 'none');
+        
+        if (phase === 'lobby') {
+            document.getElementById('screen-lobby').style.display = 'flex';
+            if(isSolo) { isSolo = false; }
+        } 
+        else if (phase === 'racing') {
+            if (!isHost && !isSolo && (!globalUsers || !globalUsers[myUID])) {
+                document.getElementById('screen-lobby').style.display = 'flex';
+                return;
+            }
+
+            document.getElementById('screen-game').style.display = 'flex';
+            document.getElementById('top-header').style.display = 'none';
+            
+            let r = Number(globalState.round) || 1; 
+            document.getElementById('round-display').innerText = r;
+            
+            // --- UI Visual Overhaul for Round 4 (Cartesian Absolute) ---
+            if (r === 4) {
+                document.getElementById('cartesian-overlay').classList.add('active');
+                document.getElementById('origin-label').style.display = 'none';
+                document.getElementById('axis-y-nums').innerHTML = '<span>5</span><span>4</span><span>3</span><span>2</span><span>1</span><span>0</span><span>-1</span><span>-2</span><span>-3</span><span>-4</span><span>-5</span>';
+                document.getElementById('axis-x-nums').innerHTML = '<span>-5</span><span>-4</span><span>-3</span><span>-2</span><span>-1</span><span>0</span><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span>';
+            } else {
+                document.getElementById('cartesian-overlay').classList.remove('active');
+                document.getElementById('origin-label').style.display = 'block';
+                document.getElementById('axis-y-nums').innerHTML = '<span>10</span><span>9</span><span>8</span><span>7</span><span>6</span><span>5</span><span>4</span><span>3</span><span>2</span><span>1</span>';
+                document.getElementById('axis-x-nums').innerHTML = '<span>0</span><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span>';
+            }
+
+            if (isHost && !isSolo) {
+                document.getElementById('host-game-title').style.display = 'block';
+                document.getElementById('host-exec-btn').style.display = 'block';
+                document.getElementById('player-controls-wrapper').style.display = 'none';
+                document.getElementById('player-score-board').style.display = 'none';
+            } else {
+                document.getElementById('host-game-title').style.display = 'none';
+                document.getElementById('host-exec-btn').style.display = 'none';
+                document.getElementById('player-controls-wrapper').style.display = 'flex';
+                document.getElementById('player-score-board').style.display = 'flex';
+                
+                document.getElementById('controls-round1').style.display = (r === 1) ? 'block' : 'none';
+                document.getElementById('controls-round2').style.display = (r === 2) ? 'block' : 'none';
+                document.getElementById('controls-round3').style.display = (r === 3) ? 'block' : 'none';
+                document.getElementById('controls-round4').style.display = (r === 4) ? 'block' : 'none';
+            }
+            
+            document.querySelectorAll('.btn-green, .btn-purple').forEach(b => b.disabled = false);
+            document.getElementById('lock-status').style.display = 'none';
+            if (globalUsers[myUID] && !isSolo && !isHost) {
+                usersRef.child(myUID).update({ lockedLocalX: null, lockedLocalY: null });
+            }
+            
+            document.getElementById('r1-x').innerText = "0"; document.getElementById('r1-y').innerText = "0";
+            document.getElementById('r2-x').value = "0"; document.getElementById('r2-y').value = "0";
+            document.getElementById('r3-x').value = ""; document.getElementById('r3-y').value = "";
+            document.getElementById('r4-x').value = ""; document.getElementById('r4-y').value = "";
+
+            updateGridUI();
+        } 
+        else if (phase === 'round_end') {
+            document.getElementById('screen-round-end').style.display = 'flex';
+            if (isHost || isSolo) {
+                document.getElementById('host-round-end-controls').style.display = 'block';
+                document.getElementById('player-round-end-msg').style.display = 'none';
+            } else {
+                document.getElementById('host-round-end-controls').style.display = 'none';
+                document.getElementById('player-round-end-msg').style.display = 'block';
+            }
+        }
+        else { document.getElementById('screen-waiting').style.display = 'flex'; }
+    }
+
+    function switchScreen(id) {
+        document.querySelectorAll('.screen').forEach(s => s.style.display = 'none');
+        document.getElementById(id).style.display = 'flex';
+    }
+</script>
+</body>
+</html>
