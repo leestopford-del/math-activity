@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Material Journey: Eco-Tag</title>
+    <title>Material Journey: Eco-Tag v2</title>
     <style>
         /* --- CORE STYLES & MOBILE FRIENDLINESS --- */
         :root {
@@ -41,14 +41,14 @@
 
         /* --- CONTAINERS --- */
         .screen-box {
-            width: 100%; max-width: 600px;
+            width: 100%; max-width: 700px;
             background: var(--card-bg); padding: 20px;
             border-radius: 12px; box-sizing: border-box;
             margin-bottom: 20px; text-align: center;
             box-shadow: 0 10px 20px rgba(0,0,0,0.5);
         }
 
-        /* --- LOBBY ROSTERS --- */
+        /* --- LOBBY & SCORE ROSTERS --- */
         .roster-container { display: flex; gap: 10px; margin-top: 15px; }
         .roster-col {
             flex: 1; background: #0f172a; border-radius: 8px;
@@ -60,10 +60,11 @@
             background: #334155; padding: 6px; border-radius: 4px;
             margin-bottom: 6px; font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 5px;
         }
+        .score-display { font-size: 36px; font-weight: bold; margin: 10px 0; }
 
         /* --- GAME CANVAS & UI --- */
         #game-wrapper {
-            position: relative; width: 100%; max-width: 800px;
+            position: relative; width: 100%; max-width: 1000px;
             margin: 0 auto; display: flex; flex-direction: column; align-items: center;
         }
         #turn-banner {
@@ -72,15 +73,15 @@
             background: #475569; color: white; box-sizing: border-box;
         }
         #game-canvas {
-            width: 100%; height: auto; aspect-ratio: 4 / 3;
+            width: 100%; height: auto; aspect-ratio: 10 / 7; /* Matches 1000x700 */
             background: #1e293b; border: 3px solid #334155;
             border-radius: 0 0 8px 8px; touch-action: none; box-sizing: border-box;
         }
         
         /* --- VIRTUAL JOYSTICK --- */
         #joy-zone {
-            position: absolute; bottom: 20px; left: 20px;
-            width: 120px; height: 120px;
+            position: absolute; bottom: 30px; left: 30px;
+            width: 130px; height: 130px;
             background: rgba(255, 255, 255, 0.05); border-radius: 50%;
             border: 2px solid rgba(255, 255, 255, 0.2);
             touch-action: none;
@@ -111,9 +112,10 @@
         <h2 style="color: #fbbf24;">Simulation Lobby</h2>
         <p>Welcome, <span id="display-name" style="font-weight:bold; color:white;"></span>!</p>
         
-        <div style="background: #0f172a; padding: 10px; border-radius: 8px; font-size: 14px; text-align: left;">
-            <b style="color:#10b981;">🌱 Eco-Warriors:</b> Safe in the Recycling Plant. Clean (unfreeze) tagged friends!<br>
-            <b style="color:#8b5cf6;">🛢️ Waste Monsters:</b> Safe in the Landfill. Tag the Eco-Warriors to pollute them!
+        <div style="background: #0f172a; padding: 15px; border-radius: 8px; font-size: 14px; text-align: left;">
+            <b style="color:#fbbf24; font-size: 16px;">🏆 HOW TO WIN: SURVIVOR SCORING</b><br><br>
+            <b style="color:#10b981;">🌱 Eco-Warriors:</b> Safe in the Recycling Plant. You score 1 point for every Warrior still unfrozen at the end of Round 1!<br><br>
+            <b style="color:#8b5cf6;">🛢️ Waste Monsters:</b> Safe in the Landfill. You score 1 point for every Monster still unfrozen at the end of Round 2!
         </div>
 
         <div class="roster-container">
@@ -134,12 +136,41 @@
         <h2 style="color: #3b82f6;">Captain's Host Dashboard</h2>
         <p>Recruits connected: <span id="player-count" style="font-weight:bold; color:white;">0</span></p>
         
-        <button id="btn-start-r1" style="background:#8b5cf6; color:white;">Start Round 1 (Waste chases Eco)</button>
-        <button id="btn-start-r2" style="background:#10b981; color:white;">Start Round 2 (Eco chases Waste)</button>
-        <button id="btn-end-round" style="background:#f59e0b; color:black;">End Round Early (Return to Lobby)</button>
+        <div id="host-controls-lobby">
+            <button id="btn-start-r1" style="background:#8b5cf6; color:white; font-size: 18px; padding: 15px;">🚀 START ROUND 1</button>
+        </div>
+
+        <div id="host-controls-intermission" class="hidden">
+            <h3 style="color: #fbbf24;">Round 1 Complete!</h3>
+            <button id="btn-start-r2" style="background:#10b981; color:white; font-size: 18px; padding: 15px;">🚀 START ROUND 2</button>
+        </div>
+
+        <div id="host-controls-gameover" class="hidden">
+            <h3 style="color: #fbbf24;">Simulation Complete!</h3>
+            <button id="btn-return-lobby" style="background:#3b82f6; color:white;">Play Again (Return to Lobby)</button>
+        </div>
         
         <hr style="border-color: #334155; margin: 20px 0;">
+        <button id="btn-end-round" style="background:#f59e0b; color:black;">Force End Current Round</button>
         <button id="btn-reset" style="background: #dc2626; color: white;">Hard Reset (Boot All Players)</button>
+    </div>
+
+    <div id="screen-intermission" class="screen-box hidden">
+        <h1 id="intermission-title" style="color: #fbbf24;">Round Complete!</h1>
+        <p id="intermission-msg" style="font-size: 18px;"></p>
+        
+        <div class="roster-container">
+            <div class="roster-col col-green">
+                <h4 style="color:var(--eco-green); margin:0;">Eco-Warrior Score</h4>
+                <div class="score-display" id="score-team1" style="color:var(--eco-green);">0</div>
+            </div>
+            <div class="roster-col col-purple">
+                <h4 style="color:var(--waste-purple); margin:0;">Waste Monster Score</h4>
+                <div class="score-display" id="score-team2" style="color:var(--waste-purple);">0</div>
+            </div>
+        </div>
+        
+        <p style="color: #94a3b8; margin-top: 20px;" id="intermission-wait-msg">Waiting for Host to launch next phase...</p>
     </div>
 
     <div id="screen-game" class="hidden">
@@ -147,7 +178,7 @@
             <div id="turn-banner">WAITING FOR DEPLOYMENT...</div>
             <div class="timer-display">Time Remaining: <span id="time-left">60</span>s</div>
             
-            <canvas id="game-canvas" width="800" height="600"></canvas>
+            <canvas id="game-canvas" width="1000" height="700"></canvas>
             
             <div id="joy-zone" class="hidden">
                 <div id="joy-stick"></div>
@@ -176,21 +207,26 @@
 
         // --- GAME CONSTANTS ---
         const PLAYER_RADIUS = 20;
-        const CANVAS_W = 800;
-        const CANVAS_H = 600;
-        const BASE_SPEED = 6;
+        const CANVAS_W = 1000;
+        const CANVAS_H = 700;
+        const BASE_SPEED = 7;
 
-        let myUID = "";
-        let myTeam = "";
-        let isHost = false;
-        let amIFrozen = false;
+        // The Wall Obstacles (Creates chokepoints)
+        const OBSTACLES = [
+            { x: 280, y: 0, w: 60, h: 250, label: 'Scrap Wall' }, // Top Left wall
+            { x: 280, y: 450, w: 60, h: 250, label: 'Scrap Wall' }, // Bottom left wall
+            { x: 660, y: 0, w: 60, h: 250, label: 'Toxic Sludge' }, // Top right wall
+            { x: 660, y: 450, w: 60, h: 250, label: 'Toxic Sludge' }, // Bottom right wall
+            { x: 400, y: 280, w: 200, h: 140, label: 'Processing Plant' } // Center block
+        ];
+
+        let myUID = ""; let myTeam = ""; let isHost = false; let amIFrozen = false;
         
-        let globalState = { phase: 'waiting', chaserTeam: 'Team 2', timer: 60 };
-        let globalPlayers = {};
-        let renderPlayers = {}; // For smooth interpolation
+        let globalState = { phase: 'waiting', round: 1, chaserTeam: 'Team 2', timer: 60, scores: {team1: 0, team2: 0} };
+        let globalPlayers = {}; let renderPlayers = {}; 
 
         // Local Movement Vars
-        let myX = 100, myY = 100;
+        let myX = 120, myY = 100;
         let joyX = 0, joyY = 0;
         let keys = { ArrowUp:false, ArrowDown:false, ArrowLeft:false, ArrowRight:false, KeyW:false, KeyA:false, KeyS:false, KeyD:false };
 
@@ -198,6 +234,7 @@
             login: document.getElementById('screen-login'),
             lobby: document.getElementById('screen-lobby'),
             host: document.getElementById('screen-host'),
+            intermission: document.getElementById('screen-intermission'),
             game: document.getElementById('screen-game')
         };
 
@@ -219,7 +256,6 @@
             signInAnonymously(auth).then(() => {
                 myUID = auth.currentUser.uid;
                 
-                // Auto-assign teams evenly
                 get(ref(db, 'ecoGame/players')).then(snap => {
                     const players = snap.val() || {};
                     let t1Count = 0, t2Count = 0;
@@ -230,17 +266,17 @@
                     myTeam = t1Count <= t2Count ? 'Team 1' : 'Team 2';
                     const avatar = myTeam === 'Team 1' ? '🌱' : '🛢️';
                     
-                    myX = myTeam === 'Team 1' ? 100 + Math.random()*50 : 700 - Math.random()*50;
-                    myY = myTeam === 'Team 1' ? 100 + Math.random()*50 : 500 - Math.random()*50;
+                    myX = myTeam === 'Team 1' ? 100 + Math.random()*50 : 850 - Math.random()*50;
+                    myY = myTeam === 'Team 1' ? 100 + Math.random()*50 : 600 - Math.random()*50;
                     
                     const pRef = ref(db, `ecoGame/players/${myUID}`);
                     set(pRef, { name: name, team: myTeam, avatar: avatar, x: myX, y: myY, isFrozen: false });
-                    onDisconnect(pRef).remove(); // Remove player if they close tab
+                    onDisconnect(pRef).remove(); 
                     
                     document.getElementById('display-name').innerText = name;
                     showScreen('lobby');
                     listenToGame();
-                    requestAnimationFrame(drawCanvas); // Start rendering loop
+                    requestAnimationFrame(drawCanvas); 
                 });
             });
         });
@@ -251,27 +287,28 @@
                 isHost = true;
                 showScreen('both-host-and-game');
                 
-                // Initialize state if empty
                 get(ref(db, 'ecoGame/state')).then(snap => {
-                    if (!snap.exists()) set(ref(db, 'ecoGame/state'), { phase: 'waiting', chaserTeam: 'Team 2', timer: 60 });
+                    if (!snap.exists()) set(ref(db, 'ecoGame/state'), { phase: 'waiting', round: 1, chaserTeam: 'Team 2', timer: 60, scores: {team1: 0, team2: 0} });
                 });
                 
                 setupHost();
                 listenToGame();
                 requestAnimationFrame(drawCanvas);
-                setInterval(hostCollisionLoop, 100); // Host handles collisions at 10fps
+                setInterval(hostCollisionLoop, 100); 
             });
         });
 
         // --- DATABASE SYNC ---
         function listenToGame() {
-            // Sync Game State
             onValue(ref(db, 'ecoGame/state'), (snap) => {
                 const oldPhase = globalState.phase;
-                globalState = snap.val() || { phase: 'waiting', chaserTeam: 'Team 2', timer: 60 };
+                globalState = snap.val() || { phase: 'waiting', round: 1, chaserTeam: 'Team 2', timer: 60, scores: {team1:0, team2:0} };
                 
                 document.getElementById('time-left').innerText = globalState.timer;
+                document.getElementById('score-team1').innerText = globalState.scores.team1;
+                document.getElementById('score-team2').innerText = globalState.scores.team2;
                 
+                // Update Banners & Screens
                 const banner = document.getElementById('turn-banner');
                 if (globalState.chaserTeam === 'Team 2') {
                     banner.innerText = "ROUND 1: WASTE MONSTERS ARE CHASING! Eco-Warriors, survive!";
@@ -285,37 +322,81 @@
                     if (!isHost) {
                         showScreen('game');
                         document.getElementById('joy-zone').classList.remove('hidden');
+                    } else {
+                        // Host UI toggles
+                        document.getElementById('host-controls-lobby').classList.add('hidden');
+                        document.getElementById('host-controls-intermission').classList.add('hidden');
+                        document.getElementById('host-controls-gameover').classList.add('hidden');
                     }
-                    if (oldPhase !== 'playing') renderPlayers = {}; // Reset visual interpolation on new round
-                } else {
+                    if (oldPhase !== 'playing') renderPlayers = {}; 
+                } 
+                else if (globalState.phase === 'intermission') {
+                    if (!isHost) showScreen('intermission');
+                    else {
+                        document.getElementById('host-controls-lobby').classList.add('hidden');
+                        document.getElementById('host-controls-intermission').classList.remove('hidden');
+                    }
+                    document.getElementById('joy-zone').classList.add('hidden');
+                    document.getElementById('intermission-title').innerText = "Round 1 Complete!";
+                    document.getElementById('intermission-msg').innerText = `Eco-Warriors secured ${globalState.scores.team1} survivors! Get ready to switch roles...`;
+                }
+                else if (globalState.phase === 'gameover') {
+                    if (!isHost) {
+                        showScreen('intermission');
+                        document.getElementById('intermission-wait-msg').innerText = "Game Over! Checking results...";
+                    } else {
+                        document.getElementById('host-controls-intermission').classList.add('hidden');
+                        document.getElementById('host-controls-gameover').classList.remove('hidden');
+                    }
+                    document.getElementById('joy-zone').classList.add('hidden');
+                    document.getElementById('intermission-title').innerText = "SIMULATION COMPLETE!";
+                    
+                    let winnerText = "It's a TIE!";
+                    if (globalState.scores.team1 > globalState.scores.team2) winnerText = "🌱 ECO-WARRIORS WIN!";
+                    else if (globalState.scores.team2 > globalState.scores.team1) winnerText = "🛢️ WASTE MONSTERS WIN!";
+                    document.getElementById('intermission-msg').innerText = `Final Result: ${winnerText}`;
+                }
+                else { // waiting
                     if (!isHost && myUID) showScreen('lobby');
+                    if (isHost) {
+                        document.getElementById('host-controls-lobby').classList.remove('hidden');
+                        document.getElementById('host-controls-intermission').classList.add('hidden');
+                        document.getElementById('host-controls-gameover').classList.add('hidden');
+                    }
                     document.getElementById('joy-zone').classList.add('hidden');
                 }
             });
 
-            // Sync Players and Rosters
             onValue(ref(db, 'ecoGame/players'), (snap) => {
                 globalPlayers = snap.val() || {};
-                let greenHTML = ""; let purpleHTML = "";
-                let count = 0;
-                
+                let greenHTML = ""; let purpleHTML = ""; let count = 0;
                 for(let uid in globalPlayers) {
-                    count++;
-                    const p = globalPlayers[uid];
+                    count++; const p = globalPlayers[uid];
                     const tag = `<div class="player-tag">${p.avatar} ${p.name}</div>`;
-                    if(p.team === 'Team 1') greenHTML += tag;
-                    else purpleHTML += tag;
+                    if(p.team === 'Team 1') greenHTML += tag; else purpleHTML += tag;
                     
                     if (uid === myUID) {
                         amIFrozen = p.isFrozen;
                         document.getElementById('freeze-warning').style.display = amIFrozen ? 'block' : 'none';
                     }
                 }
-                
                 document.getElementById('roster-green').innerHTML = greenHTML || "<i style='color:#64748b'>Empty</i>";
                 document.getElementById('roster-purple').innerHTML = purpleHTML || "<i style='color:#64748b'>Empty</i>";
                 if(isHost) document.getElementById('player-count').innerText = count;
             });
+        }
+
+        // --- COLLISION DETECTION LOGIC (WALLS) ---
+        function checkWallCollision(newX, newY) {
+            for (let obs of OBSTACLES) {
+                // Find closest point on rectangle to the circle
+                let cx = Math.max(obs.x, Math.min(newX, obs.x + obs.w));
+                let cy = Math.max(obs.y, Math.min(newY, obs.y + obs.h));
+                // Check distance
+                let distance = Math.sqrt((newX - cx) * (newX - cx) + (newY - cy) * (newY - cy));
+                if (distance < PLAYER_RADIUS) return true; // Collision!
+            }
+            return false;
         }
 
         // --- LOCAL MOVEMENT CONTROLS ---
@@ -332,24 +413,19 @@
             let cx = e.touches ? e.touches[0].clientX : e.clientX;
             let cy = e.touches ? e.touches[0].clientY : e.clientY;
             let rect = joyZone.getBoundingClientRect();
-            joyCX = rect.left + rect.width / 2;
-            joyCY = rect.top + rect.height / 2;
+            joyCX = rect.left + rect.width / 2; joyCY = rect.top + rect.height / 2;
             updateJoy(cx, cy);
         }
         function handleJoyMove(e) {
-            if (!joyActive) return;
-            e.preventDefault();
+            if (!joyActive) return; e.preventDefault();
             let cx = e.touches ? e.touches[0].clientX : e.clientX;
             let cy = e.touches ? e.touches[0].clientY : e.clientY;
             updateJoy(cx, cy);
         }
-        function handleJoyEnd() {
-            joyActive = false; joyX = 0; joyY = 0;
-            joyStick.style.transform = `translate(-50%, -50%)`;
-        }
+        function handleJoyEnd() { joyActive = false; joyX = 0; joyY = 0; joyStick.style.transform = `translate(-50%, -50%)`; }
         function updateJoy(x, y) {
             let dx = x - joyCX; let dy = y - joyCY;
-            let maxDist = 40; let dist = Math.sqrt(dx*dx + dy*dy);
+            let maxDist = 45; let dist = Math.sqrt(dx*dx + dy*dy);
             if (dist > maxDist) { dx = (dx/dist)*maxDist; dy = (dy/dist)*maxDist; }
             joyStick.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
             joyX = dx / maxDist; joyY = dy / maxDist;
@@ -362,7 +438,7 @@
         document.addEventListener('mousemove', handleJoyMove);
         document.addEventListener('mouseup', handleJoyEnd);
 
-        // Apply Movement
+        // Apply Movement & Sliding
         let lastUpX = -1, lastUpY = -1;
         function processMovement() {
             if (globalState.phase !== 'playing' || amIFrozen || isHost) return;
@@ -376,21 +452,24 @@
             let mag = Math.sqrt(dx*dx + dy*dy);
             if (mag > 1) { dx /= mag; dy /= mag; }
 
-            myX += dx * BASE_SPEED;
-            myY += dy * BASE_SPEED;
+            // Try X movement
+            let nextX = myX + (dx * BASE_SPEED);
+            nextX = Math.max(PLAYER_RADIUS, Math.min(CANVAS_W - PLAYER_RADIUS, nextX)); // Boundaries
+            if (!checkWallCollision(nextX, myY)) myX = nextX;
 
-            // Boundaries
-            myX = Math.max(PLAYER_RADIUS, Math.min(CANVAS_W - PLAYER_RADIUS, myX));
-            myY = Math.max(PLAYER_RADIUS, Math.min(CANVAS_H - PLAYER_RADIUS, myY));
+            // Try Y movement
+            let nextY = myY + (dy * BASE_SPEED);
+            nextY = Math.max(PLAYER_RADIUS, Math.min(CANVAS_H - PLAYER_RADIUS, nextY)); // Boundaries
+            if (!checkWallCollision(myX, nextY)) myY = nextY;
 
-            // Network Upload (Only if moved to save DB quota)
+            // Network Upload 
             let movedDist = Math.abs(myX - lastUpX) + Math.abs(myY - lastUpY);
             if (movedDist > 2) {
                 update(ref(db, `ecoGame/players/${myUID}`), { x: Math.round(myX), y: Math.round(myY) });
                 lastUpX = myX; lastUpY = myY;
             }
         }
-        setInterval(processMovement, 40); // 25 fps local update loop
+        setInterval(processMovement, 40); // 25 fps local update
 
         // --- CANVAS RENDERING ---
         const canvas = document.getElementById('game-canvas');
@@ -399,32 +478,52 @@
         function drawCanvas() {
             ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
 
+            // Draw Obstacles (Walls)
+            for (let obs of OBSTACLES) {
+                ctx.fillStyle = '#475569';
+                ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
+                ctx.strokeStyle = '#cbd5e1'; ctx.lineWidth = 2;
+                ctx.strokeRect(obs.x, obs.y, obs.w, obs.h);
+                
+                // Draw label sideways or centered based on shape
+                ctx.save();
+                ctx.fillStyle = '#94a3b8'; ctx.font = '14px Arial'; ctx.textAlign = 'center';
+                if (obs.h > obs.w) {
+                    ctx.translate(obs.x + obs.w/2 + 5, obs.y + obs.h/2);
+                    ctx.rotate(-Math.PI / 2);
+                    ctx.fillText(obs.label, 0, 0);
+                } else {
+                    ctx.fillText(obs.label, obs.x + obs.w/2, obs.y + obs.h/2 + 5);
+                }
+                ctx.restore();
+            }
+
             // Draw Safe Zones
-            ctx.fillStyle = 'rgba(16, 185, 129, 0.2)'; // Eco-Warrior Safe Zone
+            ctx.fillStyle = 'rgba(16, 185, 129, 0.2)'; // Eco-Warrior Safe Zone (Top Left)
             ctx.fillRect(0, 0, 250, 200);
-            ctx.fillStyle = '#10b981'; ctx.font = 'bold 16px Arial';
-            ctx.fillText('Recycling Plant (Eco Safe Zone)', 10, 25);
+            ctx.fillStyle = '#10b981'; ctx.font = 'bold 16px Arial'; ctx.textAlign = 'left';
+            ctx.fillText('Recycling Plant (Safe)', 10, 25);
             ctx.strokeStyle = '#10b981'; ctx.lineWidth = 3; ctx.strokeRect(0, 0, 250, 200);
 
-            ctx.fillStyle = 'rgba(139, 92, 246, 0.2)'; // Waste Monster Safe Zone
-            ctx.fillRect(550, 400, 250, 200);
+            ctx.fillStyle = 'rgba(139, 92, 246, 0.2)'; // Waste Monster Safe Zone (Bottom Right)
+            ctx.fillRect(750, 500, 250, 200);
             ctx.fillStyle = '#8b5cf6';
-            ctx.fillText('Landfill (Waste Safe Zone)', 560, 425);
-            ctx.strokeStyle = '#8b5cf6'; ctx.strokeRect(550, 400, 250, 200);
+            ctx.fillText('Landfill (Safe)', 760, 525);
+            ctx.strokeStyle = '#8b5cf6'; ctx.strokeRect(750, 500, 250, 200);
 
-            // Draw Players (with smooth LERP interpolation)
+            // Draw Players (Smooth LERP interpolation)
             Object.keys(globalPlayers).forEach(uid => {
                 let p = globalPlayers[uid];
                 if (!renderPlayers[uid]) renderPlayers[uid] = {x: p.x, y: p.y};
                 
-                renderPlayers[uid].x += (p.x - renderPlayers[uid].x) * 0.3; // Smooth snap
+                renderPlayers[uid].x += (p.x - renderPlayers[uid].x) * 0.3; 
                 renderPlayers[uid].y += (p.y - renderPlayers[uid].y) * 0.3;
                 let rx = renderPlayers[uid].x; let ry = renderPlayers[uid].y;
 
                 ctx.beginPath();
                 ctx.arc(rx, ry, PLAYER_RADIUS, 0, Math.PI * 2);
                 ctx.fillStyle = p.team === 'Team 1' ? '#10b981' : '#8b5cf6';
-                if (p.isFrozen) ctx.fillStyle = '#475569'; // Greyed out if frozen
+                if (p.isFrozen) ctx.fillStyle = '#475569'; 
                 ctx.fill();
                 ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2; ctx.stroke();
 
@@ -434,19 +533,16 @@
                 ctx.font = '14px Arial'; ctx.fillStyle = '#f8fafc';
                 ctx.fillText(p.name, rx, ry - 25);
 
-                // Draw Frozen Overlay Icon
                 if (p.isFrozen) {
                     ctx.font = '30px Arial';
                     ctx.fillText(p.team === 'Team 1' ? '☁️' : '♻️', rx, ry + 10);
                 }
             });
-
             requestAnimationFrame(drawCanvas);
         }
 
         // --- HOST COLLISION & GAME ENGINE ---
         let lastTimerUpdate = Date.now();
-        
         function getDist(p1, p2) { return Math.sqrt(Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2)); }
         
         function hostCollisionLoop() {
@@ -462,20 +558,19 @@
             let dbUpdates = {};
 
             runners.forEach(r => {
-                // Check Safe Zones
                 let isSafe = false;
                 if (r.team === 'Team 1' && r.x < 250 && r.y < 200) isSafe = true;
-                if (r.team === 'Team 2' && r.x > 550 && r.y > 400) isSafe = true;
+                if (r.team === 'Team 2' && r.x > 750 && r.y > 500) isSafe = true;
 
                 if (r.isFrozen) {
-                    // Check Unfreeze (Rescue by fellow runner)
+                    // Rescue check
                     runners.forEach(savior => {
                         if (!savior.isFrozen && savior.uid !== r.uid && getDist(r, savior) < PLAYER_RADIUS*2) {
                             dbUpdates[`${r.uid}/isFrozen`] = false;
                         }
                     });
                 } else if (!isSafe) {
-                    // Check Tagged by Chaser
+                    // Tag check
                     chasers.forEach(c => {
                         if (getDist(r, c) < PLAYER_RADIUS*2) dbUpdates[`${r.uid}/isFrozen`] = true;
                     });
@@ -484,30 +579,42 @@
 
             if (Object.keys(dbUpdates).length > 0) update(ref(db, 'ecoGame/players'), dbUpdates);
 
-            // Timer & Win Conditions
+            // Timer & End Round Conditions
             if (Date.now() - lastTimerUpdate > 1000) {
                 lastTimerUpdate = Date.now();
                 let newTimer = globalState.timer - 1;
                 
                 if (newTimer <= 0) {
-                    update(ref(db, 'ecoGame/state'), { phase: 'waiting', timer: 0 });
-                    alert("Time's up! The escaping team survived the round!");
+                    // Timer ran out! Escaping team gets points for survivors.
+                    let survivors = runners.filter(r => !r.isFrozen).length;
+                    handleRoundEnd(survivors);
+                } else if (runners.length > 0 && runners.every(r => r.isFrozen)) {
+                    // Chasers caught everyone early. Runners score 0.
+                    handleRoundEnd(0);
                 } else {
                     update(ref(db, 'ecoGame/state/timer'), newTimer);
-                }
-
-                // Check if all runners are frozen
-                if (runners.length > 0 && runners.every(r => r.isFrozen)) {
-                    update(ref(db, 'ecoGame/state'), { phase: 'waiting' });
-                    alert("Round Over! The Chasers tagged everyone!");
                 }
             }
         }
 
+        function handleRoundEnd(survivorCount) {
+            let nextPhase = globalState.round === 1 ? 'intermission' : 'gameover';
+            let updatePayload = { phase: nextPhase, timer: 0 };
+            
+            if (globalState.round === 1) {
+                // Round 1 ends. Team 1 were runners.
+                updatePayload['scores/team1'] = survivorCount;
+            } else {
+                // Round 2 ends. Team 2 were runners.
+                updatePayload['scores/team2'] = survivorCount;
+            }
+            update(ref(db, 'ecoGame/state'), updatePayload);
+        }
+
         // --- HOST DASHBOARD CONTROLS ---
         function setupHost() {
-            function launchRound(chaserTeam) {
-                update(ref(db, 'ecoGame/state'), { phase: 'playing', chaserTeam: chaserTeam, timer: 60 });
+            function launchRound(roundNum, chaserTeam) {
+                update(ref(db, 'ecoGame/state'), { phase: 'playing', round: roundNum, chaserTeam: chaserTeam, timer: 60 });
                 // Reset positions and unfreeze
                 get(ref(db, 'ecoGame/players')).then(snap => {
                     let players = snap.val() || {};
@@ -515,24 +622,29 @@
                     for(let uid in players) {
                         let t = players[uid].team;
                         updates[`${uid}/isFrozen`] = false;
-                        updates[`${uid}/x`] = t === 'Team 1' ? 100 + Math.random()*50 : 650 + Math.random()*50;
-                        updates[`${uid}/y`] = t === 'Team 1' ? 100 + Math.random()*50 : 450 + Math.random()*50;
+                        updates[`${uid}/x`] = t === 'Team 1' ? 120 + Math.random()*50 : 850 - Math.random()*50;
+                        updates[`${uid}/y`] = t === 'Team 1' ? 100 + Math.random()*50 : 600 - Math.random()*50;
                     }
                     update(ref(db, 'ecoGame/players'), updates);
                 });
             }
 
-            document.getElementById('btn-start-r1').onclick = () => launchRound('Team 2');
-            document.getElementById('btn-start-r2').onclick = () => launchRound('Team 1');
+            document.getElementById('btn-start-r1').onclick = () => launchRound(1, 'Team 2');
+            document.getElementById('btn-start-r2').onclick = () => launchRound(2, 'Team 1');
             
             document.getElementById('btn-end-round').onclick = () => {
-                update(ref(db, 'ecoGame/state'), { phase: 'waiting' });
+                // Force end round with 0 survivors for quick debugging/override
+                handleRoundEnd(0);
+            };
+
+            document.getElementById('btn-return-lobby').onclick = () => {
+                update(ref(db, 'ecoGame/state'), { phase: 'waiting', round: 1, scores: {team1:0, team2:0} });
             };
 
             document.getElementById('btn-reset').onclick = () => {
                 if(confirm("Are you sure you want to boot everyone?")) {
                     remove(ref(db, 'ecoGame'));
-                    set(ref(db, 'ecoGame/state'), { phase: 'waiting', chaserTeam: 'Team 2', timer: 60 });
+                    set(ref(db, 'ecoGame/state'), { phase: 'waiting', round: 1, chaserTeam: 'Team 2', timer: 60, scores:{team1:0,team2:0} });
                 }
             };
         }
