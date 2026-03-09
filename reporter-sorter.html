@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Captain Alby's Data Sorter</title>
+    <style>
+        /* --- CORE STYLES & MOBILE FRIENDLINESS --- */
+        :root {
+            --team1-color: #ef4444; /* Red Fleet */
+            --team2-color: #3b82f6; /* Blue Fleet */
+            --bg-dark: #0f172a;
+            --text-light: #f8fafc;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-light);
+            margin: 0;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h1, h2, h3 { text-align: center; margin-top: 5px; }
+        .hidden { display: none !important; }
+        
+        /* --- BUTTONS & INPUTS --- */
+        input, button, select {
+            padding: 12px;
+            margin: 8px 4px;
+            border-radius: 8px;
+            border: none;
+            font-size: 16px;
+            width: 90%;
+            max-width: 300px;
+        }
+        button {
+            background-color: #fbbf24;
+            color: #000;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            transition: transform 0.1s;
+        }
+        button:active { transform: scale(0.95); }
+        .host-btn { background-color: #10b981; color: white; }
+        .fact-btn { background-color: #8b5cf6; color: white; height: 80px; font-size: 20px;}
+        .opinion-btn { background-color: #f97316; color: white; height: 80px; font-size: 20px;}
+
+        /* --- CONTAINERS --- */
+        #login-screen, #lobby-screen, #game-screen, #host-dashboard {
+            width: 100%;
+            max-width: 600px;
+            background: #1e293b;
+            padding: 20px;
+            border-radius: 12px;
+            box-sizing: border-box;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        /* --- SCOREBOARD & DATA PACKET --- */
+        .scoreboard {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 20px;
+            font-size: 22px;
+            font-weight: bold;
+            background: #000;
+            padding: 10px;
+            border-radius: 8px;
+        }
+        .team1-score { color: var(--team1-color); }
+        .team2-score { color: var(--team2-color); }
+        
+        #data-display {
+            background: #334155;
+            padding: 20px;
+            border-radius: 8px;
+            font-size: 20px;
+            min-height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+            border: 2px dashed #fbbf24;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="login-screen">
+        <h1>IWS Science Division</h1>
+        <p>Enter your recruit name to join the sorting fleet.</p>
+        <input type="text" id="player-name" placeholder="Recruit Name" maxlength="15">
+        <br>
+        <button id="btn-join">Join Fleet</button>
+        <hr style="border-color: #334155; margin: 30px 0;">
+        <button id="btn-host-login" class="host-btn">Captain Alby (Host) Login</button>
+    </div>
+
+    <div id="lobby-screen" class="hidden">
+        <h2>Recruit Lobby</h2>
+        <p>Welcome, <span id="display-name"></span>!</p>
+        <h3 id="team-assignment">Assigning team...</h3>
+        <p>Awaiting Captain Alby to beam the first data packet...</p>
+    </div>
+
+    <div id="host-dashboard" class="hidden">
+        <h2 style="color: #10b981;">Captain's Control Panel</h2>
+        <p>Recruits connected: <span id="player-count">0</span></p>
+        
+        <select id="packet-selector">
+            <option value="fact|The school has 500 enrolled students.">Fact: The school has 500 enrolled students.</option>
+            <option value="opinion|Our playground is really great.">Opinion: Our playground is really great.</option>
+            <option value="fact|The science lab is located on the second floor.">Fact: The science lab is located on the second floor.</option>
+            <option value="opinion|Maths is the most difficult subject.">Opinion: Maths is the most difficult subject.</option>
+            <option value="fact|Lessons begin at 9:00 AM every weekday.">Fact: Lessons begin at 9:00 AM every weekday.</option>
+        </select>
+        <button id="btn-send-packet">Beam Data Packet</button>
+        
+        <hr style="border-color: #334155; margin: 20px 0;">
+        <button id="btn-reset" style="background: #dc2626; color: white;">Reset Entire Mission</button>
+    </div>
+
+    <div id="game-screen" class="hidden">
+        <div class="scoreboard">
+            <div class="team1-score">Red Fleet: <span id="score1">0</span></div>
+            <div class="team2-score">Blue Fleet: <span id="score2">0</span></div>
+        </div>
+        
+        <h3>Incoming Data Packet:</h3>
+        <div id="data-display">Waiting for Captain Alby...</div>
+        
+        <div id="action-buttons" class="hidden">
+            <button class="fact-btn" onclick="submitAnswer('fact')">Objective FACT</button>
+            <button class="opinion-btn" onclick="submitAnswer('opinion')">Subjective OPINION</button>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
+        import { getDatabase, ref, set, onValue, get } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBpf5wi0wShnatqUhcmPhSOdnd0NdBL65A",
+            authDomain: "symmetry-and-nets.firebaseapp.com",
+            databaseURL: "https://symmetry-and-nets-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "symmetry-and-nets"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth();
+        const db = getDatabase();
+
+        let myTeam = "";
+        let isHost = false;
+        let currentCorrectAnswer = "";
+
+        const screens = {
+            login: document.getElementById('login-screen'),
+            lobby: document.getElementById('lobby-screen'),
+            host: document.getElementById('host-dashboard'),
+            game: document.getElementById('game-screen')
+        };
+
+        function showScreen(screenName) {
+            Object.values(screens).forEach(s => s.classList.add('hidden'));
+            if(screenName === 'both') {
+                screens.game.classList.remove('hidden');
+                screens.host.classList.remove('hidden');
+            } else {
+                screens[screenName].classList.remove('hidden');
+            }
+        }
+
+        // --- STUDENT LOGIN ---
+        document.getElementById('btn-join').addEventListener('click', () => {
+            const name = document.getElementById('player-name').value.trim();
+            if(!name) return alert("Please enter a name!");
+            
+            signInAnonymously(auth).then(() => {
+                myTeam = Math.random() < 0.5 ? "team1" : "team2"; 
+                const teamDisplay = myTeam === "team1" ? "Red Fleet" : "Blue Fleet";
+                
+                set(ref(db, 'reportGame/players/' + auth.currentUser.uid), { name: name, team: myTeam });
+                
+                document.getElementById('display-name').innerText = name;
+                document.getElementById('team-assignment').innerText = "You are in the " + teamDisplay;
+                document.getElementById('team-assignment').style.color = myTeam === "team1" ? "var(--team1-color)" : "var(--team2-color)";
+                
+                showScreen('lobby');
+                listenToGame();
+            });
+        });
+
+        // --- HOST LOGIN ---
+        document.getElementById('btn-host-login').addEventListener('click', () => {
+            signInAnonymously(auth).then(() => {
+                isHost = true;
+                showScreen('both');
+                setupHost();
+                listenToGame();
+            });
+        });
+
+        // --- GAME SYNC ---
+        function listenToGame() {
+            // Sync Scores
+            onValue(ref(db, 'reportGame/scores'), (snap) => {
+                const scores = snap.val() || { team1: 0, team2: 0 };
+                document.getElementById('score1').innerText = scores.team1;
+                document.getElementById('score2').innerText = scores.team2;
+            });
+
+            // Sync Data Packets
+            onValue(ref(db, 'reportGame/currentPacket'), (snap) => {
+                const packet = snap.val();
+                const display = document.getElementById('data-display');
+                const actions = document.getElementById('action-buttons');
+                
+                if (packet && packet.active) {
+                    if(!isHost) showScreen('game');
+                    display.innerText = '"' + packet.text + '"';
+                    currentCorrectAnswer = packet.type;
+                    if(!isHost) actions.classList.remove('hidden');
+                } else {
+                    display.innerText = "Awaiting next data packet...";
+                    actions.classList.add('hidden');
+                    if(!isHost && !packet) showScreen('lobby'); 
+                }
+            });
+        }
+
+        // --- STUDENT GAMEPLAY ---
+        window.submitAnswer = function(chosenType) {
+            document.getElementById('action-buttons').classList.add('hidden'); // Hide buttons instantly
+            
+            if(chosenType === currentCorrectAnswer) {
+                // Correct! Award point and clear packet
+                get(ref(db, `reportGame/scores/${myTeam}`)).then(snap => {
+                    set(ref(db, `reportGame/scores/${myTeam}`), (snap.val() || 0) + 1);
+                    set(ref(db, 'reportGame/currentPacket/active'), false); // Clear for everyone
+                });
+            } else {
+                // Wrong! 
+                alert("Incorrect classification! Let your fleet mates try.");
+                setTimeout(() => {
+                    // Check if packet is still active before re-showing buttons
+                    get(ref(db, 'reportGame/currentPacket/active')).then(snap => {
+                        if(snap.val()) document.getElementById('action-buttons').classList.remove('hidden');
+                    });
+                }, 2000); // 2 second penalty
+            }
+        };
+
+        // --- HOST CONTROLS ---
+        function setupHost() {
+            onValue(ref(db, 'reportGame/players'), (snap) => {
+                document.getElementById('player-count').innerText = snap.size;
+            });
+
+            document.getElementById('btn-send-packet').onclick = () => {
+                const selection = document.getElementById('packet-selector').value.split('|');
+                set(ref(db, 'reportGame/currentPacket'), {
+                    type: selection[0],
+                    text: selection[1],
+                    active: true
+                });
+            };
+
+            document.getElementById('btn-reset').onclick = () => {
+                if(confirm("Are you sure? This deletes scores and boots players.")) {
+                    set(ref(db, 'reportGame'), {
+                        scores: { team1: 0, team2: 0 }
+                    });
+                }
+            };
+        }
+    </script>
+</body>
+</html>
