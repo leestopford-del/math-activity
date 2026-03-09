@@ -3,13 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Captain Alby's Data Sorter</title>
+    <title>Captain Alby's Grid Sea</title>
     <style>
         /* --- CORE STYLES & MOBILE FRIENDLINESS --- */
         :root {
             --team1-color: #ef4444; /* Red Fleet */
             --team2-color: #3b82f6; /* Blue Fleet */
             --bg-dark: #0f172a;
+            --card-bg: #1e293b;
             --text-light: #f8fafc;
         }
         body {
@@ -17,63 +18,91 @@
             background-color: var(--bg-dark);
             color: var(--text-light);
             margin: 0;
-            padding: 15px;
+            padding: 10px;
             display: flex;
             flex-direction: column;
             align-items: center;
         }
-        h1, h2, h3 { text-align: center; margin-top: 5px; }
+        h1, h2, h3, h4 { text-align: center; margin-top: 5px; margin-bottom: 10px; }
         .hidden { display: none !important; }
         
         /* --- BUTTONS & INPUTS --- */
-        input, button, select {
-            padding: 12px;
+        input, button {
+            padding: 12px 20px;
             margin: 8px 4px;
             border-radius: 8px;
-            border: 2px solid #475569;
+            border: none;
             font-size: 16px;
-            width: 100%;
-            max-width: 320px;
-            background: #1e293b;
-            color: white;
-            box-sizing: border-box;
+            font-weight: bold;
         }
+        input { background: #0f172a; color: white; border: 2px solid #475569; width: 80%; max-width: 300px; text-align: center;}
         button {
             background-color: #fbbf24;
             color: #000;
-            font-weight: bold;
             cursor: pointer;
-            border: none;
             box-shadow: 0 4px 6px rgba(0,0,0,0.3);
             transition: transform 0.1s;
+            width: 90%; max-width: 300px;
         }
         button:active { transform: scale(0.95); }
+        button:disabled { background-color: #475569; color: #94a3b8; cursor: not-allowed; box-shadow: none; }
         .host-btn { background-color: #10b981; color: white; }
-        
-        /* Scaffolding Buttons */
-        .fact-btn { background-color: #8b5cf6; color: white; min-height: 80px; font-size: 18px; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.2;}
-        .opinion-btn { background-color: #f97316; color: white; min-height: 80px; font-size: 18px; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.2;}
-        .informal-text { font-size: 1.1em; font-weight: bold; }
-        .formal-text { font-size: 0.8em; opacity: 0.9; margin-top: 5px; font-style: italic;}
 
         /* --- CONTAINERS --- */
         #login-screen, #lobby-screen, #game-screen, #host-dashboard {
             width: 100%;
             max-width: 600px;
-            background: #1e293b;
+            background: var(--card-bg);
             padding: 20px;
             border-radius: 12px;
             box-sizing: border-box;
             margin-bottom: 20px;
             text-align: center;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.5);
         }
 
-        /* --- SCOREBOARD & DATA PACKET --- */
+        /* --- LIVE ROSTERS --- */
+        .roster-container {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 15px;
+            width: 100%;
+        }
+        .roster-col {
+            flex: 1;
+            background: #0f172a;
+            border-radius: 8px;
+            padding: 10px;
+            border-top: 4px solid;
+            min-height: 120px;
+        }
+        .col-red { border-color: var(--team1-color); }
+        .col-blue { border-color: var(--team2-color); }
+        .player-tag {
+            background: #334155;
+            padding: 6px;
+            border-radius: 4px;
+            margin-bottom: 6px;
+            font-size: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 2px solid transparent;
+        }
+        .player-tag.active-turn {
+            border-color: #fbbf24;
+            background: rgba(251, 191, 36, 0.2);
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(251,191,36,0.7); } 70% { box-shadow: 0 0 0 10px rgba(251,191,36,0); } 100% { box-shadow: 0 0 0 0 rgba(251,191,36,0); } }
+
+        /* --- SCOREBOARD & TURN BANNER --- */
         .scoreboard {
             display: flex;
             justify-content: space-around;
-            margin-bottom: 15px;
-            font-size: 20px;
+            margin-bottom: 10px;
+            font-size: 22px;
             font-weight: bold;
             background: #000;
             padding: 10px;
@@ -81,98 +110,160 @@
         }
         .team1-score { color: var(--team1-color); }
         .team2-score { color: var(--team2-color); }
-        
-        #data-display {
-            background: #334155;
-            padding: 20px;
+
+        #turn-banner {
+            background: #475569;
+            color: white;
+            padding: 10px;
             border-radius: 8px;
-            min-height: 100px;
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            border: 2px solid transparent;
+        }
+
+        /* --- THE GRID SEA (WITH COORDINATE LABELS) --- */
+        .grid-wrapper {
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
-            margin-bottom: 20px;
-            border: 2px dashed #fbbf24;
-            gap: 15px;
+            margin: 0 auto 20px auto;
+            max-width: 500px;
         }
+        .grid-x-labels {
+            display: grid;
+            grid-template-columns: 20px repeat(6, 1fr);
+            width: 100%;
+            text-align: center;
+            font-weight: bold;
+            color: #94a3b8;
+            margin-bottom: 5px;
+        }
+        .grid-body-row {
+            display: flex;
+            width: 100%;
+        }
+        .grid-y-labels {
+            display: flex;
+            flex-direction: column;
+            width: 20px;
+            justify-content: space-around;
+            font-weight: bold;
+            color: #94a3b8;
+            text-align: center;
+        }
+        #grid-container {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr); 
+            gap: 2px;
+            background-color: #fff;
+            padding: 2px;
+            border-radius: 4px;
+            aspect-ratio: 1 / 1;
+            flex-grow: 1;
+        }
+        .grid-cell {
+            background-color: #0ea5e9;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 28px;
+            cursor: pointer;
+            user-select: none;
+            border: 1px solid rgba(255,255,255,0.2);
+            transition: 0.2s;
+        }
+        .grid-cell:active { background-color: #0284c7; }
+        .grid-cell.treasure::after { content: "💰"; filter: drop-shadow(0 0 5px #fbbf24);}
         
-        /* Dual Language Display */
-        .lang-english { font-size: 22px; font-weight: bold; color: #fbbf24; }
-        .lang-native { font-size: 18px; color: #cbd5e1; font-style: italic; border-top: 1px solid #475569; padding-top: 10px; width: 100%;}
+        #feedback-msg {
+            color: #ef4444;
+            font-weight: bold;
+            height: 20px;
+            margin-bottom: 10px;
+        }
     </style>
 </head>
 <body>
 
     <div id="login-screen">
-        <h1>IWS Science Division</h1>
-        <p>Enter your recruit name and select your support language.</p>
-        
+        <h1>Captain Alby's Grid Sea</h1>
+        <p>Enter your recruit name to join the retrieval fleet.</p>
         <input type="text" id="player-name" placeholder="Recruit Name" maxlength="15">
-        
-        <select id="player-lang">
-            <option value="en">English (Only)</option>
-            <option value="pt">Português (Brazilian)</option>
-            <option value="fr">Français (Congolese)</option>
-            <option value="es">Español</option>
-        </select>
-
-        <button id="btn-join" style="margin-top: 15px;">Join Fleet</button>
-        
+        <br>
+        <button id="btn-join">Join Fleet</button>
         <hr style="border-color: #334155; margin: 30px 0;">
         <button id="btn-host-login" class="host-btn">Captain Alby (Host) Login</button>
     </div>
 
     <div id="lobby-screen" class="hidden">
-        <h2>Recruit Lobby</h2>
-        <p>Welcome, <span id="display-name"></span>!</p>
-        <h3 id="team-assignment">Assigning team...</h3>
-        <p>Awaiting Captain Alby to beam the first data packet...</p>
+        <h2 style="color: #fbbf24;">Recruit Lobby</h2>
+        <p>Welcome, <span id="display-name" style="font-weight:bold;"></span>!</p>
+        
+        <div class="roster-container">
+            <div class="roster-col col-red">
+                <h4 style="color:var(--team1-color); margin:0 0 10px 0;">Red Fleet</h4>
+                <div id="lobby-roster-red"></div>
+            </div>
+            <div class="roster-col col-blue">
+                <h4 style="color:var(--team2-color); margin:0 0 10px 0;">Blue Fleet</h4>
+                <div id="lobby-roster-blue"></div>
+            </div>
+        </div>
+        
+        <p style="color: #94a3b8;">Awaiting Captain Alby to launch the mission...</p>
     </div>
 
     <div id="host-dashboard" class="hidden">
         <h2 style="color: #10b981;">Captain's Control Panel</h2>
-        <p>Recruits connected: <span id="player-count">0</span></p>
+        <p>Recruits connected: <span id="player-count" style="font-weight:bold; color:white;">0</span></p>
         
-        <select id="packet-selector">
-            <option value="q1">Fact: The school has 500 enrolled students.</option>
-            <option value="q2">Opinion: Our playground is really great.</option>
-            <option value="q3">Fact: The science lab is on the second floor.</option>
-            <option value="q4">Opinion: Maths is the most difficult subject.</option>
-            <option value="q5">Fact: Lessons begin at 9:00 AM.</option>
-        </select>
-        <button id="btn-send-packet">Beam Data Packet</button>
+        <button id="btn-start-game">🚀 Launch Mission</button>
+        <button id="btn-spawn-treasure" style="background:#3b82f6; color:white;">💰 Spawn Treasures</button>
+        <button id="btn-skip-turn" style="background:#8b5cf6; color:white;">⏭️ Skip Player's Turn</button>
         
         <hr style="border-color: #334155; margin: 20px 0;">
-        <button id="btn-reset" style="background: #dc2626; color: white;">Reset Entire Mission</button>
+        <p style="color: #94a3b8; font-size:14px; margin-bottom:5px;">Mission Controls:</p>
+        <button id="btn-return-lobby" style="background: #f97316; color: white;">Return to Base (Play Again)</button>
+        <button id="btn-reset" style="background: #dc2626; color: white;">Hard Reset (Boot Players)</button>
     </div>
 
     <div id="game-screen" class="hidden">
+        
         <div class="scoreboard">
-            <div class="team1-score">Red Fleet: <span id="score1">0</span></div>
-            <div class="team2-score">Blue Fleet: <span id="score2">0</span></div>
+            <div class="team1-score">Red: <span id="score1">0</span></div>
+            <div class="team2-score">Blue: <span id="score2">0</span></div>
         </div>
-        
-        <h3 style="color: #94a3b8; font-size: 16px;">Incoming Data Packet:</h3>
-        <div id="data-display">
-            Waiting for Captain Alby...
+
+        <div id="turn-banner">Waiting for orders...</div>
+        <div id="feedback-msg"></div>
+
+        <div class="grid-wrapper">
+            <div class="grid-x-labels">
+                <div></div> <div>1</div><div>2</div><div>3</div><div>4</div><div>5</div><div>6</div>
+            </div>
+            <div class="grid-body-row">
+                <div class="grid-y-labels">
+                    <div>A</div><div>B</div><div>C</div><div>D</div><div>E</div><div>F</div>
+                </div>
+                <div id="grid-container"></div>
+            </div>
         </div>
-        
-        <div id="action-buttons" class="hidden" style="display: flex; gap: 10px; width: 100%;">
-            <button class="fact-btn" style="flex: 1;" onclick="submitAnswer('fact')">
-                <span class="informal-text" id="ui-fact-informal">Provable Truth</span>
-                <span class="formal-text">➔ Objective FACT</span>
-            </button>
-            <button class="opinion-btn" style="flex: 1;" onclick="submitAnswer('opinion')">
-                <span class="informal-text" id="ui-op-informal">Personal Feeling</span>
-                <span class="formal-text">➔ Subjective OPINION</span>
-            </button>
+
+        <div class="roster-container">
+            <div class="roster-col col-red">
+                <div id="game-roster-red"></div>
+            </div>
+            <div class="roster-col col-blue">
+                <div id="game-roster-blue"></div>
+            </div>
         </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
-        import { getDatabase, ref, set, onValue, get } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-database.js";
+        import { getDatabase, ref, set, onValue, update, remove, get } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-database.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBpf5wi0wShnatqUhcmPhSOdnd0NdBL65A",
@@ -185,54 +276,10 @@
         const auth = getAuth();
         const db = getDatabase();
 
-        // --- CLIL DUAL-LANGUAGE DICTIONARY ---
-        const dictionary = {
-            q1: {
-                type: 'fact',
-                en: "The school has 500 enrolled students.",
-                pt: "A escola tem 500 alunos matriculados.",
-                fr: "L'école compte 500 élèves inscrits.",
-                es: "La escuela tiene 500 estudiantes matriculados."
-            },
-            q2: {
-                type: 'opinion',
-                en: "Our playground is really great.",
-                pt: "Nosso parquinho é muito legal.",
-                fr: "Notre cour de récréation est vraiment super.",
-                es: "Nuestro patio de recreo es realmente genial."
-            },
-            q3: {
-                type: 'fact',
-                en: "The science lab is on the second floor.",
-                pt: "O laboratório de ciências fica no segundo andar.",
-                fr: "Le laboratoire de sciences est au deuxième étage.",
-                es: "El laboratorio de ciencias está en el segundo piso."
-            },
-            q4: {
-                type: 'opinion',
-                en: "Maths is the most difficult subject.",
-                pt: "Matemática é a matéria mais difícil.",
-                fr: "Les mathématiques sont la matière la plus difficile.",
-                es: "Las matemáticas son la materia más difícil."
-            },
-            q5: {
-                type: 'fact',
-                en: "Lessons begin at 9:00 AM.",
-                pt: "As aulas começam às 9:00 da manhã.",
-                fr: "Les cours commencent à 9h00.",
-                es: "Las clases comienzan a las 9:00 AM."
-            }
-        };
-
-        const uiTranslations = {
-            factInformal: { en: "Can be proven", pt: "Pode ser provado", fr: "Peut être prouvé", es: "Se puede probar" },
-            opinionInformal: { en: "A feeling or thought", pt: "Um sentimento ou ideia", fr: "Un sentiment ou pensée", es: "Un sentimiento o idea" }
-        };
-
         let myTeam = "";
-        let myLang = "en";
         let isHost = false;
-        let currentCorrectAnswer = "";
+        let activeTurnUid = "";
+        let activeTurnName = "";
 
         const screens = {
             login: document.getElementById('login-screen'),
@@ -243,7 +290,7 @@
 
         function showScreen(screenName) {
             Object.values(screens).forEach(s => s.classList.add('hidden'));
-            if(screenName === 'both') {
+            if(screenName === 'both-game-and-host') {
                 screens.game.classList.remove('hidden');
                 screens.host.classList.remove('hidden');
             } else {
@@ -254,25 +301,27 @@
         // --- STUDENT LOGIN ---
         document.getElementById('btn-join').addEventListener('click', () => {
             const name = document.getElementById('player-name').value.trim();
-            myLang = document.getElementById('player-lang').value;
             if(!name) return alert("Please enter a name!");
             
-            // Translate UI Buttons immediately
-            document.getElementById('ui-fact-informal').innerText = uiTranslations.factInformal[myLang];
-            document.getElementById('ui-op-informal').innerText = uiTranslations.opinionInformal[myLang];
-
             signInAnonymously(auth).then(() => {
-                myTeam = Math.random() < 0.5 ? "team1" : "team2"; 
-                const teamDisplay = myTeam === "team1" ? "Red Fleet" : "Blue Fleet";
+                const uid = auth.currentUser.uid;
                 
-                set(ref(db, 'reportGame/players/' + auth.currentUser.uid), { name: name, team: myTeam, lang: myLang });
-                
-                document.getElementById('display-name').innerText = name;
-                document.getElementById('team-assignment').innerText = "You are in the " + teamDisplay;
-                document.getElementById('team-assignment').style.color = myTeam === "team1" ? "var(--team1-color)" : "var(--team2-color)";
-                
-                showScreen('lobby');
-                listenToGame();
+                // Count current players to alternate teams evenly
+                get(ref(db, 'gridGame/players')).then(snap => {
+                    const players = snap.val() || {};
+                    let redCount = 0; let blueCount = 0;
+                    for(let k in players) {
+                        if(players[k].team === 'team1') redCount++;
+                        else blueCount++;
+                    }
+                    myTeam = redCount <= blueCount ? 'team1' : 'team2';
+                    
+                    set(ref(db, 'gridGame/players/' + uid), { name: name, team: myTeam, score: 0 });
+                    document.getElementById('display-name').innerText = name;
+                    
+                    showScreen('lobby');
+                    listenToGameState();
+                });
             });
         });
 
@@ -280,89 +329,224 @@
         document.getElementById('btn-host-login').addEventListener('click', () => {
             signInAnonymously(auth).then(() => {
                 isHost = true;
-                showScreen('both');
-                setupHost();
-                listenToGame();
+                showScreen('host');
+                setupHostListeners();
+                listenToGameState();
             });
         });
 
-        // --- GAME SYNC ---
-        function listenToGame() {
-            onValue(ref(db, 'reportGame/scores'), (snap) => {
-                const scores = snap.val() || { team1: 0, team2: 0 };
+        // --- GAME LOGIC & SYNC ---
+        function listenToGameState() {
+            // 1. Sync Phase
+            onValue(ref(db, 'gridGame/gameState/phase'), (snapshot) => {
+                const phase = snapshot.val() || 'waiting';
+                if (phase === 'playing') {
+                    if(isHost) showScreen('both-game-and-host');
+                    else showScreen('game');
+                } else if (phase === 'waiting' && !isHost) {
+                    showScreen('lobby');
+                }
+            });
+
+            // 2. Sync Turn Data
+            onValue(ref(db, 'gridGame/gameState'), (snapshot) => {
+                const state = snapshot.val() || {};
+                activeTurnUid = state.activePlayerUid;
+                
+                const banner = document.getElementById('turn-banner');
+                if (activeTurnUid) {
+                    // Update turn banner
+                    get(ref(db, `gridGame/players/${activeTurnUid}`)).then(pSnap => {
+                        const player = pSnap.val();
+                        if(player) {
+                            activeTurnName = player.name;
+                            const teamName = player.team === 'team1' ? "Red Fleet" : "Blue Fleet";
+                            banner.innerText = `Current Turn: ${player.name} (${teamName})`;
+                            banner.style.borderColor = player.team === 'team1' ? "var(--team1-color)" : "var(--team2-color)";
+                            banner.style.background = "var(--card-bg)";
+                        }
+                    });
+                } else {
+                    banner.innerText = "Waiting for orders...";
+                    banner.style.borderColor = "transparent";
+                    banner.style.background = "#475569";
+                }
+            });
+
+            // 3. Sync Team Scores
+            onValue(ref(db, 'gridGame/scores'), (snapshot) => {
+                const scores = snapshot.val() || { team1: 0, team2: 0 };
                 document.getElementById('score1').innerText = scores.team1;
                 document.getElementById('score2').innerText = scores.team2;
             });
 
-            onValue(ref(db, 'reportGame/currentPacket'), (snap) => {
-                const packetID = snap.val();
-                const display = document.getElementById('data-display');
-                const actions = document.getElementById('action-buttons');
+            // 4. Sync Rosters & Highlight Turn
+            onValue(ref(db, 'gridGame/players'), (snapshot) => {
+                const players = snapshot.val() || {};
+                let redHTML = ""; let blueHTML = "";
+                let count = 0;
                 
-                if (packetID && packetID !== "clear") {
-                    if(!isHost) showScreen('game');
-                    
-                    const packetData = dictionary[packetID];
-                    currentCorrectAnswer = packetData.type;
-                    
-                    // Render Dual-Language
-                    let html = `<div class="lang-english">"${packetData.en}"</div>`;
-                    if(myLang !== 'en') {
-                        html += `<div class="lang-native">↳ ${packetData[myLang]}</div>`;
-                    }
-                    display.innerHTML = html;
-
-                    if(!isHost) {
-                        actions.classList.remove('hidden');
-                        actions.style.display = "flex";
-                    }
-                } else {
-                    display.innerHTML = '<div style="color:#94a3b8;">Awaiting next data packet...</div>';
-                    actions.classList.add('hidden');
-                    if(!isHost && !packetID) showScreen('lobby'); 
+                for(let uid in players) {
+                    count++;
+                    const p = players[uid];
+                    const isActive = (uid === activeTurnUid) ? "active-turn" : "";
+                    const tag = `<div class="player-tag ${isActive}"><span>${p.name}</span> <span style="color:#fbbf24; font-weight:bold;">${p.score||0}</span></div>`;
+                    if(p.team === "team1") redHTML += tag;
+                    else blueHTML += tag;
                 }
+                
+                // Update Student Lobby & Game Rosters
+                document.getElementById('lobby-roster-red').innerHTML = redHTML || "<i style='color:#64748b'>Empty</i>";
+                document.getElementById('lobby-roster-blue').innerHTML = blueHTML || "<i style='color:#64748b'>Empty</i>";
+                document.getElementById('game-roster-red').innerHTML = redHTML || "<i style='color:#64748b'>Empty</i>";
+                document.getElementById('game-roster-blue').innerHTML = blueHTML || "<i style='color:#64748b'>Empty</i>";
+                
+                if(isHost) document.getElementById('player-count').innerText = count;
+            });
+
+            // 5. Sync Grid
+            onValue(ref(db, 'gridGame/grid'), (snapshot) => {
+                renderGrid(snapshot.val() || {});
             });
         }
 
-        // --- STUDENT GAMEPLAY ---
-        window.submitAnswer = function(chosenType) {
-            document.getElementById('action-buttons').classList.add('hidden'); 
+        // --- GRID RENDERING & CLICKING ---
+        function renderGrid(gridData) {
+            const container = document.getElementById('grid-container');
+            container.innerHTML = ''; 
             
-            if(chosenType === currentCorrectAnswer) {
-                // Correct! Award point and clear packet
-                get(ref(db, `reportGame/scores/${myTeam}`)).then(snap => {
-                    set(ref(db, `reportGame/scores/${myTeam}`), (snap.val() || 0) + 1);
-                    set(ref(db, 'reportGame/currentPacket'), "clear"); // Clear for everyone
-                });
-            } else {
-                // Wrong! 
-                alert("System mismatch! Re-calibrating...");
-                setTimeout(() => {
-                    get(ref(db, 'reportGame/currentPacket')).then(snap => {
-                        if(snap.val() && snap.val() !== "clear") {
-                            document.getElementById('action-buttons').classList.remove('hidden');
-                        }
+            for(let i = 0; i < 36; i++) { 
+                const cell = document.createElement('div');
+                cell.className = 'grid-cell';
+                if(gridData[i]) cell.classList.add('treasure');
+                
+                // Clicking logic
+                cell.onclick = () => {
+                    if (isHost) return; // Host can't play
+                    
+                    const feedback = document.getElementById('feedback-msg');
+                    
+                    if (auth.currentUser.uid !== activeTurnUid) {
+                        feedback.innerText = "Not your turn! Let " + activeTurnName + " search.";
+                        setTimeout(() => feedback.innerText = "", 2000);
+                        return;
+                    }
+                    
+                    if (!gridData[i]) {
+                        feedback.innerText = "Empty water! Turn lost.";
+                        setTimeout(() => feedback.innerText = "", 2000);
+                        advanceTurn(); // Proceed to next player even if they miss
+                        return;
+                    }
+
+                    // Successful Claim
+                    feedback.innerText = "Treasure secured!";
+                    feedback.style.color = "#10b981";
+                    setTimeout(() => { feedback.innerText = ""; feedback.style.color = "#ef4444";}, 2000);
+                    
+                    remove(ref(db, `gridGame/grid/${i}`));
+                    
+                    // Update Team Score
+                    get(ref(db, `gridGame/scores/${myTeam}`)).then(snap => {
+                        set(ref(db, `gridGame/scores/${myTeam}`), (snap.val() || 0) + 1);
                     });
-                }, 2000); 
+
+                    // Update Player Score
+                    get(ref(db, `gridGame/players/${auth.currentUser.uid}/score`)).then(snap => {
+                        set(ref(db, `gridGame/players/${auth.currentUser.uid}/score`), (snap.val() || 0) + 1);
+                    });
+
+                    advanceTurn(); // Pass the turn automatically
+                };
+                container.appendChild(cell);
             }
-        };
+        }
+
+        // --- TURN CALCULATION LOGIC ---
+        async function advanceTurn(forceNextTeam = null) {
+            const snap = await get(ref(db, 'gridGame/players'));
+            const players = snap.val() || {};
+            const team1 = []; const team2 = [];
+            
+            for(let uid in players) {
+                if(players[uid].team === 'team1') team1.push({uid, ...players[uid]});
+                if(players[uid].team === 'team2') team2.push({uid, ...players[uid]});
+            }
+            
+            // Sort by name alphabetically to keep a consistent turn order
+            team1.sort((a,b)=>a.name.localeCompare(b.name));
+            team2.sort((a,b)=>a.name.localeCompare(b.name));
+
+            const stateSnap = await get(ref(db, 'gridGame/gameState'));
+            const state = stateSnap.val() || {};
+            
+            let currentTeam = state.activeTeam || 'team2'; 
+            let nextTeam = forceNextTeam ? forceNextTeam : (currentTeam === 'team1' ? 'team2' : 'team1');
+            let targetArray = nextTeam === 'team1' ? team1 : team2;
+
+            // Fallback if a team is empty
+            if (targetArray.length === 0) {
+                nextTeam = nextTeam === 'team1' ? 'team2' : 'team1';
+                targetArray = nextTeam === 'team1' ? team1 : team2;
+                if(targetArray.length === 0) return; // Nobody is playing
+            }
+
+            let nextIdx = (state[`index_${nextTeam}`] || 0);
+            if (!forceNextTeam) nextIdx++; // Increment if standard turn pass
+            
+            if(nextIdx >= targetArray.length) nextIdx = 0; // Loop back to start
+
+            await update(ref(db, 'gridGame/gameState'), {
+                activeTeam: nextTeam,
+                activePlayerUid: targetArray[nextIdx].uid,
+                [`index_${nextTeam}`]: nextIdx
+            });
+        }
 
         // --- HOST CONTROLS ---
-        function setupHost() {
-            onValue(ref(db, 'reportGame/players'), (snap) => {
-                document.getElementById('player-count').innerText = snap.size;
-            });
-
-            document.getElementById('btn-send-packet').onclick = () => {
-                const qID = document.getElementById('packet-selector').value;
-                set(ref(db, 'reportGame/currentPacket'), qID);
+        function setupHostListeners() {
+            
+            document.getElementById('btn-start-game').onclick = () => {
+                set(ref(db, 'gridGame/gameState/phase'), 'playing');
+                advanceTurn('team1'); // Force Team 1 to start
             };
 
+            document.getElementById('btn-spawn-treasure').onclick = () => {
+                let newGrid = {};
+                for(let i=0; i<8; i++) {
+                    const randomCell = Math.floor(Math.random() * 36);
+                    newGrid[randomCell] = true;
+                }
+                update(ref(db, 'gridGame/grid'), newGrid);
+            };
+
+            document.getElementById('btn-skip-turn').onclick = () => {
+                advanceTurn(); // Host manually skips an AFK player
+            };
+
+            // Safely return everyone to lobby, keep players
+            document.getElementById('btn-return-lobby').onclick = () => {
+                set(ref(db, 'gridGame/gameState/phase'), 'waiting');
+                set(ref(db, 'gridGame/gameState/activePlayerUid'), null);
+                set(ref(db, 'gridGame/scores'), { team1: 0, team2: 0 });
+                remove(ref(db, 'gridGame/grid'));
+                
+                // Reset individual player scores
+                get(ref(db, 'gridGame/players')).then(snap => {
+                    const p = snap.val();
+                    if(p) {
+                        for(let uid in p) {
+                            set(ref(db, `gridGame/players/${uid}/score`), 0);
+                        }
+                    }
+                });
+            };
+
+            // Hard reset (Boot everyone)
             document.getElementById('btn-reset').onclick = () => {
-                if(confirm("Are you sure? This deletes scores and boots players.")) {
-                    set(ref(db, 'reportGame'), {
-                        scores: { team1: 0, team2: 0 }
-                    });
+                if(confirm("Boot all players and reset database?")) {
+                    remove(ref(db, 'gridGame'));
+                    set(ref(db, 'gridGame/gameState/phase'), 'waiting');
                 }
             };
         }
