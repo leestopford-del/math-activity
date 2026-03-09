@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Material Journey: Eco-Tag</title>
+    <style>
+        /* --- CORE STYLES & MOBILE FRIENDLINESS --- */
+        :root {
+            --eco-green: #10b981; 
+            --waste-purple: #8b5cf6; 
+            --bg-dark: #0f172a;
+            --card-bg: #1e293b;
+            --text-light: #f8fafc;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-light);
+            margin: 0; padding: 10px;
+            display: flex; flex-direction: column; align-items: center;
+            overflow-x: hidden;
+        }
+        h1, h2, h3, h4 { text-align: center; margin-top: 5px; margin-bottom: 10px; }
+        .hidden { display: none !important; }
+        
+        /* --- BUTTONS & INPUTS --- */
+        input, button {
+            padding: 12px; margin: 8px 4px;
+            border-radius: 8px; border: none;
+            font-size: 16px; font-weight: bold; width: 100%; max-width: 300px;
+            box-sizing: border-box; text-align: center;
+        }
+        input { background: #0f172a; color: white; border: 2px solid #475569; }
+        button {
+            background-color: #fbbf24; color: #000; cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3); transition: transform 0.1s;
+        }
+        button:active { transform: scale(0.95); }
+        .host-btn { background-color: #3b82f6; color: white; }
+
+        /* --- CONTAINERS --- */
+        .screen-box {
+            width: 100%; max-width: 600px;
+            background: var(--card-bg); padding: 20px;
+            border-radius: 12px; box-sizing: border-box;
+            margin-bottom: 20px; text-align: center;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+        }
+
+        /* --- LOBBY ROSTERS --- */
+        .roster-container { display: flex; gap: 10px; margin-top: 15px; }
+        .roster-col {
+            flex: 1; background: #0f172a; border-radius: 8px;
+            padding: 10px; border-top: 4px solid; min-height: 120px;
+        }
+        .col-green { border-color: var(--eco-green); }
+        .col-purple { border-color: var(--waste-purple); }
+        .player-tag {
+            background: #334155; padding: 6px; border-radius: 4px;
+            margin-bottom: 6px; font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 5px;
+        }
+
+        /* --- GAME CANVAS & UI --- */
+        #game-wrapper {
+            position: relative; width: 100%; max-width: 800px;
+            margin: 0 auto; display: flex; flex-direction: column; align-items: center;
+        }
+        #turn-banner {
+            width: 100%; padding: 10px; text-align: center;
+            font-size: 18px; font-weight: bold; border-radius: 8px 8px 0 0;
+            background: #475569; color: white; box-sizing: border-box;
+        }
+        #game-canvas {
+            width: 100%; height: auto; aspect-ratio: 4 / 3;
+            background: #1e293b; border: 3px solid #334155;
+            border-radius: 0 0 8px 8px; touch-action: none; box-sizing: border-box;
+        }
+        
+        /* --- VIRTUAL JOYSTICK --- */
+        #joy-zone {
+            position: absolute; bottom: 20px; left: 20px;
+            width: 120px; height: 120px;
+            background: rgba(255, 255, 255, 0.05); border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            touch-action: none;
+        }
+        #joy-stick {
+            position: absolute; top: 50%; left: 50%;
+            width: 50px; height: 50px;
+            background: rgba(16, 185, 129, 0.5); border-radius: 50%;
+            transform: translate(-50%, -50%); pointer-events: none;
+        }
+        
+        .timer-display { font-size: 24px; font-weight: bold; color: #fbbf24; margin: 10px 0; }
+    </style>
+</head>
+<body>
+
+    <div id="screen-login" class="screen-box">
+        <h1>Material Journey: Eco-Tag</h1>
+        <p>Enter your recruit name to join the simulation.</p>
+        <input type="text" id="player-name" placeholder="Recruit Name" maxlength="12">
+        <br>
+        <button id="btn-join">Join the Simulation</button>
+        <hr style="border-color: #334155; margin: 30px 0;">
+        <button id="btn-host-login" class="host-btn">Teacher Host Login</button>
+    </div>
+
+    <div id="screen-lobby" class="screen-box hidden">
+        <h2 style="color: #fbbf24;">Simulation Lobby</h2>
+        <p>Welcome, <span id="display-name" style="font-weight:bold; color:white;"></span>!</p>
+        
+        <div style="background: #0f172a; padding: 10px; border-radius: 8px; font-size: 14px; text-align: left;">
+            <b style="color:#10b981;">🌱 Eco-Warriors:</b> Safe in the Recycling Plant. Clean (unfreeze) tagged friends!<br>
+            <b style="color:#8b5cf6;">🛢️ Waste Monsters:</b> Safe in the Landfill. Tag the Eco-Warriors to pollute them!
+        </div>
+
+        <div class="roster-container">
+            <div class="roster-col col-green">
+                <h4 style="color:var(--eco-green); margin:0 0 10px 0;">Eco-Warriors</h4>
+                <div id="roster-green"></div>
+            </div>
+            <div class="roster-col col-purple">
+                <h4 style="color:var(--waste-purple); margin:0 0 10px 0;">Waste Monsters</h4>
+                <div id="roster-purple"></div>
+            </div>
+        </div>
+        
+        <p style="color: #94a3b8; margin-top: 15px;">Waiting for Host to launch the simulation...</p>
+    </div>
+
+    <div id="screen-host" class="screen-box hidden">
+        <h2 style="color: #3b82f6;">Captain's Host Dashboard</h2>
+        <p>Recruits connected: <span id="player-count" style="font-weight:bold; color:white;">0</span></p>
+        
+        <button id="btn-start-r1" style="background:#8b5cf6; color:white;">Start Round 1 (Waste chases Eco)</button>
+        <button id="btn-start-r2" style="background:#10b981; color:white;">Start Round 2 (Eco chases Waste)</button>
+        <button id="btn-end-round" style="background:#f59e0b; color:black;">End Round Early (Return to Lobby)</button>
+        
+        <hr style="border-color: #334155; margin: 20px 0;">
+        <button id="btn-reset" style="background: #dc2626; color: white;">Hard Reset (Boot All Players)</button>
+    </div>
+
+    <div id="screen-game" class="hidden">
+        <div id="game-wrapper">
+            <div id="turn-banner">WAITING FOR DEPLOYMENT...</div>
+            <div class="timer-display">Time Remaining: <span id="time-left">60</span>s</div>
+            
+            <canvas id="game-canvas" width="800" height="600"></canvas>
+            
+            <div id="joy-zone" class="hidden">
+                <div id="joy-stick"></div>
+            </div>
+            
+            <p id="freeze-warning" style="color: #ef4444; font-weight: bold; font-size: 20px; display: none;">❄️ YOU ARE POLLUTED! Wait for a teammate to rescue you! ❄️</p>
+            <p style="color: #94a3b8; font-size: 14px; text-align: center; margin-top: 10px;">Desktop: Use Arrow Keys or W, A, S, D to move. Mobile: Use the Joystick.</p>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getDatabase, ref, set, onValue, update, remove, get, onDisconnect } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBXgT_LxFUar6FcfFqKJsuY2YIOjG5JLtM",
+            authDomain: "symmetry-and-nets.firebaseapp.com",
+            databaseURL: "https://symmetry-and-nets-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "symmetry-and-nets"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth();
+        const db = getDatabase();
+
+        // --- GAME CONSTANTS ---
+        const PLAYER_RADIUS = 20;
+        const CANVAS_W = 800;
+        const CANVAS_H = 600;
+        const BASE_SPEED = 6;
+
+        let myUID = "";
+        let myTeam = "";
+        let isHost = false;
+        let amIFrozen = false;
+        
+        let globalState = { phase: 'waiting', chaserTeam: 'Team 2', timer: 60 };
+        let globalPlayers = {};
+        let renderPlayers = {}; // For smooth interpolation
+
+        // Local Movement Vars
+        let myX = 100, myY = 100;
+        let joyX = 0, joyY = 0;
+        let keys = { ArrowUp:false, ArrowDown:false, ArrowLeft:false, ArrowRight:false, KeyW:false, KeyA:false, KeyS:false, KeyD:false };
+
+        const screens = {
+            login: document.getElementById('screen-login'),
+            lobby: document.getElementById('screen-lobby'),
+            host: document.getElementById('screen-host'),
+            game: document.getElementById('screen-game')
+        };
+
+        function showScreen(screenName) {
+            Object.values(screens).forEach(s => s.classList.add('hidden'));
+            if(screenName === 'both-host-and-game') {
+                screens.host.classList.remove('hidden');
+                screens.game.classList.remove('hidden');
+            } else {
+                screens[screenName].classList.remove('hidden');
+            }
+        }
+
+        // --- STUDENT LOGIN ---
+        document.getElementById('btn-join').addEventListener('click', () => {
+            const name = document.getElementById('player-name').value.trim();
+            if(!name) return alert("Please enter a name!");
+            
+            signInAnonymously(auth).then(() => {
+                myUID = auth.currentUser.uid;
+                
+                // Auto-assign teams evenly
+                get(ref(db, 'ecoGame/players')).then(snap => {
+                    const players = snap.val() || {};
+                    let t1Count = 0, t2Count = 0;
+                    for(let k in players) {
+                        if(players[k].team === 'Team 1') t1Count++;
+                        else t2Count++;
+                    }
+                    myTeam = t1Count <= t2Count ? 'Team 1' : 'Team 2';
+                    const avatar = myTeam === 'Team 1' ? '🌱' : '🛢️';
+                    
+                    myX = myTeam === 'Team 1' ? 100 + Math.random()*50 : 700 - Math.random()*50;
+                    myY = myTeam === 'Team 1' ? 100 + Math.random()*50 : 500 - Math.random()*50;
+                    
+                    const pRef = ref(db, `ecoGame/players/${myUID}`);
+                    set(pRef, { name: name, team: myTeam, avatar: avatar, x: myX, y: myY, isFrozen: false });
+                    onDisconnect(pRef).remove(); // Remove player if they close tab
+                    
+                    document.getElementById('display-name').innerText = name;
+                    showScreen('lobby');
+                    listenToGame();
+                    requestAnimationFrame(drawCanvas); // Start rendering loop
+                });
+            });
+        });
+
+        // --- HOST LOGIN ---
+        document.getElementById('btn-host-login').addEventListener('click', () => {
+            signInAnonymously(auth).then(() => {
+                isHost = true;
+                showScreen('both-host-and-game');
+                
+                // Initialize state if empty
+                get(ref(db, 'ecoGame/state')).then(snap => {
+                    if (!snap.exists()) set(ref(db, 'ecoGame/state'), { phase: 'waiting', chaserTeam: 'Team 2', timer: 60 });
+                });
+                
+                setupHost();
+                listenToGame();
+                requestAnimationFrame(drawCanvas);
+                setInterval(hostCollisionLoop, 100); // Host handles collisions at 10fps
+            });
+        });
+
+        // --- DATABASE SYNC ---
+        function listenToGame() {
+            // Sync Game State
+            onValue(ref(db, 'ecoGame/state'), (snap) => {
+                const oldPhase = globalState.phase;
+                globalState = snap.val() || { phase: 'waiting', chaserTeam: 'Team 2', timer: 60 };
+                
+                document.getElementById('time-left').innerText = globalState.timer;
+                
+                const banner = document.getElementById('turn-banner');
+                if (globalState.chaserTeam === 'Team 2') {
+                    banner.innerText = "ROUND 1: WASTE MONSTERS ARE CHASING! Eco-Warriors, survive!";
+                    banner.style.background = "var(--waste-purple)";
+                } else {
+                    banner.innerText = "ROUND 2: ECO-WARRIORS ARE CLEANING UP! Waste Monsters, run!";
+                    banner.style.background = "var(--eco-green)";
+                }
+
+                if (globalState.phase === 'playing') {
+                    if (!isHost) {
+                        showScreen('game');
+                        document.getElementById('joy-zone').classList.remove('hidden');
+                    }
+                    if (oldPhase !== 'playing') renderPlayers = {}; // Reset visual interpolation on new round
+                } else {
+                    if (!isHost && myUID) showScreen('lobby');
+                    document.getElementById('joy-zone').classList.add('hidden');
+                }
+            });
+
+            // Sync Players and Rosters
+            onValue(ref(db, 'ecoGame/players'), (snap) => {
+                globalPlayers = snap.val() || {};
+                let greenHTML = ""; let purpleHTML = "";
+                let count = 0;
+                
+                for(let uid in globalPlayers) {
+                    count++;
+                    const p = globalPlayers[uid];
+                    const tag = `<div class="player-tag">${p.avatar} ${p.name}</div>`;
+                    if(p.team === 'Team 1') greenHTML += tag;
+                    else purpleHTML += tag;
+                    
+                    if (uid === myUID) {
+                        amIFrozen = p.isFrozen;
+                        document.getElementById('freeze-warning').style.display = amIFrozen ? 'block' : 'none';
+                    }
+                }
+                
+                document.getElementById('roster-green').innerHTML = greenHTML || "<i style='color:#64748b'>Empty</i>";
+                document.getElementById('roster-purple').innerHTML = purpleHTML || "<i style='color:#64748b'>Empty</i>";
+                if(isHost) document.getElementById('player-count').innerText = count;
+            });
+        }
+
+        // --- LOCAL MOVEMENT CONTROLS ---
+        window.addEventListener('keydown', (e) => { if(keys.hasOwnProperty(e.code)) keys[e.code] = true; });
+        window.addEventListener('keyup', (e) => { if(keys.hasOwnProperty(e.code)) keys[e.code] = false; });
+
+        // Virtual Joystick Logic
+        const joyZone = document.getElementById('joy-zone');
+        const joyStick = document.getElementById('joy-stick');
+        let joyActive = false; let joyCX, joyCY;
+
+        function handleJoyStart(e) {
+            e.preventDefault(); joyActive = true;
+            let cx = e.touches ? e.touches[0].clientX : e.clientX;
+            let cy = e.touches ? e.touches[0].clientY : e.clientY;
+            let rect = joyZone.getBoundingClientRect();
+            joyCX = rect.left + rect.width / 2;
+            joyCY = rect.top + rect.height / 2;
+            updateJoy(cx, cy);
+        }
+        function handleJoyMove(e) {
+            if (!joyActive) return;
+            e.preventDefault();
+            let cx = e.touches ? e.touches[0].clientX : e.clientX;
+            let cy = e.touches ? e.touches[0].clientY : e.clientY;
+            updateJoy(cx, cy);
+        }
+        function handleJoyEnd() {
+            joyActive = false; joyX = 0; joyY = 0;
+            joyStick.style.transform = `translate(-50%, -50%)`;
+        }
+        function updateJoy(x, y) {
+            let dx = x - joyCX; let dy = y - joyCY;
+            let maxDist = 40; let dist = Math.sqrt(dx*dx + dy*dy);
+            if (dist > maxDist) { dx = (dx/dist)*maxDist; dy = (dy/dist)*maxDist; }
+            joyStick.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+            joyX = dx / maxDist; joyY = dy / maxDist;
+        }
+
+        joyZone.addEventListener('touchstart', handleJoyStart, {passive: false});
+        joyZone.addEventListener('touchmove', handleJoyMove, {passive: false});
+        joyZone.addEventListener('touchend', handleJoyEnd);
+        joyZone.addEventListener('mousedown', handleJoyStart);
+        document.addEventListener('mousemove', handleJoyMove);
+        document.addEventListener('mouseup', handleJoyEnd);
+
+        // Apply Movement
+        let lastUpX = -1, lastUpY = -1;
+        function processMovement() {
+            if (globalState.phase !== 'playing' || amIFrozen || isHost) return;
+
+            let dx = joyX; let dy = joyY;
+            if (keys.ArrowUp || keys.KeyW) dy = -1;
+            if (keys.ArrowDown || keys.KeyS) dy = 1;
+            if (keys.ArrowLeft || keys.KeyA) dx = -1;
+            if (keys.ArrowRight || keys.KeyD) dx = 1;
+
+            let mag = Math.sqrt(dx*dx + dy*dy);
+            if (mag > 1) { dx /= mag; dy /= mag; }
+
+            myX += dx * BASE_SPEED;
+            myY += dy * BASE_SPEED;
+
+            // Boundaries
+            myX = Math.max(PLAYER_RADIUS, Math.min(CANVAS_W - PLAYER_RADIUS, myX));
+            myY = Math.max(PLAYER_RADIUS, Math.min(CANVAS_H - PLAYER_RADIUS, myY));
+
+            // Network Upload (Only if moved to save DB quota)
+            let movedDist = Math.abs(myX - lastUpX) + Math.abs(myY - lastUpY);
+            if (movedDist > 2) {
+                update(ref(db, `ecoGame/players/${myUID}`), { x: Math.round(myX), y: Math.round(myY) });
+                lastUpX = myX; lastUpY = myY;
+            }
+        }
+        setInterval(processMovement, 40); // 25 fps local update loop
+
+        // --- CANVAS RENDERING ---
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+
+        function drawCanvas() {
+            ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
+
+            // Draw Safe Zones
+            ctx.fillStyle = 'rgba(16, 185, 129, 0.2)'; // Eco-Warrior Safe Zone
+            ctx.fillRect(0, 0, 250, 200);
+            ctx.fillStyle = '#10b981'; ctx.font = 'bold 16px Arial';
+            ctx.fillText('Recycling Plant (Eco Safe Zone)', 10, 25);
+            ctx.strokeStyle = '#10b981'; ctx.lineWidth = 3; ctx.strokeRect(0, 0, 250, 200);
+
+            ctx.fillStyle = 'rgba(139, 92, 246, 0.2)'; // Waste Monster Safe Zone
+            ctx.fillRect(550, 400, 250, 200);
+            ctx.fillStyle = '#8b5cf6';
+            ctx.fillText('Landfill (Waste Safe Zone)', 560, 425);
+            ctx.strokeStyle = '#8b5cf6'; ctx.strokeRect(550, 400, 250, 200);
+
+            // Draw Players (with smooth LERP interpolation)
+            Object.keys(globalPlayers).forEach(uid => {
+                let p = globalPlayers[uid];
+                if (!renderPlayers[uid]) renderPlayers[uid] = {x: p.x, y: p.y};
+                
+                renderPlayers[uid].x += (p.x - renderPlayers[uid].x) * 0.3; // Smooth snap
+                renderPlayers[uid].y += (p.y - renderPlayers[uid].y) * 0.3;
+                let rx = renderPlayers[uid].x; let ry = renderPlayers[uid].y;
+
+                ctx.beginPath();
+                ctx.arc(rx, ry, PLAYER_RADIUS, 0, Math.PI * 2);
+                ctx.fillStyle = p.team === 'Team 1' ? '#10b981' : '#8b5cf6';
+                if (p.isFrozen) ctx.fillStyle = '#475569'; // Greyed out if frozen
+                ctx.fill();
+                ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2; ctx.stroke();
+
+                ctx.font = '20px Arial'; ctx.textAlign = 'center';
+                ctx.fillText(p.avatar, rx, ry + 7);
+                
+                ctx.font = '14px Arial'; ctx.fillStyle = '#f8fafc';
+                ctx.fillText(p.name, rx, ry - 25);
+
+                // Draw Frozen Overlay Icon
+                if (p.isFrozen) {
+                    ctx.font = '30px Arial';
+                    ctx.fillText(p.team === 'Team 1' ? '☁️' : '♻️', rx, ry + 10);
+                }
+            });
+
+            requestAnimationFrame(drawCanvas);
+        }
+
+        // --- HOST COLLISION & GAME ENGINE ---
+        let lastTimerUpdate = Date.now();
+        
+        function getDist(p1, p2) { return Math.sqrt(Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2)); }
+        
+        function hostCollisionLoop() {
+            if (!isHost || globalState.phase !== 'playing') return;
+
+            let chasers = []; let runners = [];
+            Object.keys(globalPlayers).forEach(uid => {
+                let p = globalPlayers[uid]; p.uid = uid;
+                if (p.team === globalState.chaserTeam) chasers.push(p);
+                else runners.push(p);
+            });
+
+            let dbUpdates = {};
+
+            runners.forEach(r => {
+                // Check Safe Zones
+                let isSafe = false;
+                if (r.team === 'Team 1' && r.x < 250 && r.y < 200) isSafe = true;
+                if (r.team === 'Team 2' && r.x > 550 && r.y > 400) isSafe = true;
+
+                if (r.isFrozen) {
+                    // Check Unfreeze (Rescue by fellow runner)
+                    runners.forEach(savior => {
+                        if (!savior.isFrozen && savior.uid !== r.uid && getDist(r, savior) < PLAYER_RADIUS*2) {
+                            dbUpdates[`${r.uid}/isFrozen`] = false;
+                        }
+                    });
+                } else if (!isSafe) {
+                    // Check Tagged by Chaser
+                    chasers.forEach(c => {
+                        if (getDist(r, c) < PLAYER_RADIUS*2) dbUpdates[`${r.uid}/isFrozen`] = true;
+                    });
+                }
+            });
+
+            if (Object.keys(dbUpdates).length > 0) update(ref(db, 'ecoGame/players'), dbUpdates);
+
+            // Timer & Win Conditions
+            if (Date.now() - lastTimerUpdate > 1000) {
+                lastTimerUpdate = Date.now();
+                let newTimer = globalState.timer - 1;
+                
+                if (newTimer <= 0) {
+                    update(ref(db, 'ecoGame/state'), { phase: 'waiting', timer: 0 });
+                    alert("Time's up! The escaping team survived the round!");
+                } else {
+                    update(ref(db, 'ecoGame/state/timer'), newTimer);
+                }
+
+                // Check if all runners are frozen
+                if (runners.length > 0 && runners.every(r => r.isFrozen)) {
+                    update(ref(db, 'ecoGame/state'), { phase: 'waiting' });
+                    alert("Round Over! The Chasers tagged everyone!");
+                }
+            }
+        }
+
+        // --- HOST DASHBOARD CONTROLS ---
+        function setupHost() {
+            function launchRound(chaserTeam) {
+                update(ref(db, 'ecoGame/state'), { phase: 'playing', chaserTeam: chaserTeam, timer: 60 });
+                // Reset positions and unfreeze
+                get(ref(db, 'ecoGame/players')).then(snap => {
+                    let players = snap.val() || {};
+                    let updates = {};
+                    for(let uid in players) {
+                        let t = players[uid].team;
+                        updates[`${uid}/isFrozen`] = false;
+                        updates[`${uid}/x`] = t === 'Team 1' ? 100 + Math.random()*50 : 650 + Math.random()*50;
+                        updates[`${uid}/y`] = t === 'Team 1' ? 100 + Math.random()*50 : 450 + Math.random()*50;
+                    }
+                    update(ref(db, 'ecoGame/players'), updates);
+                });
+            }
+
+            document.getElementById('btn-start-r1').onclick = () => launchRound('Team 2');
+            document.getElementById('btn-start-r2').onclick = () => launchRound('Team 1');
+            
+            document.getElementById('btn-end-round').onclick = () => {
+                update(ref(db, 'ecoGame/state'), { phase: 'waiting' });
+            };
+
+            document.getElementById('btn-reset').onclick = () => {
+                if(confirm("Are you sure you want to boot everyone?")) {
+                    remove(ref(db, 'ecoGame'));
+                    set(ref(db, 'ecoGame/state'), { phase: 'waiting', chaserTeam: 'Team 2', timer: 60 });
+                }
+            };
+        }
+    </script>
+</body>
+</html>
