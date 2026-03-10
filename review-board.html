@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Class Review Board</title>
+    <style>
+        /* --- CORE STYLES & LAYOUT --- */
+        :root {
+            --bg-dark: #0f172a; --panel-bg: #1e293b; --text-light: #f8fafc;
+            --accent-blue: #3b82f6; --accent-green: #10b981; --accent-red: #ef4444; --accent-yellow: #fbbf24;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0; padding: 0; background-color: var(--bg-dark); color: var(--text-light);
+            height: 100vh; display: flex; flex-direction: column; overflow: hidden;
+        }
+        h1, h2, h3, h4 { margin-top: 0; margin-bottom: 15px; }
+        .hidden { display: none !important; }
+
+        /* --- SPLIT SCREEN (Mobile = Top/Bottom, PC = Left/Right) --- */
+        #app-container {
+            display: flex; flex-direction: column; flex: 1; overflow: hidden; width: 100%;
+        }
+        #interaction-panel {
+            flex: 1; background: var(--panel-bg); padding: 20px; overflow-y: auto;
+            border-bottom: 4px solid #334155; box-sizing: border-box; min-height: 300px;
+        }
+        #board-panel {
+            flex: 2; padding: 20px; overflow-y: auto; background: var(--bg-dark);
+            box-sizing: border-box;
+        }
+        @media (min-width: 768px) {
+            #app-container { flex-direction: row; }
+            #interaction-panel { flex: 1; border-bottom: none; border-right: 4px solid #334155; max-width: 400px; }
+            #board-panel { flex: 3; }
+        }
+
+        /* --- POST CARDS (Padlet Style) --- */
+        .board-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 15px;
+            align-items: start;
+        }
+        .post-card {
+            background: #ffffff; color: #0f172a; padding: 15px; border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2); border-left: 6px solid var(--accent-blue);
+            word-wrap: break-word;
+        }
+        .post-author { font-weight: bold; font-size: 1.1em; margin-bottom: 5px; border-bottom: 1px solid #e2e8f0; padding-bottom: 5px; }
+        .post-text { font-size: 1em; white-space: pre-wrap; }
+        .hidden-post { opacity: 0.5; background: #cbd5e1; } /* How hidden posts look to host */
+
+        /* --- BUTTONS & INPUTS --- */
+        input, textarea, button {
+            width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 8px;
+            border: 1px solid #475569; font-size: 16px; box-sizing: border-box; font-family: inherit;
+        }
+        input, textarea { background: #334155; color: white; border: 2px solid #475569; }
+        textarea { resize: vertical; min-height: 120px; }
+        button {
+            background-color: var(--accent-blue); color: white; font-weight: bold; cursor: pointer;
+            border: none; box-shadow: 0 4px 6px rgba(0,0,0,0.3); transition: transform 0.1s;
+        }
+        button:active { transform: scale(0.95); }
+        .btn-green { background-color: var(--accent-green); }
+        .btn-red { background-color: var(--accent-red); }
+        .btn-yellow { background-color: var(--accent-yellow); color: black; }
+
+        /* --- HOST DASHBOARD ITEMS --- */
+        .host-list-item {
+            background: #334155; padding: 10px; border-radius: 6px; margin-bottom: 10px;
+            display: flex; flex-direction: column; gap: 8px; font-size: 14px;
+        }
+        .host-controls-row { display: flex; gap: 5px; }
+        .host-controls-row button { padding: 8px; margin: 0; font-size: 13px; }
+
+        .status-msg { padding: 15px; border-radius: 8px; font-weight: bold; margin-bottom: 15px; text-align: center; }
+        .bg-wait { background: rgba(251, 191, 36, 0.2); color: var(--accent-yellow); border: 1px solid var(--accent-yellow); }
+        .bg-success { background: rgba(16, 185, 129, 0.2); color: var(--accent-green); border: 1px solid var(--accent-green); }
+
+    </style>
+</head>
+<body>
+
+    <div id="app-container">
+        
+        <div id="interaction-panel">
+            
+            <div id="loading-panel"><h3>Connecting to Board...</h3></div>
+
+            <div id="student-panel" class="hidden">
+                <h2 style="color: var(--accent-blue);">Draft Your Post</h2>
+                
+                <div id="student-composer">
+                    <label style="font-size:14px; color:#cbd5e1;">Your Name/Initials:</label>
+                    <input type="text" id="post-name" placeholder="E.g., Captain Alby" maxlength="20">
+                    
+                    <label style="font-size:14px; color:#cbd5e1;">Your Review/Post:</label>
+                    <textarea id="post-content" placeholder="Type your text here..."></textarea>
+                    
+                    <button id="btn-submit-post" class="btn-green">Submit Post</button>
+                </div>
+
+                <div id="student-status-area" class="hidden">
+                    <div id="status-box" class="status-msg bg-success">Post Submitted!</div>
+                    <button id="btn-request-edit" class="btn-yellow">Request Edit Permission</button>
+                    <p style="font-size:13px; color:#94a3b8; text-align:center;">You must ask the Host to unlock your post if you need to make changes.</p>
+                </div>
+            </div>
+
+            <div id="host-panel" class="hidden">
+                <h2 style="color: var(--accent-yellow);">👑 Host Dashboard</h2>
+                <p style="font-size: 13px; color: #94a3b8;">You are the host. Only you can see this menu.</p>
+                
+                <hr style="border-color:#475569; margin: 15px 0;">
+                
+                <h3 style="color: var(--accent-green);">Pending Edit Requests</h3>
+                <div id="host-edit-requests">
+                    <p style="font-size:14px; color:#cbd5e1; font-style:italic;">No pending requests.</p>
+                </div>
+
+                <hr style="border-color:#475569; margin: 20px 0;">
+
+                <h3 style="color: var(--accent-blue);">Manage Posts Visibility</h3>
+                <div id="host-manage-posts">
+                    <p style="font-size:14px; color:#cbd5e1; font-style:italic;">No posts yet.</p>
+                </div>
+
+                <hr style="border-color:#475569; margin: 20px 0;">
+                <button id="btn-reset-board" class="btn-red">🗑️ Wipe Board Clean</button>
+            </div>
+            
+        </div>
+
+        <div id="board-panel">
+            <h2>Shared Board</h2>
+            <div id="live-board" class="board-grid">
+                <p style="color:#94a3b8;">Waiting for the first post...</p>
+            </div>
+        </div>
+        
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
+        import { getDatabase, ref, set, onValue, update, remove, runTransaction, onDisconnect } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-database.js";
+
+        // Your exact Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyBpf5wi0wShnatqUhcmPhSOdnd0NdBL65A",
+            authDomain: "symmetry-and-nets.firebaseapp.com",
+            databaseURL: "https://symmetry-and-nets-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "symmetry-and-nets",
+            storageBucket: "symmetry-and-nets.firebasestorage.app",
+            messagingSenderId: "250211420064",
+            appId: "1:250211420064:web:fe4a064715042bedf546c5"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth();
+        const db = getDatabase();
+
+        let myUID = "";
+        let isHost = false;
+        let globalPosts = {};
+
+        // Login silently
+        signInAnonymously(auth).then(() => {
+            myUID = auth.currentUser.uid;
+            
+            // AUTOMATIC HOST ELECTION: First to arrive claims 'host'
+            const hostRef = ref(db, 'reviewBoard/hostExists');
+            runTransaction(hostRef, (currentData) => {
+                if (currentData === null) return myUID; // I claim host
+                return; // Abort, host already exists
+            }).then((result) => {
+                if (result.committed) {
+                    isHost = true;
+                    onDisconnect(hostRef).remove(); // If host leaves, someone else can take over if they refresh
+                }
+                document.getElementById('loading-panel').classList.add('hidden');
+                
+                if(isHost) {
+                    document.getElementById('host-panel').classList.remove('hidden');
+                } else {
+                    document.getElementById('student-panel').classList.remove('hidden');
+                }
+
+                listenToDatabase();
+            });
+        });
+
+        // --- DATABASE SYNC ---
+        function listenToDatabase() {
+            const postsRef = ref(db, 'reviewBoard/posts');
+            onValue(postsRef, (snapshot) => {
+                globalPosts = snapshot.val() || {};
+                
+                renderBoard(globalPosts);
+                
+                if (isHost) {
+                    renderHostDashboard(globalPosts);
+                } else {
+                    renderStudentView(globalPosts[myUID]);
+                }
+            });
+        }
+
+        // --- STUDENT LOGIC ---
+        const composerDiv = document.getElementById('student-composer');
+        const statusArea = document.getElementById('student-status-area');
+        const statusBox = document.getElementById('status-box');
+        const btnRequestEdit = document.getElementById('btn-request-edit');
+
+        function renderStudentView(myPostData) {
+            // If no post or edit was approved, show composer
+            if (!myPostData || myPostData.status === 'edit_approved') {
+                composerDiv.classList.remove('hidden');
+                statusArea.classList.add('hidden');
+                
+                // Pre-fill if they are editing an existing post
+                if (myPostData && myPostData.status === 'edit_approved') {
+                    document.getElementById('post-name').value = myPostData.name;
+                    document.getElementById('post-content').value = myPostData.text;
+                }
+            } 
+            // If submitted or waiting for approval
+            else {
+                composerDiv.classList.add('hidden');
+                statusArea.classList.remove('hidden');
+
+                if (myPostData.status === 'submitted') {
+                    statusBox.className = "status-msg bg-success";
+                    statusBox.innerText = "Post Submitted! It is live on the board.";
+                    btnRequestEdit.classList.remove('hidden');
+                } else if (myPostData.status === 'edit_requested') {
+                    statusBox.className = "status-msg bg-wait";
+                    statusBox.innerText = "Waiting for Host to approve edit request...";
+                    btnRequestEdit.classList.add('hidden');
+                }
+            }
+        }
+
+        document.getElementById('btn-submit-post').addEventListener('click', () => {
+            const name = document.getElementById('post-name').value.trim();
+            const text = document.getElementById('post-content').value.trim();
+            
+            if(!name || !text) return alert("Please fill in both your name and your review.");
+
+            // If it's a new post, default to visible. If editing, preserve visibility state.
+            let isVis = true;
+            if(globalPosts[myUID] && globalPosts[myUID].hasOwnProperty('visible')) {
+                isVis = globalPosts[myUID].visible; 
+            }
+
+            set(ref(db, `reviewBoard/posts/${myUID}`), {
+                name: name,
+                text: text,
+                status: 'submitted',
+                visible: isVis,
+                timestamp: Date.now()
+            });
+        });
+
+        btnRequestEdit.addEventListener('click', () => {
+            update(ref(db, `reviewBoard/posts/${myUID}`), { status: 'edit_requested' });
+        });
+
+        // --- HOST LOGIC ---
+        function renderHostDashboard(posts) {
+            const reqContainer = document.getElementById('host-edit-requests');
+            const manageContainer = document.getElementById('host-manage-posts');
+            
+            let reqHTML = "";
+            let manageHTML = "";
+
+            Object.keys(posts).forEach(uid => {
+                const p = posts[uid];
+                
+                // 1. Check Edit Requests
+                if (p.status === 'edit_requested') {
+                    reqHTML += `
+                        <div class="host-list-item">
+                            <b>${p.name}</b> wants to edit their post.
+                            <div class="host-controls-row">
+                                <button class="btn-green" onclick="approveEdit('${uid}')">Approve</button>
+                                <button class="btn-red" onclick="denyEdit('${uid}')">Deny</button>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                // 2. Manage Posts (Hide/Unhide)
+                const snippet = p.text.length > 40 ? p.text.substring(0, 40) + "..." : p.text;
+                const visBtn = p.visible 
+                    ? `<button class="btn-yellow" onclick="toggleVis('${uid}', false)">👁️ Hide from Board</button>` 
+                    : `<button class="btn-green" onclick="toggleVis('${uid}', true)">✔️ Show on Board</button>`;
+                
+                manageHTML += `
+                    <div class="host-list-item">
+                        <b>${p.name}</b>: "${snippet}"
+                        <div class="host-controls-row">${visBtn}</div>
+                    </div>
+                `;
+            });
+
+            reqContainer.innerHTML = reqHTML || '<p style="font-size:14px; color:#cbd5e1; font-style:italic;">No pending requests.</p>';
+            manageContainer.innerHTML = manageHTML || '<p style="font-size:14px; color:#cbd5e1; font-style:italic;">No posts yet.</p>';
+        }
+
+        // Host Functions (Attached to Window for inline HTML onClick)
+        window.approveEdit = function(uid) {
+            update(ref(db, `reviewBoard/posts/${uid}`), { status: 'edit_approved' });
+        };
+        window.denyEdit = function(uid) {
+            update(ref(db, `reviewBoard/posts/${uid}`), { status: 'submitted' });
+        };
+        window.toggleVis = function(uid, makeVisible) {
+            update(ref(db, `reviewBoard/posts/${uid}`), { visible: makeVisible });
+        };
+        
+        document.getElementById('btn-reset-board').addEventListener('click', () => {
+            if(confirm("Are you sure? This deletes ALL student posts permanently.")) {
+                remove(ref(db, 'reviewBoard/posts'));
+            }
+        });
+
+        // --- RENDER LIVE BOARD ---
+        function renderBoard(posts) {
+            const board = document.getElementById('live-board');
+            let boardHTML = "";
+
+            // Convert to array and sort by timestamp (oldest first, like a continuous feed)
+            const postArray = Object.values(posts).sort((a,b) => a.timestamp - b.timestamp);
+
+            postArray.forEach(p => {
+                // Students only see visible posts. Host sees everything, but hidden posts are faded.
+                if (p.visible || isHost) {
+                    const hiddenClass = !p.visible ? "hidden-post" : "";
+                    const hostLabel = !p.visible ? `<span style="color:#ef4444; font-size:12px;">(Hidden from students)</span>` : "";
+                    
+                    boardHTML += `
+                        <div class="post-card ${hiddenClass}">
+                            <div class="post-author">${p.name} ${hostLabel}</div>
+                            <div class="post-text">${p.text}</div>
+                        </div>
+                    `;
+                }
+            });
+
+            board.innerHTML = boardHTML || '<p style="color:#94a3b8;">Waiting for the first post...</p>';
+        }
+    </script>
+</body>
+</html>
