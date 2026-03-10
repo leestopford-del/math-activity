@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>The Newsroom: Directed Transformation</title>
+    <style>
+        /* --- CORE STYLES & NEWSPAPER THEME --- */
+        :root {
+            --bg-color: #f8fafc; --text-color: #1e293b; --paper: #ffffff;
+            --accent-red: #e11d48; --accent-blue: #2563eb; --accent-gold: #fbbf24;
+            --border-dark: #334155; --npc-bg: #f1f5f9;
+        }
+        body {
+            font-family: 'Georgia', serif; background-color: var(--bg-color); color: var(--text-color);
+            margin: 0; padding: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden;
+        }
+        h1, h2, h3, h4 { font-family: 'Arial', sans-serif; margin-top: 0; }
+        .hidden { display: none !important; }
+
+        /* --- LAYOUTS --- */
+        #header {
+            background: #0f172a; color: white; padding: 10px 20px; text-align: center;
+            border-bottom: 5px solid var(--accent-red); font-family: 'Arial', sans-serif; display: flex; justify-content: space-between; align-items: center;
+        }
+        .app-container { display: flex; flex: 1; overflow: hidden; flex-direction: column; }
+        @media (min-width: 768px) { .app-container { flex-direction: row; } }
+
+        /* Left/Top: NPC & Tasks */
+        #task-panel { flex: 2; padding: 20px; overflow-y: auto; background: var(--bg-color); }
+        
+        /* Right/Bottom: Chat & Submissions */
+        #collaboration-panel {
+            flex: 1; background: var(--paper); border-left: 3px solid var(--border-dark);
+            display: flex; flex-direction: column; max-width: 400px; border-top: 3px solid var(--border-dark);
+        }
+        @media (min-width: 768px) { #collaboration-panel { border-top: none; } }
+
+        /* --- UI ELEMENTS --- */
+        .box { background: var(--paper); border: 2px solid var(--border-dark); padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 4px 4px 0px rgba(0,0,0,0.1); }
+        input[type="text"], textarea {
+            width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #cbd5e1; border-radius: 4px;
+            font-family: 'Arial', sans-serif; font-size: 14px; box-sizing: border-box;
+        }
+        button {
+            background: var(--text-color); color: white; border: none; padding: 10px 15px;
+            font-weight: bold; cursor: pointer; border-radius: 4px; font-family: 'Arial', sans-serif;
+        }
+        button:hover { background: var(--accent-blue); }
+        .btn-red { background: var(--accent-red); }
+        .btn-gold { background: var(--accent-gold); color: black; }
+
+        /* --- NPC EDITOR BOX --- */
+        .npc-box { background: var(--npc-bg); border-left: 5px solid var(--accent-blue); padding: 15px; margin-bottom: 20px; font-style: italic; position: relative; }
+        .npc-title { font-weight: bold; font-style: normal; font-family: 'Arial', sans-serif; color: var(--accent-blue); margin-bottom: 5px; }
+        .npc-avatar { position: absolute; top: 10px; right: 10px; font-size: 30px; }
+
+        /* --- LANGUAGE SUPPORT TOOLTIPS --- */
+        .vocab {
+            border-bottom: 2px dotted var(--accent-red); cursor: help; position: relative; color: var(--accent-red); font-weight: bold;
+        }
+        .vocab::after {
+            content: attr(data-tip); position: absolute; bottom: 120%; left: 50%; transform: translateX(-50%);
+            background: #0f172a; color: white; padding: 5px 10px; border-radius: 4px; font-size: 12px;
+            white-space: nowrap; opacity: 0; pointer-events: none; transition: 0.2s; font-family: 'Arial', sans-serif; font-weight: normal; font-style: normal; z-index: 100;
+        }
+        .vocab:hover::after { opacity: 1; }
+
+        /* --- CHAT SYSTEM --- */
+        #chat-history { flex: 1; overflow-y: auto; padding: 15px; background: #f8fafc; font-family: 'Arial', sans-serif; font-size: 14px; }
+        .chat-msg { margin-bottom: 8px; }
+        .chat-name { font-weight: bold; color: var(--accent-blue); }
+        #chat-input-area { padding: 10px; border-top: 1px solid #cbd5e1; display: flex; gap: 5px; background: white; }
+        
+        /* --- HOST DASHBOARD --- */
+        .submission-card { background: #f1f5f9; border: 1px solid #cbd5e1; padding: 10px; margin-bottom: 10px; border-radius: 4px; }
+        .reward-badge { display: inline-block; background: var(--accent-gold); padding: 2px 8px; border-radius: 12px; font-size: 12px; font-weight: bold; font-family: Arial; }
+    </style>
+</head>
+<body>
+
+    <div id="header">
+        <h2 style="margin:0;">📰 The Daily Chronicle: Newsroom</h2>
+        <div id="player-info" class="hidden">Journalist: <span id="my-name-display"></span> | Stars: <span id="my-stars">0</span> ⭐</div>
+    </div>
+
+    <div id="screen-login" class="box" style="max-width: 400px; margin: 40px auto;">
+        <h2>Welcome to the Newsroom</h2>
+        <p>Enter your initials or a pen-name to join the Editorial Team.</p>
+        <input type="text" id="login-name" placeholder="e.g., J.D. or Captain Alby">
+        <button id="btn-join" style="width: 100%;">Enter Newsroom</button>
+        <hr style="margin: 20px 0;">
+        <button id="btn-host" class="btn-red" style="width: 100%;">Teacher: Host Session</button>
+    </div>
+
+    <div id="screen-app" class="app-container hidden">
+        
+        <div id="task-panel">
+            
+            <div id="view-lobby" class="box">
+                <h2>Waiting for the Chief Editor...</h2>
+                <p>Chat with your fellow journalists on the right while the Host prepares the assignment.</p>
+                <div id="host-controls-lobby" class="hidden" style="margin-top: 20px; padding-top: 20px; border-top: 2px dashed #cbd5e1;">
+                    <h3 style="color: var(--accent-red);">Host Controls</h3>
+                    <button onclick="setRound(1)">Start Round 1: The Filter</button>
+                    <button onclick="setRound(2)">Start Round 2: Synonyms</button>
+                    <button onclick="setRound(3)">Start Round 3: Restructure</button>
+                </div>
+            </div>
+
+            <div id="view-round1" class="hidden">
+                <div class="npc-box">
+                    <div class="npc-avatar">🕵️</div>
+                    <div class="npc-title">Chief Editor says:</div>
+                    "Journalists! We received a messy press release. I need you to <span class="vocab" data-tip="Remove unnecessary details and keep only facts">filter</span> out the fluff. Read the source text below and submit ONLY the two <span class="vocab" data-tip="Clearly stated, obvious">explicit</span> facts. No opinions or describing words!"
+                </div>
+                <div class="box">
+                    <h3>Source Text:</h3>
+                    <p style="background:#e2e8f0; padding: 10px; border-left: 4px solid #94a3b8;">"The new city library, which cost an absolutely staggering and frankly ridiculous £2 million and features beautiful, shiny glass windows, will open its doors on Monday to provide students with 500 brand new books."</p>
+                    <hr>
+                    <input type="text" id="r1-answer" placeholder="Type the core facts here...">
+                    <button onclick="submitTask('r1-answer')">Submit to Editor</button>
+                </div>
+            </div>
+
+            <div id="view-round2" class="hidden">
+                <div class="npc-box">
+                    <div class="npc-avatar">🕵️</div>
+                    <div class="npc-title">Chief Editor says:</div>
+                    "This draft is too casual. We need to <span class="vocab" data-tip="Make formal and professional">neutralise</span> the tone. Give me professional synonyms for the highlighted words. Remember: DO NOT change technical terms like 'Global Warming'!"
+                </div>
+                <div class="box">
+                    <h3>Source Text:</h3>
+                    <p style="background:#e2e8f0; padding: 10px; border-left: 4px solid #94a3b8;">"The <b style="color:var(--accent-red)">boss</b> said that Global Warming is making the weather <b style="color:var(--accent-red)">really bad</b>."</p>
+                    <hr>
+                    <input type="text" id="r2-answer" placeholder="Rewrite the sentence with formal synonyms...">
+                    <button onclick="submitTask('r2-answer')">Submit to Editor</button>
+                </div>
+            </div>
+
+            <div id="view-round3" class="hidden">
+                <div class="npc-box">
+                    <div class="npc-avatar">🕵️</div>
+                    <div class="npc-title">Chief Editor says:</div>
+                    "Final task! You must completely <span class="vocab" data-tip="Change the order and grammar of the sentence">restructure</span> this sentence. Change the architecture using a Logic Flip or the Passive Voice so we don't get sued for copying!"
+                </div>
+                <div class="box">
+                    <h3>Source Text:</h3>
+                    <p style="background:#e2e8f0; padding: 10px; border-left: 4px solid #94a3b8;">"The park is full of rubbish because there aren't enough bins."</p>
+                    <hr>
+                    <textarea id="r3-answer" rows="3" placeholder="Rewrite the sentence with a completely new structure..."></textarea>
+                    <button onclick="submitTask('r3-answer')">Submit to Editor</button>
+                </div>
+            </div>
+
+            <div id="host-submissions-view" class="hidden box">
+                <h3 style="color: var(--accent-red);">Live Submissions</h3>
+                <p style="font-size: 14px; color: #64748b;">Review team submissions and award Stars for good work.</p>
+                <div id="submission-list"></div>
+                <hr>
+                <button onclick="setRound('lobby')" class="btn-red">End Round & Return to Lobby</button>
+            </div>
+
+        </div>
+
+        <div id="collaboration-panel">
+            <div style="background: #e2e8f0; padding: 10px; font-weight: bold; font-family: Arial; border-bottom: 1px solid #cbd5e1;">
+                💬 Team Brainstorming Chat
+            </div>
+            <div id="chat-history"></div>
+            <div id="chat-input-area">
+                <input type="text" id="chat-input" placeholder="Discuss ideas here..." style="margin:0;">
+                <button onclick="sendChat()" style="padding: 10px;">Send</button>
+            </div>
+        </div>
+
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
+        import { getDatabase, ref, set, onValue, update, push, remove, runTransaction, onDisconnect } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBpf5wi0wShnatqUhcmPhSOdnd0NdBL65A",
+            authDomain: "symmetry-and-nets.firebaseapp.com",
+            databaseURL: "https://symmetry-and-nets-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "symmetry-and-nets",
+            storageBucket: "symmetry-and-nets.firebasestorage.app",
+            messagingSenderId: "250211420064",
+            appId: "1:250211420064:web:fe4a064715042bedf546c5"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth();
+        const db = getDatabase();
+
+        let myUID = "";
+        let myName = "";
+        let isHost = false;
+
+        // --- LOGIN ---
+        document.getElementById('btn-join').addEventListener('click', () => joinGame(false));
+        document.getElementById('btn-host').addEventListener('click', () => joinGame(true));
+
+        function joinGame(asHost) {
+            myName = document.getElementById('login-name').value.trim() || "Anonymous Reporter";
+            isHost = asHost;
+
+            signInAnonymously(auth).then(() => {
+                myUID = auth.currentUser.uid;
+                
+                // Set Player Profile
+                set(ref(db, `newsroom/players/${myUID}`), { name: myName, stars: 0, isHost: isHost });
+                onDisconnect(ref(db, `newsroom/players/${myUID}`)).remove();
+
+                document.getElementById('screen-login').classList.add('hidden');
+                document.getElementById('screen-app').classList.remove('hidden');
+                document.getElementById('player-info').classList.remove('hidden');
+                document.getElementById('my-name-display').innerText = myName;
+
+                if (isHost) {
+                    document.getElementById('host-controls-lobby').classList.remove('hidden');
+                }
+
+                listenToGame();
+            });
+        }
+
+        // --- GAME STATE LISTENER ---
+        function listenToGame() {
+            // Listen to Game Phase
+            onValue(ref(db, 'newsroom/state/phase'), (snap) => {
+                const phase = snap.val() || 'lobby';
+                
+                // Hide all views first
+                document.getElementById('view-lobby').classList.add('hidden');
+                document.getElementById('view-round1').classList.add('hidden');
+                document.getElementById('view-round2').classList.add('hidden');
+                document.getElementById('view-round3').classList.add('hidden');
+                document.getElementById('host-submissions-view').classList.add('hidden');
+
+                if (isHost && phase !== 'lobby') {
+                    // Host sees submissions during rounds
+                    document.getElementById('host-submissions-view').classList.remove('hidden');
+                } else {
+                    // Everyone else sees the current round
+                    document.getElementById(`view-${phase}`).classList.remove('hidden');
+                }
+            });
+
+            // Listen to Chat
+            onValue(ref(db, 'newsroom/chat'), (snap) => {
+                const chatBox = document.getElementById('chat-history');
+                chatBox.innerHTML = "";
+                const msgs = snap.val() || {};
+                Object.values(msgs).forEach(m => {
+                    chatBox.innerHTML += `<div class="chat-msg"><span class="chat-name">${m.name}:</span> ${m.text}</div>`;
+                });
+                chatBox.scrollTop = chatBox.scrollHeight; // Auto-scroll
+            });
+
+            // Listen to Player Stars (For my own display)
+            onValue(ref(db, `newsroom/players/${myUID}/stars`), (snap) => {
+                document.getElementById('my-stars').innerText = snap.val() || 0;
+            });
+
+            // Listen to Submissions (Host Only)
+            if (isHost) {
+                onValue(ref(db, 'newsroom/submissions'), (snap) => {
+                    const subBox = document.getElementById('submission-list');
+                    subBox.innerHTML = "";
+                    const subs = snap.val() || {};
+                    Object.entries(subs).forEach(([uid, s]) => {
+                        subBox.innerHTML += `
+                            <div class="submission-card">
+                                <b>${s.name}</b> submitted: <br>
+                                <i>"${s.text}"</i>
+                                <div style="margin-top: 5px;">
+                                    <button class="btn-gold" style="padding: 5px;" onclick="awardStar('${uid}')">+1 Star Award</button>
+                                </div>
+                            </div>
+                        `;
+                    });
+                });
+            }
+        }
+
+        // --- PLAYER ACTIONS ---
+        window.sendChat = function() {
+            const input = document.getElementById('chat-input');
+            const text = input.value.trim();
+            if (text) {
+                push(ref(db, 'newsroom/chat'), { name: myName, text: text });
+                input.value = '';
+            }
+        };
+
+        // Allow Enter key for chat
+        document.getElementById('chat-input').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') sendChat();
+        });
+
+        window.submitTask = function(inputId) {
+            const text = document.getElementById(inputId).value.trim();
+            if (!text) return alert("Write your transformation first!");
+
+            set(ref(db, `newsroom/submissions/${myUID}`), {
+                name: myName,
+                text: text
+            });
+            
+            // Notify chat automatically
+            push(ref(db, 'newsroom/chat'), { name: "System", text: `📝 ${myName} has submitted a draft to the Editor.` });
+            alert("Draft sent to Editor! Wait for feedback or discuss in chat.");
+        };
+
+        // --- HOST ACTIONS ---
+        window.setRound = function(roundNum) {
+            const phase = roundNum === 'lobby' ? 'lobby' : `round${roundNum}`;
+            set(ref(db, 'newsroom/state/phase'), phase);
+            
+            // Clear old submissions when changing rounds
+            remove(ref(db, 'newsroom/submissions'));
+        };
+
+        window.awardStar = function(uid) {
+            const starRef = ref(db, `newsroom/players/${uid}/stars`);
+            runTransaction(starRef, (currentStars) => {
+                return (currentStars || 0) + 1;
+            }).then(() => {
+                push(ref(db, 'newsroom/chat'), { name: "Chief Editor", text: `⭐ A Star was awarded for excellent journalism!` });
+            });
+        };
+
+    </script>
+</body>
+</html>
