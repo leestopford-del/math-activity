@@ -42,11 +42,11 @@
         /* The Grid Sea */
         .grid-container {
             position: relative;
-            width: 95vw; /* Takes up most of the screen width on mobile */
-            max-width: 600px; /* Much larger max size for desktop/tablets */
-            aspect-ratio: 1 / 1; /* Keeps it a perfect square */
+            width: 95vw; /* Fills most of mobile screen */
+            max-width: 550px; /* Larger max size for desktop */
+            aspect-ratio: 1 / 1; /* Forces a perfect square */
             background-color: var(--ocean);
-            border: 2px solid white;
+            border: 3px solid white;
             margin: 10px auto;
             box-sizing: border-box;
             background-image: linear-gradient(var(--grid-line) 1px, transparent 1px), linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
@@ -74,16 +74,26 @@
 
         .entity {
             position: absolute;
-            font-size: 1.8rem; /* Made the emojis bigger */
-            transform: translate(-50%, 50%); /* Centers exactly on the grid intersection */
-            transition: all 0.5s ease-in-out;
+            width: 40px; height: 40px; /* Fixed box to prevent warping */
+            display: flex; justify-content: center; align-items: center;
+            font-size: 1.8rem; /* Bigger default emojis */
+            line-height: 1; 
+            /* translate(-50%, 50%) forces the center of the 40x40 box perfectly onto the grid intersection */
+            transform: translate(-50%, 50%); 
+            transition: left 0.5s ease-in-out, bottom 0.5s ease-in-out;
             z-index: 10;        
         }
-        .treasure { z-index: 2; font-size: 1.8em; filter: drop-shadow(0 0 5px var(--gold)); animation: float 2s infinite ease-in-out;}
+        .treasure { z-index: 2; font-size: 1.8rem; filter: drop-shadow(0 0 5px var(--gold)); animation: float 2s infinite ease-in-out;}
+        .landmass { z-index: 1; font-size: 1.8rem; }
         .player-ship { z-index: 5; }
         .my-ship { z-index: 15; font-size: 2.2rem; filter: drop-shadow(0 0 10px white); }
 
-        @keyframes float { 0% { transform: translateY(0); } 50% { transform: translateY(-5px); } 100% { transform: translateY(0); } }
+        /* Animation fixed to not overwrite the transform! */
+        @keyframes float { 
+            0%   { transform: translate(-50%, 50%); } 
+            50%  { transform: translate(-50%, calc(50% - 5px)); } 
+            100% { transform: translate(-50%, 50%); } 
+        }
 
         /* Controls */
         .controls-box { background: #334155; padding: 15px; border-radius: 15px; width: 100%; max-width: 500px; box-sizing: border-box; margin-bottom: 10px;}
@@ -205,7 +215,7 @@
 
                     <div class="grid-container" id="grid-sea">
                         
-                        <div id="harbour" style="position: absolute; left: 50%; bottom: 50%; transform: translate(-50%, 50%); font-size: 2.2rem; z-index: 5; display: none;">
+                        <div id="harbour" style="position: absolute; left: 50%; bottom: 50%; transform: translate(-50%, 50%); font-size: 3rem; z-index: 5; display: none;">
                             ⚓
                         </div>
                         
@@ -366,7 +376,7 @@
 
     // --- Math Transformers (Dynamic grid sizing) ---
     function getHome(team, round) {
-        // Round 4: Everyone starts at the absolute center (10,10) of the 20x20 grid
+        // Round 4: Everyone starts at the absolute center (10,10 globally) of the 20x20 grid
         if (round === 4) return {x: 10, y: 10};
         
         // Rounds 1-3: Start at Team Corners of the 10x10 grid
@@ -547,6 +557,11 @@
         document.querySelectorAll('.treasure').forEach(el => el.dataset.keep = "false");
         Object.entries(globalTreasures).forEach(([tid, t]) => {
             let loc = globalToLocal(t.gx, t.gy, viewTeam, currentRound);
+            
+            // MATH FIX: Shift mapping to prevent icons drawing in the corner during Round 4
+            let drawX = currentRound === 4 ? (loc.x + 10) : loc.x;
+            let drawY = currentRound === 4 ? (loc.y + 10) : loc.y;
+            
             let el = document.getElementById(tid);
             if (!el) {
                 el = document.createElement('div');
@@ -556,8 +571,8 @@
                 sea.appendChild(el);
             }
             el.dataset.keep = "true";
-            el.style.left = `${loc.x * percentStep}%`; 
-            el.style.bottom = `${loc.y * percentStep}%`;
+            el.style.left = `${drawX * percentStep}%`; 
+            el.style.bottom = `${drawY * percentStep}%`;
         });
         document.querySelectorAll('.treasure[data-keep="false"]').forEach(el => el.remove());
 
@@ -566,6 +581,10 @@
         if (currentRound === 4 && globalState.land) {
             Object.entries(globalState.land).forEach(([lid, l]) => {
                 let loc = globalToLocal(l.gx, l.gy, viewTeam, currentRound);
+                
+                let drawX = (loc.x + 10);
+                let drawY = (loc.y + 10);
+                
                 let el = document.getElementById(lid);
                 if (!el) {
                     el = document.createElement('div');
@@ -575,10 +594,8 @@
                     sea.appendChild(el);
                 }
                 el.dataset.keep = "true";
-                el.style.left = `${loc.x * percentStep}%`; 
-                el.style.bottom = `${loc.y * percentStep}%`;
-                el.style.fontSize = '1.8em';
-                el.style.zIndex = '1';
+                el.style.left = `${drawX * percentStep}%`; 
+                el.style.bottom = `${drawY * percentStep}%`;
             });
         }
         document.querySelectorAll('.landmass[data-keep="false"]').forEach(el => el.remove());
@@ -587,6 +604,11 @@
         document.querySelectorAll('.player-ship').forEach(el => el.dataset.keep = "false");
         Object.entries(globalUsers).forEach(([uid, u]) => {
             let loc = globalToLocal(u.globalX, u.globalY, viewTeam, currentRound);
+            
+            // MATH FIX
+            let drawX = currentRound === 4 ? (loc.x + 10) : loc.x;
+            let drawY = currentRound === 4 ? (loc.y + 10) : loc.y;
+            
             let el = document.getElementById('ship_' + uid);
             if (!el) {
                 el = document.createElement('div');
@@ -603,14 +625,14 @@
             }
 
             el.innerHTML = `
-                <div style="position: absolute; top: -20px; left: 50%; transform: translateX(-50%); font-size: 11px; font-weight: bold; background: rgba(0,0,0,0.8); padding: 2px 4px; border-radius: 4px; color: ${getTeamColor(u.team)}; white-space: nowrap; line-height: 1;">
+                <div style="position: absolute; top: -16px; left: 50%; transform: translateX(-50%); font-size: 11px; font-weight: bold; background: rgba(0,0,0,0.8); padding: 2px 4px; border-radius: 4px; color: ${getTeamColor(u.team)}; white-space: nowrap; line-height: 1;">
                     ${initials}
                 </div>
                 ${u.avatar}
             `;
             
-            el.style.left = `${loc.x * percentStep}%`; 
-            el.style.bottom = `${loc.y * percentStep}%`;
+            el.style.left = `${drawX * percentStep}%`; 
+            el.style.bottom = `${drawY * percentStep}%`;
         });
         document.querySelectorAll('.player-ship[data-keep="false"]').forEach(el => el.remove());
     }
