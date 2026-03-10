@@ -7,9 +7,9 @@
     <style>
         /* --- CORE STYLES & NEWSPAPER THEME --- */
         :root {
-            --bg-color: #f8fafc; --text-color: #1e293b; --paper: #ffffff;
+            --bg-color: #f1f5f9; --text-color: #1e293b; --paper: #ffffff;
             --accent-red: #e11d48; --accent-blue: #2563eb; --accent-gold: #fbbf24;
-            --border-dark: #334155; --npc-bg: #f1f5f9;
+            --border-dark: #334155; --npc-bg: #e0e7ff; --step-bg: #f8fafc;
         }
         body {
             font-family: 'Georgia', serif; background-color: var(--bg-color); color: var(--text-color);
@@ -36,61 +36,86 @@
         }
         @media (min-width: 768px) { #collaboration-panel { border-top: none; } }
 
-        /* --- UI ELEMENTS --- */
+        /* --- UI ELEMENTS & VISUAL SCAFFOLDING --- */
         .box { background: var(--paper); border: 2px solid var(--border-dark); padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 4px 4px 0px rgba(0,0,0,0.1); }
+        
+        /* Step-by-Step Containers */
+        .step-container { margin-bottom: 15px; border-left: 4px solid var(--accent-blue); padding-left: 15px; background: var(--step-bg); padding: 10px 15px; border-radius: 0 8px 8px 0; }
+        .step-title { font-family: 'Arial', sans-serif; font-weight: bold; color: var(--accent-blue); font-size: 14px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; display: flex; align-items: center; gap: 8px;}
+        
+        /* The Source Text 'Paper' */
+        .source-paper { font-family: 'Courier New', Courier, monospace; background: #fffbeb; padding: 15px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 16px; line-height: 1.6; box-shadow: inset 0 0 10px rgba(0,0,0,0.05); }
+        .highlight { background-color: #fef08a; padding: 0 4px; border-radius: 3px; font-weight: bold; }
+        
+        /* Visual Hint Boxes */
+        .hint-box { background: #dcfce7; border: 1px dashed #16a34a; padding: 10px; border-radius: 6px; font-family: 'Arial', sans-serif; font-size: 14px; margin-top: 10px; }
+        .logic-flip { display: flex; align-items: center; justify-content: center; gap: 10px; font-family: 'Arial', sans-serif; font-weight: bold; background: #f1f5f9; padding: 10px; border-radius: 6px; margin: 10px 0; }
+        
+        /* Inputs and Workspace */
+        .workspace { position: relative; }
         input[type="text"], textarea {
-            width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #cbd5e1; border-radius: 4px;
-            font-family: 'Arial', sans-serif; font-size: 14px; box-sizing: border-box;
+            width: 100%; padding: 15px; border: 2px solid #cbd5e1; border-radius: 6px;
+            font-family: 'Arial', sans-serif; font-size: 15px; box-sizing: border-box; resize: vertical;
+            transition: all 0.3s;
         }
+        /* Pulsing animation to show them exactly where to type */
+        .pulse-focus { animation: pulseBorder 2s infinite; border-color: var(--accent-blue) !important; }
+        @keyframes pulseBorder { 0% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.4); } 70% { box-shadow: 0 0 0 10px rgba(37, 99, 235, 0); } 100% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0); } }
+        
+        input:focus, textarea:focus { outline: none; border-color: var(--accent-blue); animation: none; box-shadow: 0 0 5px rgba(37,99,235,0.5); }
+
         button {
-            background: var(--text-color); color: white; border: none; padding: 10px 15px;
-            font-weight: bold; cursor: pointer; border-radius: 4px; font-family: 'Arial', sans-serif;
+            background: var(--text-color); color: white; border: none; padding: 12px 20px; width: 100%; margin-top: 10px;
+            font-weight: bold; cursor: pointer; border-radius: 6px; font-family: 'Arial', sans-serif; font-size: 16px;
+            transition: transform 0.1s;
         }
+        button:active { transform: scale(0.98); }
         button:hover { background: var(--accent-blue); }
         .btn-red { background: var(--accent-red); }
         .btn-gold { background: var(--accent-gold); color: black; }
+        .btn-outline { background: transparent; border: 2px solid var(--accent-blue); color: var(--accent-blue); width: auto; padding: 6px 12px; font-size: 13px; }
+        .btn-outline:hover { background: var(--accent-blue); color: white; }
 
         /* --- NPC EDITOR BOX --- */
-        .npc-box { background: var(--npc-bg); border-left: 5px solid var(--accent-blue); padding: 15px; margin-bottom: 20px; font-style: italic; position: relative; }
-        .npc-title { font-weight: bold; font-style: normal; font-family: 'Arial', sans-serif; color: var(--accent-blue); margin-bottom: 5px; }
-        .npc-avatar { position: absolute; top: 10px; right: 10px; font-size: 30px; }
+        .npc-box { background: var(--npc-bg); border: 2px solid #c7d2fe; padding: 15px; border-radius: 8px; margin-bottom: 20px; position: relative; font-family: 'Arial', sans-serif;}
+        .npc-title { font-weight: bold; font-size: 18px; color: var(--accent-blue); margin-bottom: 5px; display: flex; align-items: center; gap: 8px;}
+        .npc-text { font-style: italic; color: #334155; line-height: 1.5; }
 
         /* --- LANGUAGE SUPPORT TOOLTIPS --- */
-        .vocab {
-            border-bottom: 2px dotted var(--accent-red); cursor: help; position: relative; color: var(--accent-red); font-weight: bold;
-        }
+        .vocab { border-bottom: 2px dotted var(--accent-red); cursor: help; position: relative; color: var(--accent-red); font-weight: bold; }
         .vocab::after {
             content: attr(data-tip); position: absolute; bottom: 120%; left: 50%; transform: translateX(-50%);
-            background: #0f172a; color: white; padding: 5px 10px; border-radius: 4px; font-size: 12px;
+            background: #0f172a; color: white; padding: 8px 12px; border-radius: 6px; font-size: 13px;
             white-space: nowrap; opacity: 0; pointer-events: none; transition: 0.2s; font-family: 'Arial', sans-serif; font-weight: normal; font-style: normal; z-index: 100;
         }
         .vocab:hover::after { opacity: 1; }
 
         /* --- CHAT SYSTEM --- */
         #chat-history { flex: 1; overflow-y: auto; padding: 15px; background: #f8fafc; font-family: 'Arial', sans-serif; font-size: 14px; }
-        .chat-msg { margin-bottom: 8px; }
-        .chat-name { font-weight: bold; color: var(--accent-blue); }
+        .chat-msg { margin-bottom: 12px; line-height: 1.4; }
+        .chat-name { font-weight: bold; color: var(--accent-blue); font-size: 13px; display: block; margin-bottom: 2px;}
+        .sys-msg { color: #64748b; font-style: italic; font-size: 13px; text-align: center; margin: 10px 0; }
         #chat-input-area { padding: 10px; border-top: 1px solid #cbd5e1; display: flex; gap: 5px; background: white; }
         
         /* --- HOST DASHBOARD --- */
-        .submission-card { background: #f1f5f9; border: 1px solid #cbd5e1; padding: 10px; margin-bottom: 10px; border-radius: 4px; }
+        .submission-card { background: #f1f5f9; border: 1px solid #cbd5e1; padding: 15px; margin-bottom: 15px; border-radius: 6px; }
         .reward-badge { display: inline-block; background: var(--accent-gold); padding: 2px 8px; border-radius: 12px; font-size: 12px; font-weight: bold; font-family: Arial; }
     </style>
 </head>
 <body>
 
     <div id="header">
-        <h2 style="margin:0;">📰 The Daily Chronicle: Newsroom</h2>
-        <div id="player-info" class="hidden">Journalist: <span id="my-name-display"></span> | Stars: <span id="my-stars">0</span> ⭐</div>
+        <h2 style="margin:0;">📰 The Daily Chronicle</h2>
+        <div id="player-info" class="hidden">Desk: <span id="my-name-display" style="font-weight:bold; color:var(--accent-gold);"></span> | Passes: <span id="my-stars">0</span> ⭐</div>
     </div>
 
     <div id="screen-login" class="box" style="max-width: 400px; margin: 40px auto;">
-        <h2>Welcome to the Newsroom</h2>
-        <p>Enter your initials or a pen-name to join the Editorial Team.</p>
+        <h2>Join the Newsroom</h2>
+        <p style="color: #64748b;">Enter your initials or a pen-name to log into your workstation.</p>
         <input type="text" id="login-name" placeholder="e.g., J.D. or Captain Alby">
-        <button id="btn-join" style="width: 100%;">Enter Newsroom</button>
-        <hr style="margin: 20px 0;">
-        <button id="btn-host" class="btn-red" style="width: 100%;">Teacher: Host Session</button>
+        <button id="btn-join">Enter Workstation</button>
+        <hr style="margin: 20px 0; border-color: #e2e8f0;">
+        <button id="btn-host" class="btn-red">Teacher: Host Session</button>
     </div>
 
     <div id="screen-app" class="app-container hidden">
@@ -98,79 +123,126 @@
         <div id="task-panel">
             
             <div id="view-lobby" class="box">
-                <h2>Waiting for the Chief Editor...</h2>
-                <p>Chat with your fellow journalists on the right while the Host prepares the assignment.</p>
-                <div id="host-controls-lobby" class="hidden" style="margin-top: 20px; padding-top: 20px; border-top: 2px dashed #cbd5e1;">
-                    <h3 style="color: var(--accent-red);">Host Controls</h3>
-                    <button onclick="setRound(1)">Start Round 1: The Filter</button>
-                    <button onclick="setRound(2)">Start Round 2: Synonyms</button>
-                    <button onclick="setRound(3)">Start Round 3: Restructure</button>
+                <h2 style="color: var(--accent-blue);">☕ The Breakroom</h2>
+                <p>You are logged in. We are currently waiting for the Chief Editor to assign the next task.</p>
+                <p style="color: #64748b; font-style: italic;">Use the chat panel on the right to say hello to the team!</p>
+                
+                <div id="host-controls-lobby" class="hidden" style="margin-top: 30px; padding-top: 20px; border-top: 2px dashed #cbd5e1;">
+                    <h3 style="color: var(--accent-red);">👑 Host Controls</h3>
+                    <button onclick="setRound(1)">Deploy Round 1: The Filter</button>
+                    <button onclick="setRound(2)">Deploy Round 2: Synonyms</button>
+                    <button onclick="setRound(3)">Deploy Round 3: Restructure</button>
                 </div>
             </div>
 
             <div id="view-round1" class="hidden">
                 <div class="npc-box">
-                    <div class="npc-avatar">🕵️</div>
-                    <div class="npc-title">Chief Editor says:</div>
-                    "Journalists! We received a messy press release. I need you to <span class="vocab" data-tip="Remove unnecessary details and keep only facts">filter</span> out the fluff. Read the source text below and submit ONLY the two <span class="vocab" data-tip="Clearly stated, obvious">explicit</span> facts. No opinions or describing words!"
+                    <div class="npc-title">🕵️ Chief Editor says:</div>
+                    <div class="npc-text">"Journalists! I need you to <span class="vocab" data-tip="Remove extra, useless describing words">filter</span> out the fluff. Read the source text below and extract ONLY the two <span class="vocab" data-tip="Facts that are clearly stated as true">explicit</span> facts. No opinions!"</div>
                 </div>
+                
                 <div class="box">
-                    <h3>Source Text:</h3>
-                    <p style="background:#e2e8f0; padding: 10px; border-left: 4px solid #94a3b8;">"The new city library, which cost an absolutely staggering and frankly ridiculous £2 million and features beautiful, shiny glass windows, will open its doors on Monday to provide students with 500 brand new books."</p>
-                    <hr>
-                    <input type="text" id="r1-answer" placeholder="Type the core facts here...">
-                    <button onclick="submitTask('r1-answer')">Submit to Editor</button>
+                    <div class="step-container">
+                        <div class="step-title">🔍 Step 1: Read the Source</div>
+                        <div class="source-paper">
+                            "The new city library, which cost an absolutely staggering and frankly ridiculous £2 million and features beautiful, shiny glass windows, will open its doors on Monday to provide students with 500 brand new books."
+                        </div>
+                    </div>
+
+                    <div class="step-container">
+                        <div class="step-title">💡 Step 2: The Strategy</div>
+                        <p style="margin:0; font-size:14px;">Ignore the writer's opinions (like "ridiculous" or "beautiful"). Find the actual data.</p>
+                    </div>
+
+                    <div class="step-container workspace">
+                        <div class="step-title">✍️ Step 3: Your Report</div>
+                        <textarea id="r1-answer" class="pulse-focus" rows="3" placeholder="Fact 1: &#10;Fact 2: "></textarea>
+                        <button onclick="submitTask('r1-answer')">Submit to Editor</button>
+                    </div>
                 </div>
             </div>
 
             <div id="view-round2" class="hidden">
                 <div class="npc-box">
-                    <div class="npc-avatar">🕵️</div>
-                    <div class="npc-title">Chief Editor says:</div>
-                    "This draft is too casual. We need to <span class="vocab" data-tip="Make formal and professional">neutralise</span> the tone. Give me professional synonyms for the highlighted words. Remember: DO NOT change technical terms like 'Global Warming'!"
+                    <div class="npc-title">🕵️ Chief Editor says:</div>
+                    <div class="npc-text">"This draft is too casual. We need to <span class="vocab" data-tip="Make the tone formal and professional">neutralise</span> the writing. Give me professional synonyms for the highlighted words. Remember: DO NOT change technical terms like 'Global Warming'!"</div>
                 </div>
+                
                 <div class="box">
-                    <h3>Source Text:</h3>
-                    <p style="background:#e2e8f0; padding: 10px; border-left: 4px solid #94a3b8;">"The <b style="color:var(--accent-red)">boss</b> said that Global Warming is making the weather <b style="color:var(--accent-red)">really bad</b>."</p>
-                    <hr>
-                    <input type="text" id="r2-answer" placeholder="Rewrite the sentence with formal synonyms...">
-                    <button onclick="submitTask('r2-answer')">Submit to Editor</button>
+                    <div class="step-container">
+                        <div class="step-title">🔍 Step 1: Read the Source</div>
+                        <div class="source-paper">
+                            "The <span class="highlight">boss</span> said that Global Warming is making the weather <span class="highlight">really bad</span>."
+                        </div>
+                    </div>
+
+                    <div class="step-container">
+                        <div class="step-title">💡 Step 2: The Strategy</div>
+                        <button class="btn-outline" onclick="document.getElementById('hint-r2').classList.toggle('hidden')">Stuck? Click for Word Bank</button>
+                        <div id="hint-r2" class="hint-box hidden">
+                            <b>Options for "boss":</b> manager, director, supervisor, leader.<br>
+                            <b>Options for "really bad":</b> severe, extreme, deteriorating, adverse.
+                        </div>
+                    </div>
+
+                    <div class="step-container workspace">
+                        <div class="step-title">✍️ Step 3: Your Report</div>
+                        <input type="text" id="r2-answer" class="pulse-focus" placeholder="Type the improved, formal sentence here...">
+                        <button onclick="submitTask('r2-answer')">Submit to Editor</button>
+                    </div>
                 </div>
             </div>
 
             <div id="view-round3" class="hidden">
                 <div class="npc-box">
-                    <div class="npc-avatar">🕵️</div>
-                    <div class="npc-title">Chief Editor says:</div>
-                    "Final task! You must completely <span class="vocab" data-tip="Change the order and grammar of the sentence">restructure</span> this sentence. Change the architecture using a Logic Flip or the Passive Voice so we don't get sued for copying!"
+                    <div class="npc-title">🕵️ Chief Editor says:</div>
+                    <div class="npc-text">"Final task! You must completely <span class="vocab" data-tip="Change the grammatical order of the sentence">restructure</span> this sentence. Change the architecture using a Logic Flip so we don't get sued for copying!"</div>
                 </div>
+                
                 <div class="box">
-                    <h3>Source Text:</h3>
-                    <p style="background:#e2e8f0; padding: 10px; border-left: 4px solid #94a3b8;">"The park is full of rubbish because there aren't enough bins."</p>
-                    <hr>
-                    <textarea id="r3-answer" rows="3" placeholder="Rewrite the sentence with a completely new structure..."></textarea>
-                    <button onclick="submitTask('r3-answer')">Submit to Editor</button>
+                    <div class="step-container">
+                        <div class="step-title">🔍 Step 1: Read the Source</div>
+                        <div class="source-paper">
+                            "The park is full of rubbish <b style="color:var(--accent-red)">because</b> there aren't enough bins."
+                        </div>
+                    </div>
+
+                    <div class="step-container">
+                        <div class="step-title">💡 Step 2: The Strategy (Logic Flip)</div>
+                        <div class="logic-flip">
+                            <span style="color:#64748b;">[Effect]</span> <b style="color:var(--accent-red)">because</b> <span style="color:#64748b;">[Cause]</span> 
+                            &nbsp; ➔ &nbsp; 
+                            <b style="color:var(--accent-blue)">Due to</b> <span style="color:#64748b;">[Cause]</span>, <span style="color:#64748b;">[Effect]</span>.
+                        </div>
+                        <p style="margin:0; font-size:13px; color:#64748b;"><i>Start your sentence with the Cause instead of the Effect!</i></p>
+                    </div>
+
+                    <div class="step-container workspace">
+                        <div class="step-title">✍️ Step 3: Your Report</div>
+                        <textarea id="r3-answer" class="pulse-focus" rows="2" placeholder="Due to the fact that..."></textarea>
+                        <button onclick="submitTask('r3-answer')">Submit to Editor</button>
+                    </div>
                 </div>
             </div>
 
             <div id="host-submissions-view" class="hidden box">
-                <h3 style="color: var(--accent-red);">Live Submissions</h3>
-                <p style="font-size: 14px; color: #64748b;">Review team submissions and award Stars for good work.</p>
+                <h3 style="color: var(--accent-red); margin-bottom: 5px;">Live Submissions</h3>
+                <p style="font-size: 14px; color: #64748b; margin-top: 0;">Review team submissions and award Stars for good work.</p>
                 <div id="submission-list"></div>
                 <hr>
-                <button onclick="setRound('lobby')" class="btn-red">End Round & Return to Lobby</button>
+                <button onclick="setRound('lobby')" class="btn-red">End Round & Return to Breakroom</button>
             </div>
 
         </div>
 
         <div id="collaboration-panel">
-            <div style="background: #e2e8f0; padding: 10px; font-weight: bold; font-family: Arial; border-bottom: 1px solid #cbd5e1;">
-                💬 Team Brainstorming Chat
+            <div style="background: #e2e8f0; padding: 15px; font-weight: bold; font-family: Arial; border-bottom: 1px solid #cbd5e1; display:flex; align-items:center; gap: 8px;">
+                💬 Team Brainstorming
             </div>
             <div id="chat-history"></div>
             <div id="chat-input-area">
-                <input type="text" id="chat-input" placeholder="Discuss ideas here..." style="margin:0;">
-                <button onclick="sendChat()" style="padding: 10px;">Send</button>
+                <input type="text" id="chat-input" placeholder="Discuss ideas here..." style="margin:0; flex:1;">
+                <button onclick="sendChat()" style="width: auto; margin:0;">Send</button>
             </div>
         </div>
 
@@ -204,7 +276,7 @@
         document.getElementById('btn-host').addEventListener('click', () => joinGame(true));
 
         function joinGame(asHost) {
-            myName = document.getElementById('login-name').value.trim() || "Anonymous Reporter";
+            myName = document.getElementById('login-name').value.trim() || "Reporter " + Math.floor(Math.random()*100);
             isHost = asHost;
 
             signInAnonymously(auth).then(() => {
@@ -233,7 +305,7 @@
             onValue(ref(db, 'newsroom/state/phase'), (snap) => {
                 const phase = snap.val() || 'lobby';
                 
-                // Hide all views first
+                // Hide all views
                 document.getElementById('view-lobby').classList.add('hidden');
                 document.getElementById('view-round1').classList.add('hidden');
                 document.getElementById('view-round2').classList.add('hidden');
@@ -241,11 +313,18 @@
                 document.getElementById('host-submissions-view').classList.add('hidden');
 
                 if (isHost && phase !== 'lobby') {
-                    // Host sees submissions during rounds
                     document.getElementById('host-submissions-view').classList.remove('hidden');
                 } else {
-                    // Everyone else sees the current round
                     document.getElementById(`view-${phase}`).classList.remove('hidden');
+                    
+                    // Reset input animations if moving to a new round
+                    if(phase !== 'lobby') {
+                        const activeInput = document.getElementById(`${phase}-answer`);
+                        if(activeInput) {
+                            activeInput.value = "";
+                            activeInput.classList.add('pulse-focus');
+                        }
+                    }
                 }
             });
 
@@ -255,12 +334,16 @@
                 chatBox.innerHTML = "";
                 const msgs = snap.val() || {};
                 Object.values(msgs).forEach(m => {
-                    chatBox.innerHTML += `<div class="chat-msg"><span class="chat-name">${m.name}:</span> ${m.text}</div>`;
+                    if(m.isSystem) {
+                        chatBox.innerHTML += `<div class="sys-msg">${m.text}</div>`;
+                    } else {
+                        chatBox.innerHTML += `<div class="chat-msg"><span class="chat-name">${m.name}</span> ${m.text}</div>`;
+                    }
                 });
-                chatBox.scrollTop = chatBox.scrollHeight; // Auto-scroll
+                chatBox.scrollTop = chatBox.scrollHeight;
             });
 
-            // Listen to Player Stars (For my own display)
+            // Listen to Player Stars
             onValue(ref(db, `newsroom/players/${myUID}/stars`), (snap) => {
                 document.getElementById('my-stars').innerText = snap.val() || 0;
             });
@@ -271,13 +354,18 @@
                     const subBox = document.getElementById('submission-list');
                     subBox.innerHTML = "";
                     const subs = snap.val() || {};
+                    
+                    if(Object.keys(subs).length === 0) {
+                        subBox.innerHTML = "<p style='color:#94a3b8; font-style:italic;'>Waiting for journalists to submit drafts...</p>";
+                    }
+
                     Object.entries(subs).forEach(([uid, s]) => {
                         subBox.innerHTML += `
                             <div class="submission-card">
-                                <b>${s.name}</b> submitted: <br>
-                                <i>"${s.text}"</i>
-                                <div style="margin-top: 5px;">
-                                    <button class="btn-gold" style="padding: 5px;" onclick="awardStar('${uid}')">+1 Star Award</button>
+                                <b style="color:var(--accent-blue);">${s.name}</b> submitted: <br>
+                                <i style="display:block; margin: 10px 0; font-size:16px;">"${s.text}"</i>
+                                <div>
+                                    <button class="btn-gold" style="width:auto; padding: 6px 12px; font-size:13px;" onclick="awardStar('${uid}')">⭐ Award Press Pass</button>
                                 </div>
                             </div>
                         `;
@@ -291,36 +379,44 @@
             const input = document.getElementById('chat-input');
             const text = input.value.trim();
             if (text) {
-                push(ref(db, 'newsroom/chat'), { name: myName, text: text });
+                push(ref(db, 'newsroom/chat'), { name: myName, text: text, isSystem: false });
                 input.value = '';
             }
         };
 
-        // Allow Enter key for chat
         document.getElementById('chat-input').addEventListener('keypress', function (e) {
             if (e.key === 'Enter') sendChat();
         });
 
         window.submitTask = function(inputId) {
-            const text = document.getElementById(inputId).value.trim();
-            if (!text) return alert("Write your transformation first!");
+            const inputEl = document.getElementById(inputId);
+            const text = inputEl.value.trim();
+            if (!text) return alert("Write your draft before submitting!");
+
+            // Stop the pulsing animation since they have interacted
+            inputEl.classList.remove('pulse-focus');
 
             set(ref(db, `newsroom/submissions/${myUID}`), {
                 name: myName,
                 text: text
             });
             
-            // Notify chat automatically
-            push(ref(db, 'newsroom/chat'), { name: "System", text: `📝 ${myName} has submitted a draft to the Editor.` });
-            alert("Draft sent to Editor! Wait for feedback or discuss in chat.");
+            push(ref(db, 'newsroom/chat'), { name: "System", text: `📝 ${myName} has submitted a draft to the Editor.`, isSystem: true });
+            alert("Draft sent to Editor! You can keep editing and resubmit if you want to change it.");
         };
+
+        // Remove pulse animation when they start typing
+        ['r1-answer', 'r2-answer', 'r3-answer'].forEach(id => {
+            const el = document.getElementById(id);
+            if(el) {
+                el.addEventListener('input', function() { this.classList.remove('pulse-focus'); });
+            }
+        });
 
         // --- HOST ACTIONS ---
         window.setRound = function(roundNum) {
             const phase = roundNum === 'lobby' ? 'lobby' : `round${roundNum}`;
             set(ref(db, 'newsroom/state/phase'), phase);
-            
-            // Clear old submissions when changing rounds
             remove(ref(db, 'newsroom/submissions'));
         };
 
@@ -329,7 +425,7 @@
             runTransaction(starRef, (currentStars) => {
                 return (currentStars || 0) + 1;
             }).then(() => {
-                push(ref(db, 'newsroom/chat'), { name: "Chief Editor", text: `⭐ A Star was awarded for excellent journalism!` });
+                push(ref(db, 'newsroom/chat'), { name: "System", text: `⭐ The Editor awarded a Press Pass to a journalist for excellent writing!`, isSystem: true });
             });
         };
 
