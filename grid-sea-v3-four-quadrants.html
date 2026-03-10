@@ -41,10 +41,14 @@
 
         /* The Grid Sea */
         .grid-container {
-            position: relative; width: 100%; max-width: 500px; aspect-ratio: 1 / 1;
-            background-color: var(--ocean); border: 2px solid rgba(255,255,255,0.5);
-            border-left: 5px solid white; border-bottom: 5px solid white;
-            margin: 10px 0 20px 20px; box-sizing: border-box;
+            position: relative;
+            width: 95vw; /* Takes up most of the screen width on mobile */
+            max-width: 600px; /* Much larger max size for desktop/tablets */
+            aspect-ratio: 1 / 1; /* Keeps it a perfect square */
+            background-color: var(--ocean);
+            border: 2px solid white;
+            margin: 10px auto;
+            box-sizing: border-box;
             background-image: linear-gradient(var(--grid-line) 1px, transparent 1px), linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
             background-size: 10% 10%;
         }
@@ -69,13 +73,15 @@
         .large-grid .axis-numbers-x { font-size: 0.6em; }
 
         .entity {
-            position: absolute; width: 10%; height: 10%; margin-left: -5%; margin-bottom: -5%;
-            display: flex; justify-content: center; align-items: center; font-size: 1.5em;
-            transition: left 1s ease-in-out, bottom 1s ease-in-out; z-index: 5;
+            position: absolute;
+            font-size: 1.8rem; /* Made the emojis bigger */
+            transform: translate(-50%, 50%); /* Centers exactly on the grid intersection */
+            transition: all 0.5s ease-in-out;
+            z-index: 10;        
         }
         .treasure { z-index: 2; font-size: 1.8em; filter: drop-shadow(0 0 5px var(--gold)); animation: float 2s infinite ease-in-out;}
         .player-ship { z-index: 5; }
-        .my-ship { z-index: 10; font-size: 2em; filter: drop-shadow(0 0 10px white); }
+        .my-ship { z-index: 15; font-size: 2.2rem; filter: drop-shadow(0 0 10px white); }
 
         @keyframes float { 0% { transform: translateY(0); } 50% { transform: translateY(-5px); } 100% { transform: translateY(0); } }
 
@@ -198,6 +204,11 @@
                     <button class="btn btn-gold" id="host-exec-btn" style="display:none; max-width:300px;" onclick="hostStartTimer()">⏰ START 10s TURN TIMER</button>
 
                     <div class="grid-container" id="grid-sea">
+                        
+                        <div id="harbour" style="position: absolute; left: 50%; bottom: 50%; transform: translate(-50%, 50%); font-size: 2.2rem; z-index: 5; display: none;">
+                            ⚓
+                        </div>
+                        
                         <div class="cartesian-axes" id="cartesian-overlay">
                             <div class="c-axis-x"></div>
                             <div class="c-axis-y"></div>
@@ -458,7 +469,6 @@
             if(u.team===4) { t4+=tag; teamScores[4] += (u.score || 0); }
         });
 
-        // Update Host Dashboard
         if (isHost && globalState.phase === 'lobby') {
             document.getElementById('host-t1').innerHTML = t1 || '<i style="color:#94a3b8">Empty</i>';
             document.getElementById('host-t2').innerHTML = t2 || '<i style="color:#94a3b8">Empty</i>';
@@ -466,13 +476,11 @@
             document.getElementById('host-t4').innerHTML = t4 || '<i style="color:#94a3b8">Empty</i>';
         }
         
-        // Update Permanent Sidebar
         document.getElementById('sidebar-t1').innerHTML = `<b style="color:#ef4444;">Team 1</b><br>` + (t1 || '<i style="color:#94a3b8">Empty</i>');
         document.getElementById('sidebar-t2').innerHTML = `<b style="color:#3b82f6;">Team 2</b><br>` + (t2 || '<i style="color:#94a3b8">Empty</i>');
         document.getElementById('sidebar-t3').innerHTML = `<b style="color:#10b981;">Team 3</b><br>` + (t3 || '<i style="color:#94a3b8">Empty</i>');
         document.getElementById('sidebar-t4').innerHTML = `<b style="color:#f59e0b;">Team 4</b><br>` + (t4 || '<i style="color:#94a3b8">Empty</i>');
 
-        // Update Game Scores
         document.getElementById('ts-1').innerText = teamScores[1];
         document.getElementById('ts-2').innerText = teamScores[2];
         document.getElementById('ts-3').innerText = teamScores[3];
@@ -501,7 +509,6 @@
             const counts = {1:0, 2:0, 3:0, 4:0};
             Object.values(players).forEach(p => { counts[p.team] = (counts[p.team]||0) + 1; });
             
-            // Assign to team with fewest players
             let minTeam = 1;
             let minCount = counts[1];
             for(let i=2; i<=4; i++) {
@@ -549,9 +556,8 @@
                 sea.appendChild(el);
             }
             el.dataset.keep = "true";
-            el.style.width = `${percentStep}%`; el.style.height = `${percentStep}%`;
-            el.style.marginLeft = `-${percentStep/2}%`; el.style.marginBottom = `-${percentStep/2}%`;
-            el.style.left = `${loc.x * percentStep}%`; el.style.bottom = `${loc.y * percentStep}%`;
+            el.style.left = `${loc.x * percentStep}%`; 
+            el.style.bottom = `${loc.y * percentStep}%`;
         });
         document.querySelectorAll('.treasure[data-keep="false"]').forEach(el => el.remove());
 
@@ -569,9 +575,8 @@
                     sea.appendChild(el);
                 }
                 el.dataset.keep = "true";
-                el.style.width = `${percentStep}%`; el.style.height = `${percentStep}%`;
-                el.style.marginLeft = `-${percentStep/2}%`; el.style.marginBottom = `-${percentStep/2}%`;
-                el.style.left = `${loc.x * percentStep}%`; el.style.bottom = `${loc.y * percentStep}%`;
+                el.style.left = `${loc.x * percentStep}%`; 
+                el.style.bottom = `${loc.y * percentStep}%`;
                 el.style.fontSize = '1.8em';
                 el.style.zIndex = '1';
             });
@@ -591,7 +596,6 @@
             el.className = `entity player-ship ${uid === myUID ? 'my-ship' : ''}`;
             el.dataset.keep = "true";
             
-            // Extract Initials
             let initials = u.name.substring(0, 2).toUpperCase();
             if (u.name.includes(" ")) {
                 let parts = u.name.split(" ");
@@ -599,15 +603,14 @@
             }
 
             el.innerHTML = `
-                <div style="position: absolute; top: -16px; font-size: 11px; font-weight: bold; background: rgba(0,0,0,0.8); padding: 2px 4px; border-radius: 4px; color: ${getTeamColor(u.team)}; white-space: nowrap; line-height: 1;">
+                <div style="position: absolute; top: -20px; left: 50%; transform: translateX(-50%); font-size: 11px; font-weight: bold; background: rgba(0,0,0,0.8); padding: 2px 4px; border-radius: 4px; color: ${getTeamColor(u.team)}; white-space: nowrap; line-height: 1;">
                     ${initials}
                 </div>
                 ${u.avatar}
             `;
             
-            el.style.width = `${percentStep}%`; el.style.height = `${percentStep}%`;
-            el.style.marginLeft = `-${percentStep/2}%`; el.style.marginBottom = `-${percentStep/2}%`;
-            el.style.left = `${loc.x * percentStep}%`; el.style.bottom = `${loc.y * percentStep}%`;
+            el.style.left = `${loc.x * percentStep}%`; 
+            el.style.bottom = `${loc.y * percentStep}%`;
         });
         document.querySelectorAll('.player-ship[data-keep="false"]').forEach(el => el.remove());
     }
@@ -616,7 +619,6 @@
     function startRound(roundNum) {
         if(!isHost) return;
         
-        // Reset players to their starting base to begin the round
         let updates = {};
         Object.entries(globalUsers).forEach(([uid, u]) => {
             let home = getHome(u.team, roundNum);
@@ -643,21 +645,23 @@
         let gSize = roundNum === 4 ? 20 : 10;
         
         for(let i=0; i<8; i++) {
-            let tx = Math.floor(Math.random() * (gSize + 1));
-            let ty = Math.floor(Math.random() * (gSize + 1));
+            let tx, ty;
+            do {
+                tx = Math.floor(Math.random() * (gSize + 1));
+                ty = Math.floor(Math.random() * (gSize + 1));
+            } while (roundNum === 4 && tx === 10 && ty === 10); // Protect the Harbour!
             newTreasures[`t_${tx}_${ty}`] = { gx: tx, gy: ty };
         }
         
-        // Add random Landmasses in Round 4
         let newLand = {};
         if (roundNum === 4) {
             for(let i=0; i<12; i++) {
-                let lx = Math.floor(Math.random() * (gSize + 1));
-                let ly = Math.floor(Math.random() * (gSize + 1));
-                // Do not spawn land at the dead center (10,10) where players start
-                if (lx !== 10 || ly !== 10) {
-                    newLand[`l_${lx}_${ly}`] = { gx: lx, gy: ly };
-                }
+                let lx, ly;
+                do {
+                    lx = Math.floor(Math.random() * (gSize + 1));
+                    ly = Math.floor(Math.random() * (gSize + 1));
+                } while (lx === 10 && ly === 10); // Protect the Harbour!
+                newLand[`l_${lx}_${ly}`] = { gx: lx, gy: ly };
             }
             stateRef.child('land').set(newLand);
         } else {
@@ -689,7 +693,6 @@
         let globalLand = globalState.land || {};
         let landKeys = Object.values(globalLand).map(l => `${l.gx}_${l.gy}`);
 
-        // 1. Map Targets
         Object.entries(globalUsers).forEach(([uid, u]) => {
             let targetGlobal;
             let didMove = false;
@@ -698,7 +701,7 @@
                 targetGlobal = localToGlobal(u.lockedLocalX, u.lockedLocalY, u.team, currentRound);
                 didMove = true;
             } else {
-                targetGlobal = { x: u.globalX, y: u.globalY }; // Stayed still
+                targetGlobal = { x: u.globalX, y: u.globalY };
             }
             
             updatesX[`${uid}/globalX`] = targetGlobal.x;
@@ -712,7 +715,6 @@
                 targetMap[tid].push({ uid: uid });
             }
 
-            // Record everyone moving THIS turn for ship-to-ship crash checks
             if (didMove) {
                 let posId = `pos_${targetGlobal.x}_${targetGlobal.y}`;
                 if(!targetMap[posId]) targetMap[posId] = [];
@@ -720,25 +722,20 @@
             }
         });
 
-        // 2. Animate Horizontal
         usersRef.update(updatesX); 
 
-        // 3. Animate Vertical
         setTimeout(() => {
             usersRef.update(updatesY);
             
-            // 4. Resolve Crashes & Treasures
             setTimeout(() => {
                 let scoresToAdd = {}; let treasuresToRemove = []; let crashedUsers = [];
                 
-                // Ship-to-Ship Collisions
                 Object.entries(targetMap).forEach(([key, uids]) => {
                     if (key.startsWith('pos_') && uids.length > 1) {
                         uids.forEach(uid => { if(!crashedUsers.includes(uid)) crashedUsers.push(uid); });
                     }
                 });
 
-                // Land Collisions
                 Object.entries(globalUsers).forEach(([uid, u]) => {
                     let tx = updatesX[`${uid}/globalX`] ?? u.globalX;
                     let ty = updatesY[`${uid}/globalY`] ?? u.globalY;
@@ -747,19 +744,16 @@
                     }
                 });
 
-                // Treasure Claiming (Only if you didn't crash!)
                 Object.entries(targetMap).forEach(([key, players]) => {
                     if (key.startsWith('t_')) {
                         let validCandidates = players.filter(p => !crashedUsers.includes(p.uid));
                         if (validCandidates.length > 0) {
-                            // Give it to the first valid candidate
                             scoresToAdd[validCandidates[0].uid] = (globalUsers[validCandidates[0].uid].score || 0) + 1; 
                             treasuresToRemove.push(key); 
                         }
                     }
                 });
 
-                // Execute DB Updates
                 if(treasuresToRemove.length > 0) {
                     let tUpdates = {};
                     treasuresToRemove.forEach(t => tUpdates[t] = null);
@@ -772,7 +766,6 @@
                     usersRef.update(sUpdates);
                 }
 
-                // Crash Notifications & Teleport
                 if(crashedUsers.length > 0) {
                     let msg = crashedUsers.length > 2 ? "Massive Multi-Ship Collision!" : "💥 A crash occurred at sea!";
                     stateRef.update({crashAlert: { time: Date.now(), msg: msg }});
@@ -789,7 +782,6 @@
                     setTimeout(() => { usersRef.update(resets); }, 500);
                 }
 
-                // Win Condition
                 let remainingTreasures = Object.keys(globalTreasures).length - treasuresToRemove.length;
                 if (remainingTreasures <= 0) {
                     setTimeout(() => { stateRef.update({ phase: 'round_end' }); }, 1500);
@@ -835,13 +827,11 @@
         document.getElementById('lock-status').style.display = 'block';
     }
 
-    // Unlock controls and persist coordinates
     stateRef.child('timer').on('value', snap => {
         if(snap.val() === 0) {
             document.querySelectorAll('.btn-green, .btn-purple').forEach(b => b.disabled = false);
             document.getElementById('lock-status').style.display = 'none';
             
-            // Re-fill input boxes with current coordinates so they don't jump back to zero!
             let r = Number(globalState.round) || 1;
             if (globalUsers[myUID] && !isSolo && !isHost) {
                 let myLoc = globalToLocal(globalUsers[myUID].globalX, globalUsers[myUID].globalY, myTeam, r);
@@ -941,6 +931,7 @@
                 document.getElementById('grid-sea').classList.add('large-grid');
                 document.getElementById('cartesian-overlay').classList.add('active');
                 document.getElementById('origin-label').style.display = 'none';
+                document.getElementById('harbour').style.display = 'block'; // Show harbour
                 document.getElementById('axis-y-nums').innerHTML = '<span>10</span><span>8</span><span>6</span><span>4</span><span>2</span><span>0</span><span>-2</span><span>-4</span><span>-6</span><span>-8</span><span>-10</span>';
                 document.getElementById('axis-x-nums').innerHTML = '<span>-10</span><span>-8</span><span>-6</span><span>-4</span><span>-2</span><span>0</span><span>2</span><span>4</span><span>6</span><span>8</span><span>10</span>';
                 document.getElementById('r4-x').min = "-10"; document.getElementById('r4-x').max = "10";
@@ -949,6 +940,7 @@
                 document.getElementById('grid-sea').classList.remove('large-grid');
                 document.getElementById('cartesian-overlay').classList.remove('active');
                 document.getElementById('origin-label').style.display = 'block';
+                document.getElementById('harbour').style.display = 'none'; // Hide harbour
                 document.getElementById('axis-y-nums').innerHTML = '<span>10</span><span>9</span><span>8</span><span>7</span><span>6</span><span>5</span><span>4</span><span>3</span><span>2</span><span>1</span>';
                 document.getElementById('axis-x-nums').innerHTML = '<span>0</span><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span>';
             }
@@ -994,7 +986,6 @@
                 document.getElementById('player-round-end-msg').style.display = 'block';
             }
 
-            // Compute Winner Message
             let scores = {1:0, 2:0, 3:0, 4:0};
             Object.values(globalUsers).forEach(u => { scores[u.team] += (u.score || 0); });
             let maxScore = Math.max(scores[1], scores[2], scores[3], scores[4]);
