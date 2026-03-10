@@ -32,7 +32,7 @@
         }
         @media (min-width: 768px) {
             #app-container { flex-direction: row; }
-            #interaction-panel { flex: 1; border-bottom: none; border-right: 4px solid #334155; max-width: 400px; }
+            #interaction-panel { flex: 1; border-bottom: none; border-right: 4px solid #334155; max-width: 450px; }
             #board-panel { flex: 3; }
         }
 
@@ -48,7 +48,7 @@
         }
         .post-author { font-weight: bold; font-size: 1.1em; margin-bottom: 5px; border-bottom: 1px solid #e2e8f0; padding-bottom: 5px; }
         .post-text { font-size: 1em; white-space: pre-wrap; }
-        .hidden-post { opacity: 0.5; background: #cbd5e1; } /* How hidden posts look to host */
+        .hidden-post { opacity: 0.5; background: #cbd5e1; }
 
         /* --- BUTTONS & INPUTS --- */
         input, textarea, button {
@@ -65,6 +65,7 @@
         .btn-green { background-color: var(--accent-green); }
         .btn-red { background-color: var(--accent-red); }
         .btn-yellow { background-color: var(--accent-yellow); color: black; }
+        .btn-blue { background-color: var(--accent-blue); color: white; }
 
         /* --- HOST DASHBOARD ITEMS --- */
         .host-list-item {
@@ -72,12 +73,19 @@
             display: flex; flex-direction: column; gap: 8px; font-size: 14px;
         }
         .host-controls-row { display: flex; gap: 5px; }
-        .host-controls-row button { padding: 8px; margin: 0; font-size: 13px; }
+        .host-controls-row button { padding: 8px; margin: 0; font-size: 13px; flex: 1; }
 
         .status-msg { padding: 15px; border-radius: 8px; font-weight: bold; margin-bottom: 15px; text-align: center; }
         .bg-wait { background: rgba(251, 191, 36, 0.2); color: var(--accent-yellow); border: 1px solid var(--accent-yellow); }
         .bg-success { background: rgba(16, 185, 129, 0.2); color: var(--accent-green); border: 1px solid var(--accent-green); }
 
+        /* --- GUIDELINES PANEL --- */
+        #guidelines-panel {
+            background: rgba(59, 130, 246, 0.1); border: 2px dashed var(--accent-blue);
+            padding: 15px; border-radius: 8px; margin-top: 20px;
+        }
+        .guideline-step { margin-bottom: 10px; font-size: 14px; line-height: 1.4; }
+        .guideline-title { font-weight: bold; color: #60a5fa; }
     </style>
 </head>
 <body>
@@ -106,12 +114,22 @@
                     <button id="btn-request-edit" class="btn-yellow">Request Edit Permission</button>
                     <p style="font-size:13px; color:#94a3b8; text-align:center;">You must ask the Host to unlock your post if you need to make changes.</p>
                 </div>
+
+                <div id="guidelines-panel" class="hidden">
+                    <h3 style="color: var(--accent-blue); margin-top: 0; text-align: center;">📜 The Review Recipe</h3>
+                    <div class="guideline-step"><span class="guideline-title">1. The Hook & Intro:</span> Mention the title, author/director, and one exciting sentence.</div>
+                    <div class="guideline-step"><span class="guideline-title">2. Quick Summary:</span> Use "Somebody-Wanted-But-So". Keep it short. No spoilers!</div>
+                    <div class="guideline-step"><span class="guideline-title">3. Honest Opinion:</span> Say what worked and what didn't. Use powerful adjectives.</div>
+                    <div class="guideline-step"><span class="guideline-title">4. Rating & Recommendation:</span> Give a score out of 5 and say who would enjoy it.</div>
+                </div>
             </div>
 
             <div id="host-panel" class="hidden">
                 <h2 style="color: var(--accent-yellow);">👑 Host Dashboard</h2>
                 <p style="font-size: 13px; color: #94a3b8;">You are the host. Only you can see this menu.</p>
                 
+                <button id="btn-toggle-guidelines" class="btn-blue">📜 Share Review Guidelines with Class</button>
+
                 <hr style="border-color:#475569; margin: 15px 0;">
                 
                 <h3 style="color: var(--accent-green);">Pending Edit Requests</h3>
@@ -121,7 +139,7 @@
 
                 <hr style="border-color:#475569; margin: 20px 0;">
 
-                <h3 style="color: var(--accent-blue);">Manage Posts Visibility</h3>
+                <h3 style="color: var(--accent-blue);">Manage Posts</h3>
                 <div id="host-manage-posts">
                     <p style="font-size:14px; color:#cbd5e1; font-style:italic;">No posts yet.</p>
                 </div>
@@ -164,6 +182,7 @@
         let myUID = "";
         let isHost = false;
         let globalPosts = {};
+        let areGuidelinesVisible = false;
 
         // Login silently
         signInAnonymously(auth).then(() => {
@@ -172,12 +191,12 @@
             // AUTOMATIC HOST ELECTION: First to arrive claims 'host'
             const hostRef = ref(db, 'reviewBoard/hostExists');
             runTransaction(hostRef, (currentData) => {
-                if (currentData === null) return myUID; // I claim host
-                return; // Abort, host already exists
+                if (currentData === null) return myUID; 
+                return; 
             }).then((result) => {
                 if (result.committed) {
                     isHost = true;
-                    onDisconnect(hostRef).remove(); // If host leaves, someone else can take over if they refresh
+                    onDisconnect(hostRef).remove(); 
                 }
                 document.getElementById('loading-panel').classList.add('hidden');
                 
@@ -193,6 +212,7 @@
 
         // --- DATABASE SYNC ---
         function listenToDatabase() {
+            // Listen for Posts
             const postsRef = ref(db, 'reviewBoard/posts');
             onValue(postsRef, (snapshot) => {
                 globalPosts = snapshot.val() || {};
@@ -203,6 +223,34 @@
                     renderHostDashboard(globalPosts);
                 } else {
                     renderStudentView(globalPosts[myUID]);
+                }
+            });
+
+            // Listen for Guidelines Toggle
+            const guideRef = ref(db, 'reviewBoard/showGuidelines');
+            onValue(guideRef, (snapshot) => {
+                areGuidelinesVisible = snapshot.val() || false;
+                
+                // Update Host Button Text
+                const btnToggle = document.getElementById('btn-toggle-guidelines');
+                if (btnToggle) {
+                    if (areGuidelinesVisible) {
+                        btnToggle.innerText = "Hide Review Guidelines";
+                        btnToggle.className = "btn-yellow";
+                    } else {
+                        btnToggle.innerText = "📜 Share Review Guidelines with Class";
+                        btnToggle.className = "btn-blue";
+                    }
+                }
+
+                // Update Student View
+                const guidePanel = document.getElementById('guidelines-panel');
+                if (guidePanel) {
+                    if (areGuidelinesVisible && !isHost) {
+                        guidePanel.classList.remove('hidden');
+                    } else {
+                        guidePanel.classList.add('hidden');
+                    }
                 }
             });
         }
@@ -248,7 +296,6 @@
             
             if(!name || !text) return alert("Please fill in both your name and your review.");
 
-            // If it's a new post, default to visible. If editing, preserve visibility state.
             let isVis = true;
             if(globalPosts[myUID] && globalPosts[myUID].hasOwnProperty('visible')) {
                 isVis = globalPosts[myUID].visible; 
@@ -285,22 +332,23 @@
                             <b>${p.name}</b> wants to edit their post.
                             <div class="host-controls-row">
                                 <button class="btn-green" onclick="approveEdit('${uid}')">Approve</button>
-                                <button class="btn-red" onclick="denyEdit('${uid}')">Deny</button>
+                                <button class="btn-yellow" style="color:black;" onclick="denyEdit('${uid}')">Deny</button>
                             </div>
                         </div>
                     `;
                 }
 
-                // 2. Manage Posts (Hide/Unhide)
+                // 2. Manage Posts (Hide/Show & Delete)
                 const snippet = p.text.length > 40 ? p.text.substring(0, 40) + "..." : p.text;
                 const visBtn = p.visible 
-                    ? `<button class="btn-yellow" onclick="toggleVis('${uid}', false)">👁️ Hide from Board</button>` 
-                    : `<button class="btn-green" onclick="toggleVis('${uid}', true)">✔️ Show on Board</button>`;
+                    ? `<button class="btn-yellow" onclick="toggleVis('${uid}', false)">👁️ Hide</button>` 
+                    : `<button class="btn-green" onclick="toggleVis('${uid}', true)">✔️ Show</button>`;
+                const delBtn = `<button class="btn-red" onclick="deletePost('${uid}')">🗑️ Delete</button>`;
                 
                 manageHTML += `
                     <div class="host-list-item">
                         <b>${p.name}</b>: "${snippet}"
-                        <div class="host-controls-row">${visBtn}</div>
+                        <div class="host-controls-row">${visBtn} ${delBtn}</div>
                     </div>
                 `;
             });
@@ -309,7 +357,7 @@
             manageContainer.innerHTML = manageHTML || '<p style="font-size:14px; color:#cbd5e1; font-style:italic;">No posts yet.</p>';
         }
 
-        // Host Functions (Attached to Window for inline HTML onClick)
+        // Host Control Buttons
         window.approveEdit = function(uid) {
             update(ref(db, `reviewBoard/posts/${uid}`), { status: 'edit_approved' });
         };
@@ -319,10 +367,22 @@
         window.toggleVis = function(uid, makeVisible) {
             update(ref(db, `reviewBoard/posts/${uid}`), { visible: makeVisible });
         };
+        window.deletePost = function(uid) {
+            if(confirm("Are you sure you want to permanently delete this post?")) {
+                remove(ref(db, `reviewBoard/posts/${uid}`));
+            }
+        };
+
+        // Host Guidelines Toggle
+        document.getElementById('btn-toggle-guidelines').addEventListener('click', () => {
+            set(ref(db, 'reviewBoard/showGuidelines'), !areGuidelinesVisible);
+        });
         
+        // Host Reset Board
         document.getElementById('btn-reset-board').addEventListener('click', () => {
             if(confirm("Are you sure? This deletes ALL student posts permanently.")) {
                 remove(ref(db, 'reviewBoard/posts'));
+                set(ref(db, 'reviewBoard/showGuidelines'), false);
             }
         });
 
@@ -331,11 +391,9 @@
             const board = document.getElementById('live-board');
             let boardHTML = "";
 
-            // Convert to array and sort by timestamp (oldest first, like a continuous feed)
             const postArray = Object.values(posts).sort((a,b) => a.timestamp - b.timestamp);
 
             postArray.forEach(p => {
-                // Students only see visible posts. Host sees everything, but hidden posts are faded.
                 if (p.visible || isHost) {
                     const hiddenClass = !p.visible ? "hidden-post" : "";
                     const hostLabel = !p.visible ? `<span style="color:#ef4444; font-size:12px;">(Hidden from students)</span>` : "";
