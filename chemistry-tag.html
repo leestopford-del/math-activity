@@ -49,7 +49,9 @@
         #turn-banner { width: 100%; padding: 10px; text-align: center; font-size: 16px; font-weight: bold; border-radius: 8px 8px 0 0; background: #475569; color: white; box-sizing: border-box; }
         #game-canvas { width: 100%; height: auto; aspect-ratio: 3 / 2; background: #0b1121; border: 3px solid #334155; border-radius: 0 0 8px 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.8); }
         .timer-display { font-size: 24px; font-weight: bold; color: var(--accent-gold); margin: 10px 0; }
+        
         #freeze-warning { color: var(--acid-red); font-weight: bold; font-size: 20px; margin-top: 10px; animation: blink 1s infinite;}
+        #camp-warning { color: #f97316; font-weight: bold; font-size: 18px; margin-top: 5px; animation: blink 1s infinite;}
         @keyframes blink { 0% {opacity:1;} 50% {opacity:0.5;} 100% {opacity:1;} }
 
         /* --- VIRTUAL JOYSTICK --- */
@@ -114,6 +116,8 @@
             <div id="turn-banner">WAITING FOR REACTION...</div>
             <div class="timer-display">Reaction Timer: <span id="time-left">60</span>s</div>
             
+            <p id="camp-warning" class="hidden">⚠️ Safe Zone Eviction in: <span id="camp-time">5</span>s ⚠️</p>
+
             <canvas id="game-canvas" width="1200" height="800"></canvas>
             
             <div id="joy-zone" class="hidden">
@@ -149,7 +153,7 @@
         const PLAYER_RADIUS = 25;
         const CANVAS_W = 1200;
         const CANVAS_H = 800;
-        const BASE_SPEED = 8; // Faster speed for larger map
+        const BASE_SPEED = 8; 
 
         // Fixed Lab Obstacles
         const OBSTACLES = [
@@ -166,7 +170,7 @@
         
         let globalState = { phase: 'lobby', roundType: 'neutralisation', endTime: 0 };
         let globalPlayers = {};
-        let renderPlayers = {}; // Smooth LERP visual interpolation
+        let renderPlayers = {}; 
 
         // Local Controls
         let myX = 150, myY = 150;
@@ -269,6 +273,10 @@
                 } else {
                     if (!isHost && myUID) showScreen('lobby');
                     document.getElementById('joy-zone').classList.add('hidden');
+                    
+                    // Clear warnings when game ends
+                    document.getElementById('camp-warning').classList.add('hidden');
+                    campTimerStart = 0; 
                 }
             });
 
@@ -365,6 +373,10 @@
         // Apply Movement & Physics
         let lastUpX = -1, lastUpY = -1;
         let lastUploadTime = 0;
+        
+        let campTimerStart = 0;
+        const campWarningEl = document.getElementById('camp-warning');
+        const campTimeEl = document.getElementById('camp-time');
 
         function processMovement() {
             if (globalState.phase !== 'playing' || amIFrozen || isHost) return;
@@ -399,6 +411,42 @@
             // Map Boundaries
             myX = Math.max(PLAYER_RADIUS, Math.min(CANVAS_W - PLAYER_RADIUS, myX));
             myY = Math.max(PLAYER_RADIUS, Math.min(CANVAS_H - PLAYER_RADIUS, myY));
+
+            // --- CAMPING PREVENTION LOGIC ---
+            let isSafe = false;
+            if (myX < 250 && myY < 200) isSafe = true; // Beaker A
+            if (myX > 950 && myY > 600) isSafe = true; // Beaker B
+
+            if (isSafe && !amIFrozen) {
+                if (campTimerStart === 0) campTimerStart = Date.now();
+                
+                let timeCamped = Date.now() - campTimerStart;
+                let timeLeft = 5 - Math.floor(timeCamped / 1000);
+                
+                if (timeLeft > 0) {
+                    campWarningEl.classList.remove('hidden');
+                    campTimeEl.innerText = timeLeft;
+                } else {
+                    // TELEPORT PLAYER (Eviction!)
+                    const teleportSpots = [
+                        {x: 600, y: 100}, // Top Middle
+                        {x: 600, y: 450}, // Dead Center
+                        {x: 600, y: 750}  // Bottom Middle
+                    ];
+                    let spot = teleportSpots[Math.floor(Math.random() * teleportSpots.length)];
+                    myX = spot.x; myY = spot.y;
+                    
+                    campTimerStart = 0;
+                    campWarningEl.classList.add('hidden');
+                    
+                    // Force an immediate upload so everyone else sees the teleport instantly
+                    update(ref(db, `chemGame/players/${myUID}`), { x: Math.round(myX), y: Math.round(myY) });
+                    lastUpX = myX; lastUpY = myY; lastUploadTime = Date.now();
+                }
+            } else {
+                campTimerStart = 0;
+                campWarningEl.classList.add('hidden');
+            }
 
             // Network Upload (THROTTLED TO PREVENT LAG: Max 10 updates per second)
             let now = Date.now();
