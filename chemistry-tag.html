@@ -45,9 +45,9 @@
         .player-tag { background: #334155; padding: 6px; border-radius: 4px; margin-bottom: 6px; font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 5px; }
 
         /* --- GAME CANVAS --- */
-        #game-wrapper { position: relative; width: 100%; max-width: 800px; margin: 0 auto; display: flex; flex-direction: column; align-items: center; }
+        #game-wrapper { position: relative; width: 100%; max-width: 1200px; margin: 0 auto; display: flex; flex-direction: column; align-items: center; }
         #turn-banner { width: 100%; padding: 10px; text-align: center; font-size: 16px; font-weight: bold; border-radius: 8px 8px 0 0; background: #475569; color: white; box-sizing: border-box; }
-        #game-canvas { width: 100%; height: auto; aspect-ratio: 4 / 3; background: #0b1121; border: 3px solid #334155; border-radius: 0 0 8px 8px; }
+        #game-canvas { width: 100%; height: auto; aspect-ratio: 3 / 2; background: #0b1121; border: 3px solid #334155; border-radius: 0 0 8px 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.8); }
         .timer-display { font-size: 24px; font-weight: bold; color: var(--accent-gold); margin: 10px 0; }
         #freeze-warning { color: var(--acid-red); font-weight: bold; font-size: 20px; margin-top: 10px; animation: blink 1s infinite;}
         @keyframes blink { 0% {opacity:1;} 50% {opacity:0.5;} 100% {opacity:1;} }
@@ -101,7 +101,7 @@
         
         <button class="btn-red" onclick="startRound('neutralisation')">Round 1: Neutralisation (Red chases Blue. Rescues ON)</button>
         <button class="btn-blue" onclick="startRound('reversible')">Round 2: Reversible Change (Blue chases Red. Rescues ON)</button>
-        <button style="background:#f97316; color:white;" onclick="startRound('irreversible')">Round 3: Irreversible Combustion (Red chases Blue. Rescues OFF!)</button>
+        <button style="background:#f97316; color:white;" onclick="startRound('irreversible')">Round 3: Irreversible Combustion (Red chases Blue. NO RESCUES!)</button>
         
         <button onclick="endRoundEarly()" style="background:#475569; color:white; margin-top: 20px;">End Round Early</button>
         
@@ -114,7 +114,7 @@
             <div id="turn-banner">WAITING FOR REACTION...</div>
             <div class="timer-display">Reaction Timer: <span id="time-left">60</span>s</div>
             
-            <canvas id="game-canvas" width="800" height="600"></canvas>
+            <canvas id="game-canvas" width="1200" height="800"></canvas>
             
             <div id="joy-zone" class="hidden">
                 <div id="joy-stick"></div>
@@ -130,6 +130,7 @@
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
         import { getDatabase, ref, set, onValue, update, remove, get, onDisconnect } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-database.js";
 
+        // Your exact Firebase configuration
         const firebaseConfig = {
             apiKey: "AIzaSyBpf5wi0wShnatqUhcmPhSOdnd0NdBL65A",
             authDomain: "symmetry-and-nets.firebaseapp.com",
@@ -144,23 +145,31 @@
         const auth = getAuth();
         const db = getDatabase();
 
-        // Game Engine Constants
-        const PLAYER_RADIUS = 20;
-        const CANVAS_W = 800;
-        const CANVAS_H = 600;
-        const BASE_SPEED = 6;
+        // --- GAME ENGINE CONSTANTS ---
+        const PLAYER_RADIUS = 25;
+        const CANVAS_W = 1200;
+        const CANVAS_H = 800;
+        const BASE_SPEED = 8; // Faster speed for larger map
+
+        // Fixed Lab Obstacles
+        const OBSTACLES = [
+            {x: 250, y: 200, w: 700, h: 80, label: 'Central Lab Bench'},
+            {x: 250, y: 550, w: 250, h: 80, label: 'Chemical Storage'},
+            {x: 700, y: 550, w: 250, h: 80, label: 'Fume Hood'},
+            {x: 50,  y: 350, w: 80,  h: 100, label: 'Safety Shower'}
+        ];
 
         let myUID = "";
         let myTeam = "";
         let isHost = false;
         let amIFrozen = false;
         
-        let globalState = { phase: 'lobby', roundType: 'neutralisation', timer: 60 };
+        let globalState = { phase: 'lobby', roundType: 'neutralisation', endTime: 0 };
         let globalPlayers = {};
         let renderPlayers = {}; // Smooth LERP visual interpolation
 
         // Local Controls
-        let myX = 100, myY = 100;
+        let myX = 150, myY = 150;
         let joyX = 0, joyY = 0;
         let keys = { ArrowUp:false, ArrowDown:false, ArrowLeft:false, ArrowRight:false, KeyW:false, KeyA:false, KeyS:false, KeyD:false };
 
@@ -200,8 +209,9 @@
                     myTeam = t1Count <= t2Count ? 'Team Red' : 'Team Blue';
                     const avatar = myTeam === 'Team Red' ? '🔴' : '🔵';
                     
-                    myX = myTeam === 'Team Red' ? 100 + Math.random()*50 : 700 - Math.random()*50;
-                    myY = myTeam === 'Team Red' ? 100 + Math.random()*50 : 500 - Math.random()*50;
+                    // Spawn safely inside bounds
+                    myX = myTeam === 'Team Red' ? 100 + Math.random()*100 : 1000 + Math.random()*100;
+                    myY = myTeam === 'Team Red' ? 100 + Math.random()*100 : 650 + Math.random()*100;
                     
                     const pRef = ref(db, `chemGame/players/${myUID}`);
                     set(pRef, { name: name, team: myTeam, avatar: avatar, x: myX, y: myY, isFrozen: false });
@@ -222,7 +232,7 @@
                 showScreen('both-host-and-game');
                 
                 get(ref(db, 'chemGame/state')).then(snap => {
-                    if (!snap.exists()) set(ref(db, 'chemGame/state'), { phase: 'lobby', roundType: 'neutralisation', timer: 60 });
+                    if (!snap.exists()) set(ref(db, 'chemGame/state'), { phase: 'lobby', roundType: 'neutralisation', endTime: 0 });
                 });
                 
                 listenToGame();
@@ -235,17 +245,15 @@
         function listenToGame() {
             onValue(ref(db, 'chemGame/state'), (snap) => {
                 const oldPhase = globalState.phase;
-                globalState = snap.val() || { phase: 'lobby', roundType: 'neutralisation', timer: 60 };
+                globalState = snap.val() || { phase: 'lobby', roundType: 'neutralisation', endTime: 0 };
                 
-                document.getElementById('time-left').innerText = globalState.timer;
-                
-                // Update Banner Rules dynamically based on Chemistry concept!
+                // Update Banner Rules dynamically
                 const banner = document.getElementById('turn-banner');
                 if (globalState.roundType === 'neutralisation') {
                     banner.innerText = "NEUTRALISATION: Acids (Red) are chasing Alkalis (Blue). Safe zones active. Rescues ON!";
                     banner.style.background = "var(--acid-red)";
                 } else if (globalState.roundType === 'reversible') {
-                    banner.innerText = "REVERSIBLE CHANGE (Freezing): Cold (Blue) is chasing Liquid (Red). Rescues ON (Melt them) !";
+                    banner.innerText = "REVERSIBLE CHANGE (Freezing): Cold (Blue) is chasing Liquid (Red). Rescues ON (Melt them)!";
                     banner.style.background = "var(--alkali-blue)";
                 } else if (globalState.roundType === 'irreversible') {
                     banner.innerText = "IRREVERSIBLE CHANGE (Combustion): Fire (Red) is chasing Wood (Blue). NO RESCUES ALLOWED!";
@@ -345,8 +353,19 @@
         document.addEventListener('mousemove', handleJoyMove);
         document.addEventListener('mouseup', handleJoyEnd);
 
-        // Apply Movement
+        // Collision Helper Math
+        function isCollidingWithRect(cx, cy, r, rect) {
+            let testX = cx; let testY = cy;
+            if (cx < rect.x) testX = rect.x; else if (cx > rect.x + rect.w) testX = rect.x + rect.w;
+            if (cy < rect.y) testY = rect.y; else if (cy > rect.y + rect.h) testY = rect.y + rect.h;
+            let distX = cx - testX; let distY = cy - testY;
+            return (distX*distX + distY*distY) <= (r*r);
+        }
+
+        // Apply Movement & Physics
         let lastUpX = -1, lastUpY = -1;
+        let lastUploadTime = 0;
+
         function processMovement() {
             if (globalState.phase !== 'playing' || amIFrozen || isHost) return;
 
@@ -359,18 +378,37 @@
             let mag = Math.sqrt(dx*dx + dy*dy);
             if (mag > 1) { dx /= mag; dy /= mag; }
 
-            myX += dx * BASE_SPEED;
-            myY += dy * BASE_SPEED;
+            // Proposed next positions
+            let nextX = myX + dx * BASE_SPEED;
+            let nextY = myY + dy * BASE_SPEED;
 
-            // Boundaries
+            // X-Axis Collision (Wall Sliding)
+            let collideX = false;
+            for (let obs of OBSTACLES) {
+                if (isCollidingWithRect(nextX, myY, PLAYER_RADIUS, obs)) { collideX = true; break; }
+            }
+            if (!collideX) myX = nextX;
+
+            // Y-Axis Collision (Wall Sliding)
+            let collideY = false;
+            for (let obs of OBSTACLES) {
+                if (isCollidingWithRect(myX, nextY, PLAYER_RADIUS, obs)) { collideY = true; break; }
+            }
+            if (!collideY) myY = nextY;
+
+            // Map Boundaries
             myX = Math.max(PLAYER_RADIUS, Math.min(CANVAS_W - PLAYER_RADIUS, myX));
             myY = Math.max(PLAYER_RADIUS, Math.min(CANVAS_H - PLAYER_RADIUS, myY));
 
-            // Network Upload (Only if moved to save DB quota)
-            let movedDist = Math.abs(myX - lastUpX) + Math.abs(myY - lastUpY);
-            if (movedDist > 2) {
-                update(ref(db, `chemGame/players/${myUID}`), { x: Math.round(myX), y: Math.round(myY) });
-                lastUpX = myX; lastUpY = myY;
+            // Network Upload (THROTTLED TO PREVENT LAG: Max 10 updates per second)
+            let now = Date.now();
+            if (now - lastUploadTime > 100) {
+                let movedDist = Math.abs(myX - lastUpX) + Math.abs(myY - lastUpY);
+                if (movedDist > 2) {
+                    update(ref(db, `chemGame/players/${myUID}`), { x: Math.round(myX), y: Math.round(myY) });
+                    lastUpX = myX; lastUpY = myY;
+                    lastUploadTime = now;
+                }
             }
         }
         setInterval(processMovement, 40); 
@@ -382,16 +420,36 @@
         function drawCanvas() {
             ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
 
-            // Draw Lab Safe Zones
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.1)'; 
-            ctx.fillRect(0, 0, 200, 200); // Top Left Safe Zone
-            ctx.fillStyle = '#cbd5e1'; ctx.font = 'bold 16px Arial';
-            ctx.fillText('Beaker A (Safe)', 10, 25);
-            ctx.strokeStyle = '#cbd5e1'; ctx.lineWidth = 3; ctx.strokeRect(0, 0, 200, 200);
+            // Draw Local Absolute Timer (Fixes tab throttling)
+            let timeLeft = 0;
+            if (globalState.phase === 'playing' && globalState.endTime) {
+                timeLeft = Math.max(0, Math.ceil((globalState.endTime - Date.now()) / 1000));
+            } else {
+                timeLeft = 60;
+            }
+            document.getElementById('time-left').innerText = timeLeft;
 
-            ctx.fillRect(600, 400, 200, 200); // Bottom Right Safe Zone
-            ctx.fillText('Beaker B (Safe)', 610, 425);
-            ctx.strokeRect(600, 400, 200, 200);
+            // Draw Safe Zones
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.1)'; 
+            ctx.fillRect(0, 0, 250, 200); // Top Left Safe Zone
+            ctx.fillStyle = '#cbd5e1'; ctx.font = 'bold 18px Arial'; ctx.textAlign = 'left';
+            ctx.fillText('Beaker A (Safe)', 10, 25);
+            ctx.strokeStyle = '#cbd5e1'; ctx.lineWidth = 3; ctx.strokeRect(0, 0, 250, 200);
+
+            ctx.fillRect(950, 600, 250, 200); // Bottom Right Safe Zone
+            ctx.fillText('Beaker B (Safe)', 960, 625);
+            ctx.strokeRect(950, 600, 250, 200);
+
+            // Draw Lab Obstacles
+            OBSTACLES.forEach(obs => {
+                ctx.fillStyle = '#334155'; // Dark table color
+                ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
+                ctx.strokeStyle = '#64748b'; ctx.lineWidth = 4;
+                ctx.strokeRect(obs.x, obs.y, obs.w, obs.h);
+                
+                ctx.fillStyle = '#94a3b8'; ctx.font = 'bold 16px Arial'; ctx.textAlign = 'center';
+                ctx.fillText(obs.label, obs.x + obs.w/2, obs.y + obs.h/2 + 6);
+            });
 
             // Draw Players
             Object.keys(globalPlayers).forEach(uid => {
@@ -418,29 +476,35 @@
                 ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2; ctx.stroke();
 
                 // Draw Icons based on state
-                ctx.font = '20px Arial'; ctx.textAlign = 'center';
+                ctx.font = '24px Arial'; ctx.textAlign = 'center';
                 let icon = p.avatar;
                 if (p.isFrozen) {
                     if (globalState.roundType === 'neutralisation') icon = '🧪';
                     else if (globalState.roundType === 'irreversible') icon = '⬛';
                     else icon = '🧊';
                 }
-                ctx.fillText(icon, rx, ry + 7);
+                ctx.fillText(icon, rx, ry + 8);
                 
                 // Draw Names
-                ctx.font = '14px Arial'; ctx.fillStyle = '#f8fafc';
-                ctx.fillText(p.name, rx, ry - 25);
+                ctx.font = '16px Arial'; ctx.fillStyle = '#f8fafc';
+                ctx.fillText(p.name, rx, ry - 30);
             });
 
             requestAnimationFrame(drawCanvas);
         }
 
         // --- HOST COLLISION & GAME ENGINE ---
-        let lastTimerUpdate = Date.now();
         function getDist(p1, p2) { return Math.sqrt(Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2)); }
         
         function hostCollisionLoop() {
             if (!isHost || globalState.phase !== 'playing') return;
+
+            // Check Absolute Timer completion
+            if (globalState.endTime && Date.now() >= globalState.endTime) {
+                update(ref(db, 'chemGame/state'), { phase: 'lobby' });
+                alert("Time's up! The Escapers survived the reaction!");
+                return;
+            }
 
             let chasers = []; let runners = [];
             
@@ -459,51 +523,51 @@
             runners.forEach(r => {
                 // Safe Zone Check
                 let isSafe = false;
-                if (r.x < 200 && r.y < 200) isSafe = true; // Beaker A
-                if (r.x > 600 && r.y > 400) isSafe = true; // Beaker B
+                if (r.x < 250 && r.y < 200) isSafe = true; // Beaker A
+                if (r.x > 950 && r.y > 600) isSafe = true; // Beaker B
 
                 if (r.isFrozen) {
                     // RESCUE CHECK (Only allowed in Reversible and Neutralisation)
                     if (globalState.roundType !== 'irreversible') {
-                        runners.forEach(savior => {
+                        for (let savior of runners) {
                             if (!savior.isFrozen && savior.uid !== r.uid && getDist(r, savior) < PLAYER_RADIUS*2) {
-                                dbUpdates[`${r.uid}/isFrozen`] = false;
+                                // DELTA WRITE (Lag Fix): Only update if the database isn't already registering them as unfrozen
+                                if (dbUpdates[`${r.uid}/isFrozen`] !== false) {
+                                    dbUpdates[`${r.uid}/isFrozen`] = false;
+                                }
+                                break;
                             }
-                        });
+                        }
                     }
                 } else if (!isSafe) {
                     // TAG CHECK
-                    chasers.forEach(c => {
-                        if (getDist(r, c) < PLAYER_RADIUS*2) dbUpdates[`${r.uid}/isFrozen`] = true;
-                    });
+                    for (let c of chasers) {
+                        if (getDist(r, c) < PLAYER_RADIUS*2) {
+                            // DELTA WRITE (Lag Fix): Only update if the database doesn't already know they are frozen
+                            if (dbUpdates[`${r.uid}/isFrozen`] !== true) {
+                                dbUpdates[`${r.uid}/isFrozen`] = true;
+                            }
+                            break;
+                        }
+                    }
                 }
             });
 
+            // Write ONLY changed states to the database to prevent network lag
             if (Object.keys(dbUpdates).length > 0) update(ref(db, 'chemGame/players'), dbUpdates);
 
-            // Timer & Win Conditions
-            if (Date.now() - lastTimerUpdate > 1000) {
-                lastTimerUpdate = Date.now();
-                let newTimer = globalState.timer - 1;
-                
-                if (newTimer <= 0) {
-                    update(ref(db, 'chemGame/state'), { phase: 'lobby', timer: 0 });
-                    alert("Time's up! The Escapers survived the reaction!");
-                } else {
-                    update(ref(db, 'chemGame/state/timer'), newTimer);
-                }
-
-                // Check if all runners are frozen
-                if (runners.length > 0 && runners.every(r => r.isFrozen)) {
-                    update(ref(db, 'chemGame/state'), { phase: 'lobby' });
-                    alert("Reaction Complete! All materials converted!");
-                }
+            // Check if all runners are frozen
+            if (runners.length > 0 && runners.every(r => r.isFrozen || dbUpdates[`${r.uid}/isFrozen`] === true)) {
+                update(ref(db, 'chemGame/state'), { phase: 'lobby' });
+                alert("Reaction Complete! All materials converted!");
             }
         }
 
         // --- HOST DASHBOARD CONTROLS ---
         window.startRound = function(type) {
-            update(ref(db, 'chemGame/state'), { phase: 'playing', roundType: type, timer: 60 });
+            // Absolute timestamp ensures tab throttling doesn't affect the timer
+            let absoluteEndTime = Date.now() + 60000; 
+            update(ref(db, 'chemGame/state'), { phase: 'playing', roundType: type, endTime: absoluteEndTime });
             
             // Reset positions and unfreeze everyone
             get(ref(db, 'chemGame/players')).then(snap => {
@@ -512,8 +576,8 @@
                 for(let uid in players) {
                     let t = players[uid].team;
                     updates[`${uid}/isFrozen`] = false;
-                    updates[`${uid}/x`] = t === 'Team Red' ? 100 + Math.random()*50 : 650 + Math.random()*50;
-                    updates[`${uid}/y`] = t === 'Team Red' ? 100 + Math.random()*50 : 450 + Math.random()*50;
+                    updates[`${uid}/x`] = t === 'Team Red' ? 100 + Math.random()*100 : 1000 + Math.random()*100;
+                    updates[`${uid}/y`] = t === 'Team Red' ? 100 + Math.random()*100 : 650 + Math.random()*100;
                 }
                 update(ref(db, 'chemGame/players'), updates);
             });
