@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Lab Mayhem: Chemical Tag!</title>
+    <style>
+        /* --- CORE STYLES --- */
+        :root {
+            --bg-dark: #0f172a; --panel-bg: #1e293b; --text-light: #f8fafc;
+            --acid-red: #ef4444; --alkali-blue: #3b82f6; --neutral-green: #10b981;
+            --accent-gold: #fbbf24;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-dark); color: var(--text-light);
+            margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center;
+            overflow-x: hidden; touch-action: none; /* Prevents mobile scrolling while playing */
+        }
+        h1, h2, h3, h4 { text-align: center; margin-top: 5px; margin-bottom: 10px; }
+        .hidden { display: none !important; }
+        
+        /* --- CONTAINERS & INPUTS --- */
+        .screen-box {
+            width: 100%; max-width: 600px; background: var(--panel-bg); padding: 20px;
+            border-radius: 12px; box-sizing: border-box; margin-bottom: 20px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.5); text-align: center;
+        }
+        input, button {
+            padding: 12px; margin: 8px 4px; border-radius: 8px; border: none;
+            font-size: 16px; font-weight: bold; width: 100%; max-width: 300px;
+            box-sizing: border-box; text-align: center;
+        }
+        input { background: #0f172a; color: white; border: 2px solid #475569; }
+        button { background-color: var(--accent-gold); color: #000; cursor: pointer; transition: transform 0.1s; }
+        button:active { transform: scale(0.95); }
+        .btn-red { background-color: var(--acid-red); color: white; }
+        .btn-blue { background-color: var(--alkali-blue); color: white; }
+
+        /* --- ROSTERS --- */
+        .roster-container { display: flex; gap: 10px; margin-top: 15px; }
+        .roster-col { flex: 1; background: #0f172a; border-radius: 8px; padding: 10px; border-top: 4px solid; min-height: 120px; }
+        .col-red { border-color: var(--acid-red); }
+        .col-blue { border-color: var(--alkali-blue); }
+        .player-tag { background: #334155; padding: 6px; border-radius: 4px; margin-bottom: 6px; font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 5px; }
+
+        /* --- GAME CANVAS --- */
+        #game-wrapper { position: relative; width: 100%; max-width: 800px; margin: 0 auto; display: flex; flex-direction: column; align-items: center; }
+        #turn-banner { width: 100%; padding: 10px; text-align: center; font-size: 16px; font-weight: bold; border-radius: 8px 8px 0 0; background: #475569; color: white; box-sizing: border-box; }
+        #game-canvas { width: 100%; height: auto; aspect-ratio: 4 / 3; background: #0b1121; border: 3px solid #334155; border-radius: 0 0 8px 8px; }
+        .timer-display { font-size: 24px; font-weight: bold; color: var(--accent-gold); margin: 10px 0; }
+        #freeze-warning { color: var(--acid-red); font-weight: bold; font-size: 20px; margin-top: 10px; animation: blink 1s infinite;}
+        @keyframes blink { 0% {opacity:1;} 50% {opacity:0.5;} 100% {opacity:1;} }
+
+        /* --- VIRTUAL JOYSTICK --- */
+        #joy-zone {
+            position: absolute; bottom: 20px; left: 20px; width: 120px; height: 120px;
+            background: rgba(255, 255, 255, 0.05); border-radius: 50%; border: 2px solid rgba(255, 255, 255, 0.2);
+        }
+        #joy-stick {
+            position: absolute; top: 50%; left: 50%; width: 50px; height: 50px;
+            background: rgba(251, 191, 36, 0.5); border-radius: 50%; transform: translate(-50%, -50%); pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="screen-login" class="screen-box">
+        <h1 style="color:var(--accent-gold);">🧪 Lab Mayhem: Chemical Tag</h1>
+        <p>Enter your Scientist name to join the simulation.</p>
+        <input type="text" id="player-name" placeholder="E.g., Curie or Einstein" maxlength="12">
+        <br>
+        <button id="btn-join">Join the Lab</button>
+        <hr style="border-color: #334155; margin: 30px 0;">
+        <button id="btn-host-login" class="btn-blue">Teacher: Host Dashboard</button>
+    </div>
+
+    <div id="screen-lobby" class="screen-box hidden">
+        <h2 style="color: var(--accent-gold);">Preparation Room</h2>
+        <p>Welcome, <span id="display-name" style="font-weight:bold; color:white;"></span>!</p>
+        
+        <div class="roster-container">
+            <div class="roster-col col-red">
+                <h4 style="color:var(--acid-red); margin:0 0 10px 0;">Team Red</h4>
+                <div id="roster-red"></div>
+            </div>
+            <div class="roster-col col-blue">
+                <h4 style="color:var(--alkali-blue); margin:0 0 10px 0;">Team Blue</h4>
+                <div id="roster-blue"></div>
+            </div>
+        </div>
+        <p style="color: #94a3b8; margin-top: 15px;">Waiting for Host to configure the reaction...</p>
+    </div>
+
+    <div id="screen-host" class="screen-box hidden">
+        <h2 style="color: var(--alkali-blue);">👑 Teacher Dashboard</h2>
+        <p>Scientists Connected: <span id="player-count" style="font-weight:bold; color:white;">0</span></p>
+        
+        <hr style="border-color: #334155; margin: 20px 0;">
+        <h3 style="color:var(--accent-gold);">Select Reaction Protocol:</h3>
+        
+        <button class="btn-red" onclick="startRound('neutralisation')">Round 1: Neutralisation (Red chases Blue. Rescues ON)</button>
+        <button class="btn-blue" onclick="startRound('reversible')">Round 2: Reversible Change (Blue chases Red. Rescues ON)</button>
+        <button style="background:#f97316; color:white;" onclick="startRound('irreversible')">Round 3: Irreversible Combustion (Red chases Blue. Rescues OFF!)</button>
+        
+        <button onclick="endRoundEarly()" style="background:#475569; color:white; margin-top: 20px;">End Round Early</button>
+        
+        <hr style="border-color: #334155; margin: 20px 0;">
+        <button id="btn-reset" style="background: #7f1d1d; color: white;">⚠️ Wipe All Data (Hard Reset)</button>
+    </div>
+
+    <div id="screen-game" class="hidden">
+        <div id="game-wrapper">
+            <div id="turn-banner">WAITING FOR REACTION...</div>
+            <div class="timer-display">Reaction Timer: <span id="time-left">60</span>s</div>
+            
+            <canvas id="game-canvas" width="800" height="600"></canvas>
+            
+            <div id="joy-zone" class="hidden">
+                <div id="joy-stick"></div>
+            </div>
+            
+            <p id="freeze-warning" class="hidden">❄️ REACTION COMPLETE! You are frozen! ❄️</p>
+            <p style="color: #94a3b8; font-size: 14px; text-align: center; margin-top: 10px;">Move using the Joystick, Arrow Keys, or WASD.</p>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
+        import { getDatabase, ref, set, onValue, update, remove, get, onDisconnect } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBpf5wi0wShnatqUhcmPhSOdnd0NdBL65A",
+            authDomain: "symmetry-and-nets.firebaseapp.com",
+            databaseURL: "https://symmetry-and-nets-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "symmetry-and-nets",
+            storageBucket: "symmetry-and-nets.firebasestorage.app",
+            messagingSenderId: "250211420064",
+            appId: "1:250211420064:web:fe4a064715042bedf546c5"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth();
+        const db = getDatabase();
+
+        // Game Engine Constants
+        const PLAYER_RADIUS = 20;
+        const CANVAS_W = 800;
+        const CANVAS_H = 600;
+        const BASE_SPEED = 6;
+
+        let myUID = "";
+        let myTeam = "";
+        let isHost = false;
+        let amIFrozen = false;
+        
+        let globalState = { phase: 'lobby', roundType: 'neutralisation', timer: 60 };
+        let globalPlayers = {};
+        let renderPlayers = {}; // Smooth LERP visual interpolation
+
+        // Local Controls
+        let myX = 100, myY = 100;
+        let joyX = 0, joyY = 0;
+        let keys = { ArrowUp:false, ArrowDown:false, ArrowLeft:false, ArrowRight:false, KeyW:false, KeyA:false, KeyS:false, KeyD:false };
+
+        const screens = {
+            login: document.getElementById('screen-login'),
+            lobby: document.getElementById('screen-lobby'),
+            host: document.getElementById('screen-host'),
+            game: document.getElementById('screen-game')
+        };
+
+        function showScreen(screenName) {
+            Object.values(screens).forEach(s => s.classList.add('hidden'));
+            if(screenName === 'both-host-and-game') {
+                screens.host.classList.remove('hidden');
+                screens.game.classList.remove('hidden');
+            } else {
+                screens[screenName].classList.remove('hidden');
+            }
+        }
+
+        // --- STUDENT LOGIN ---
+        document.getElementById('btn-join').addEventListener('click', () => {
+            const name = document.getElementById('player-name').value.trim();
+            if(!name) return alert("Enter a name!");
+            
+            signInAnonymously(auth).then(() => {
+                myUID = auth.currentUser.uid;
+                
+                // Auto-balance teams
+                get(ref(db, 'chemGame/players')).then(snap => {
+                    const players = snap.val() || {};
+                    let t1Count = 0, t2Count = 0;
+                    for(let k in players) {
+                        if(players[k].team === 'Team Red') t1Count++;
+                        else t2Count++;
+                    }
+                    myTeam = t1Count <= t2Count ? 'Team Red' : 'Team Blue';
+                    const avatar = myTeam === 'Team Red' ? '🔴' : '🔵';
+                    
+                    myX = myTeam === 'Team Red' ? 100 + Math.random()*50 : 700 - Math.random()*50;
+                    myY = myTeam === 'Team Red' ? 100 + Math.random()*50 : 500 - Math.random()*50;
+                    
+                    const pRef = ref(db, `chemGame/players/${myUID}`);
+                    set(pRef, { name: name, team: myTeam, avatar: avatar, x: myX, y: myY, isFrozen: false });
+                    onDisconnect(pRef).remove(); 
+                    
+                    document.getElementById('display-name').innerText = name;
+                    showScreen('lobby');
+                    listenToGame();
+                    requestAnimationFrame(drawCanvas);
+                });
+            });
+        });
+
+        // --- HOST LOGIN ---
+        document.getElementById('btn-host-login').addEventListener('click', () => {
+            signInAnonymously(auth).then(() => {
+                isHost = true;
+                showScreen('both-host-and-game');
+                
+                get(ref(db, 'chemGame/state')).then(snap => {
+                    if (!snap.exists()) set(ref(db, 'chemGame/state'), { phase: 'lobby', roundType: 'neutralisation', timer: 60 });
+                });
+                
+                listenToGame();
+                requestAnimationFrame(drawCanvas);
+                setInterval(hostCollisionLoop, 100); 
+            });
+        });
+
+        // --- GAME LISTENER ---
+        function listenToGame() {
+            onValue(ref(db, 'chemGame/state'), (snap) => {
+                const oldPhase = globalState.phase;
+                globalState = snap.val() || { phase: 'lobby', roundType: 'neutralisation', timer: 60 };
+                
+                document.getElementById('time-left').innerText = globalState.timer;
+                
+                // Update Banner Rules dynamically based on Chemistry concept!
+                const banner = document.getElementById('turn-banner');
+                if (globalState.roundType === 'neutralisation') {
+                    banner.innerText = "NEUTRALISATION: Acids (Red) are chasing Alkalis (Blue). Safe zones active. Rescues ON!";
+                    banner.style.background = "var(--acid-red)";
+                } else if (globalState.roundType === 'reversible') {
+                    banner.innerText = "REVERSIBLE CHANGE (Freezing): Cold (Blue) is chasing Liquid (Red). Rescues ON (Melt them) !";
+                    banner.style.background = "var(--alkali-blue)";
+                } else if (globalState.roundType === 'irreversible') {
+                    banner.innerText = "IRREVERSIBLE CHANGE (Combustion): Fire (Red) is chasing Wood (Blue). NO RESCUES ALLOWED!";
+                    banner.style.background = "#f97316";
+                }
+
+                if (globalState.phase === 'playing') {
+                    if (!isHost && globalPlayers[myUID]) {
+                        showScreen('game');
+                        document.getElementById('joy-zone').classList.remove('hidden');
+                    }
+                    if (oldPhase !== 'playing') renderPlayers = {}; // Reset visual interpolation
+                } else {
+                    if (!isHost && myUID) showScreen('lobby');
+                    document.getElementById('joy-zone').classList.add('hidden');
+                }
+            });
+
+            onValue(ref(db, 'chemGame/players'), (snap) => {
+                globalPlayers = snap.val() || {};
+                let redHTML = ""; let blueHTML = "";
+                let count = 0;
+                
+                for(let uid in globalPlayers) {
+                    count++;
+                    const p = globalPlayers[uid];
+                    const tag = `<div class="player-tag">${p.avatar} ${p.name}</div>`;
+                    if(p.team === 'Team Red') redHTML += tag;
+                    else blueHTML += tag;
+                    
+                    if (uid === myUID) {
+                        amIFrozen = p.isFrozen;
+                        if(amIFrozen) {
+                            let msg = "❄️ REACTION COMPLETE! You are frozen! ❄️";
+                            if(globalState.roundType === 'irreversible') msg = "🔥 COMBUSTION COMPLETE! You are ash. No rescues! 🔥";
+                            document.getElementById('freeze-warning').innerText = msg;
+                            document.getElementById('freeze-warning').classList.remove('hidden');
+                        } else {
+                            document.getElementById('freeze-warning').classList.add('hidden');
+                        }
+                    }
+                }
+                
+                // Race condition safety net
+                if (globalState.phase === 'playing' && !isHost && globalPlayers[myUID]) {
+                    if (document.getElementById('screen-game').classList.contains('hidden')) {
+                        showScreen('game');
+                        document.getElementById('joy-zone').classList.remove('hidden');
+                    }
+                }
+                
+                document.getElementById('roster-red').innerHTML = redHTML || "<i style='color:#64748b'>Empty</i>";
+                document.getElementById('roster-blue').innerHTML = blueHTML || "<i style='color:#64748b'>Empty</i>";
+                if(isHost) document.getElementById('player-count').innerText = count;
+            });
+        }
+
+        // --- LOCAL MOVEMENT CONTROLS ---
+        window.addEventListener('keydown', (e) => { if(keys.hasOwnProperty(e.code)) keys[e.code] = true; });
+        window.addEventListener('keyup', (e) => { if(keys.hasOwnProperty(e.code)) keys[e.code] = false; });
+
+        // Virtual Joystick
+        const joyZone = document.getElementById('joy-zone');
+        const joyStick = document.getElementById('joy-stick');
+        let joyActive = false; let joyCX, joyCY;
+
+        function handleJoyStart(e) {
+            e.preventDefault(); joyActive = true;
+            let cx = e.touches ? e.touches[0].clientX : e.clientX;
+            let cy = e.touches ? e.touches[0].clientY : e.clientY;
+            let rect = joyZone.getBoundingClientRect();
+            joyCX = rect.left + rect.width / 2; joyCY = rect.top + rect.height / 2;
+            updateJoy(cx, cy);
+        }
+        function handleJoyMove(e) {
+            if (!joyActive) return; e.preventDefault();
+            let cx = e.touches ? e.touches[0].clientX : e.clientX;
+            let cy = e.touches ? e.touches[0].clientY : e.clientY;
+            updateJoy(cx, cy);
+        }
+        function handleJoyEnd() {
+            joyActive = false; joyX = 0; joyY = 0;
+            joyStick.style.transform = `translate(-50%, -50%)`;
+        }
+        function updateJoy(x, y) {
+            let dx = x - joyCX; let dy = y - joyCY;
+            let maxDist = 40; let dist = Math.sqrt(dx*dx + dy*dy);
+            if (dist > maxDist) { dx = (dx/dist)*maxDist; dy = (dy/dist)*maxDist; }
+            joyStick.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+            joyX = dx / maxDist; joyY = dy / maxDist;
+        }
+
+        joyZone.addEventListener('touchstart', handleJoyStart, {passive: false});
+        joyZone.addEventListener('touchmove', handleJoyMove, {passive: false});
+        joyZone.addEventListener('touchend', handleJoyEnd);
+        joyZone.addEventListener('mousedown', handleJoyStart);
+        document.addEventListener('mousemove', handleJoyMove);
+        document.addEventListener('mouseup', handleJoyEnd);
+
+        // Apply Movement
+        let lastUpX = -1, lastUpY = -1;
+        function processMovement() {
+            if (globalState.phase !== 'playing' || amIFrozen || isHost) return;
+
+            let dx = joyX; let dy = joyY;
+            if (keys.ArrowUp || keys.KeyW) dy = -1;
+            if (keys.ArrowDown || keys.KeyS) dy = 1;
+            if (keys.ArrowLeft || keys.KeyA) dx = -1;
+            if (keys.ArrowRight || keys.KeyD) dx = 1;
+
+            let mag = Math.sqrt(dx*dx + dy*dy);
+            if (mag > 1) { dx /= mag; dy /= mag; }
+
+            myX += dx * BASE_SPEED;
+            myY += dy * BASE_SPEED;
+
+            // Boundaries
+            myX = Math.max(PLAYER_RADIUS, Math.min(CANVAS_W - PLAYER_RADIUS, myX));
+            myY = Math.max(PLAYER_RADIUS, Math.min(CANVAS_H - PLAYER_RADIUS, myY));
+
+            // Network Upload (Only if moved to save DB quota)
+            let movedDist = Math.abs(myX - lastUpX) + Math.abs(myY - lastUpY);
+            if (movedDist > 2) {
+                update(ref(db, `chemGame/players/${myUID}`), { x: Math.round(myX), y: Math.round(myY) });
+                lastUpX = myX; lastUpY = myY;
+            }
+        }
+        setInterval(processMovement, 40); 
+
+        // --- CANVAS RENDERING ---
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+
+        function drawCanvas() {
+            ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
+
+            // Draw Lab Safe Zones
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.1)'; 
+            ctx.fillRect(0, 0, 200, 200); // Top Left Safe Zone
+            ctx.fillStyle = '#cbd5e1'; ctx.font = 'bold 16px Arial';
+            ctx.fillText('Beaker A (Safe)', 10, 25);
+            ctx.strokeStyle = '#cbd5e1'; ctx.lineWidth = 3; ctx.strokeRect(0, 0, 200, 200);
+
+            ctx.fillRect(600, 400, 200, 200); // Bottom Right Safe Zone
+            ctx.fillText('Beaker B (Safe)', 610, 425);
+            ctx.strokeRect(600, 400, 200, 200);
+
+            // Draw Players
+            Object.keys(globalPlayers).forEach(uid => {
+                let p = globalPlayers[uid];
+                if (p.x == null || p.y == null) return; 
+                
+                if (!renderPlayers[uid]) renderPlayers[uid] = {x: p.x, y: p.y};
+                renderPlayers[uid].x += (p.x - renderPlayers[uid].x) * 0.3; // Smooth LERP
+                renderPlayers[uid].y += (p.y - renderPlayers[uid].y) * 0.3;
+                let rx = renderPlayers[uid].x; let ry = renderPlayers[uid].y;
+
+                ctx.beginPath();
+                ctx.arc(rx, ry, PLAYER_RADIUS, 0, Math.PI * 2);
+                
+                // Color Logic
+                ctx.fillStyle = p.team === 'Team Red' ? '#ef4444' : '#3b82f6';
+                if (p.isFrozen) {
+                    if (globalState.roundType === 'neutralisation') ctx.fillStyle = '#10b981'; // Green neutral
+                    else if (globalState.roundType === 'irreversible') ctx.fillStyle = '#1e293b'; // Black ash
+                    else ctx.fillStyle = '#93c5fd'; // Ice light blue
+                }
+                
+                ctx.fill();
+                ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2; ctx.stroke();
+
+                // Draw Icons based on state
+                ctx.font = '20px Arial'; ctx.textAlign = 'center';
+                let icon = p.avatar;
+                if (p.isFrozen) {
+                    if (globalState.roundType === 'neutralisation') icon = '🧪';
+                    else if (globalState.roundType === 'irreversible') icon = '⬛';
+                    else icon = '🧊';
+                }
+                ctx.fillText(icon, rx, ry + 7);
+                
+                // Draw Names
+                ctx.font = '14px Arial'; ctx.fillStyle = '#f8fafc';
+                ctx.fillText(p.name, rx, ry - 25);
+            });
+
+            requestAnimationFrame(drawCanvas);
+        }
+
+        // --- HOST COLLISION & GAME ENGINE ---
+        let lastTimerUpdate = Date.now();
+        function getDist(p1, p2) { return Math.sqrt(Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2)); }
+        
+        function hostCollisionLoop() {
+            if (!isHost || globalState.phase !== 'playing') return;
+
+            let chasers = []; let runners = [];
+            
+            // Determine roles based on Round Type
+            Object.keys(globalPlayers).forEach(uid => {
+                let p = globalPlayers[uid]; p.uid = uid;
+                if (globalState.roundType === 'neutralisation' || globalState.roundType === 'irreversible') {
+                    if(p.team === 'Team Red') chasers.push(p); else runners.push(p);
+                } else if (globalState.roundType === 'reversible') {
+                    if(p.team === 'Team Blue') chasers.push(p); else runners.push(p);
+                }
+            });
+
+            let dbUpdates = {};
+
+            runners.forEach(r => {
+                // Safe Zone Check
+                let isSafe = false;
+                if (r.x < 200 && r.y < 200) isSafe = true; // Beaker A
+                if (r.x > 600 && r.y > 400) isSafe = true; // Beaker B
+
+                if (r.isFrozen) {
+                    // RESCUE CHECK (Only allowed in Reversible and Neutralisation)
+                    if (globalState.roundType !== 'irreversible') {
+                        runners.forEach(savior => {
+                            if (!savior.isFrozen && savior.uid !== r.uid && getDist(r, savior) < PLAYER_RADIUS*2) {
+                                dbUpdates[`${r.uid}/isFrozen`] = false;
+                            }
+                        });
+                    }
+                } else if (!isSafe) {
+                    // TAG CHECK
+                    chasers.forEach(c => {
+                        if (getDist(r, c) < PLAYER_RADIUS*2) dbUpdates[`${r.uid}/isFrozen`] = true;
+                    });
+                }
+            });
+
+            if (Object.keys(dbUpdates).length > 0) update(ref(db, 'chemGame/players'), dbUpdates);
+
+            // Timer & Win Conditions
+            if (Date.now() - lastTimerUpdate > 1000) {
+                lastTimerUpdate = Date.now();
+                let newTimer = globalState.timer - 1;
+                
+                if (newTimer <= 0) {
+                    update(ref(db, 'chemGame/state'), { phase: 'lobby', timer: 0 });
+                    alert("Time's up! The Escapers survived the reaction!");
+                } else {
+                    update(ref(db, 'chemGame/state/timer'), newTimer);
+                }
+
+                // Check if all runners are frozen
+                if (runners.length > 0 && runners.every(r => r.isFrozen)) {
+                    update(ref(db, 'chemGame/state'), { phase: 'lobby' });
+                    alert("Reaction Complete! All materials converted!");
+                }
+            }
+        }
+
+        // --- HOST DASHBOARD CONTROLS ---
+        window.startRound = function(type) {
+            update(ref(db, 'chemGame/state'), { phase: 'playing', roundType: type, timer: 60 });
+            
+            // Reset positions and unfreeze everyone
+            get(ref(db, 'chemGame/players')).then(snap => {
+                let players = snap.val() || {};
+                let updates = {};
+                for(let uid in players) {
+                    let t = players[uid].team;
+                    updates[`${uid}/isFrozen`] = false;
+                    updates[`${uid}/x`] = t === 'Team Red' ? 100 + Math.random()*50 : 650 + Math.random()*50;
+                    updates[`${uid}/y`] = t === 'Team Red' ? 100 + Math.random()*50 : 450 + Math.random()*50;
+                }
+                update(ref(db, 'chemGame/players'), updates);
+            });
+        }
+
+        window.endRoundEarly = function() {
+            update(ref(db, 'chemGame/state'), { phase: 'lobby' });
+        }
+
+        // Hard Reset Button to wipe old user data
+        document.getElementById('btn-reset').addEventListener('click', () => {
+            if(confirm("WARNING: This will wipe all players and reset the server. Are you sure?")) {
+                remove(ref(db, 'chemGame')).then(() => {
+                    alert("Database wiped successfully. Refreshing page...");
+                    location.reload();
+                });
+            }
+        });
+    </script>
+</body>
+</html>
