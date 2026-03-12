@@ -6,7 +6,7 @@
     <title>Behind the Wall: IGCSE English 5.2</title>
     <style>
         :root { --wood: #5d4037; --paper: #fdfdfd; --accent: #e67e22; --green: #2ecc71; }
-        body { font-family: 'Georgia', serif; div id="host-actions" class="hidden" style="margin-top: #1a1a1a; color: white; text-align: center; margin: 0; }
+        body { font-family: 'Georgia', serif; background: #1a1a1a; color: white; text-align: center; margin: 0; padding-bottom: 50px; }
         .container { max-width: 800px; margin: 0 auto; padding: 20px; }
         
         /* THE WALL */
@@ -24,6 +24,10 @@
         .btn-vote.selected { background: #3498db; border: 2px solid white; }
         .hidden { display: none !important; }
         .player-tag { background: rgba(255,255,255,0.1); padding: 8px 15px; border-radius: 20px; margin: 5px; display: inline-block; }
+        
+        /* EMERGENCY RESET BUTTON */
+        .emergency-btn { position: fixed; bottom: 10px; right: 10px; background: #c0392b; color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-size: 0.8rem; font-weight: bold; opacity: 0.5; transition: 0.3s; z-index: 1000; }
+        .emergency-btn:hover { opacity: 1; }
     </style>
 </head>
 <body>
@@ -44,7 +48,6 @@
                 <hr style="border: 0.5px solid #444; margin: 20px 0;">
                 <p style="color: var(--accent)"><b>YOU ARE THE HOST</b></p>
                 <button class="btn btn-main" onclick="startGame()">Start Game (7 Rounds)</button>
-                <button class="btn" style="background: #c0392b; color: white;" onclick="resetServer()">Reset Server</button>
             </div>
         </div>
     </div>
@@ -66,9 +69,8 @@
             <p style="margin-top: 0; color: #aaa; font-size: 0.9rem;">Host Controls</p>
             <button class="btn btn-main" id="reveal-btn" onclick="triggerReveal()">REVEAL ANSWER</button>
             <button class="btn btn-main hidden" id="next-btn" onclick="triggerNext()">NEXT ROUND</button>
-            <br>
-            <button class="btn" style="background: #c0392b; color: white; padding: 10px 20px; font-size: 0.8rem; margin-top: 15px;" onclick="resetServer()">⚠️ FORCE RESET SERVER</button>
         </div>
+    </div>
 
     <div id="results-screen" class="hidden" class="card">
         <h1>Class Performance Complete!</h1>
@@ -76,6 +78,8 @@
         <button class="btn btn-main" onclick="location.reload()">Return to Menu</button>
     </div>
 </div>
+
+<button class="emergency-btn" onclick="hardReset()">⚠️ EMERGENCY RESET</button>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
@@ -95,6 +99,13 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
     const gameRef = ref(db, 'behind_the_wall');
+
+    // Make hard reset available globally
+    window.hardReset = () => {
+        if(confirm("Are you sure you want to completely reset the game for everyone?")) {
+            remove(gameRef).then(() => location.reload());
+        }
+    };
 
     // 25 PERSONAS FOR IGCSE ENGLISH
     const personaBank = [
@@ -134,16 +145,15 @@
         if (!input.value) return alert("Enter your name!");
         myName = input.value;
         
-        // Claim the Official Host title in the database
         onValue(gameRef, (snap) => {
             const data = snap.val() || {};
             if (!data.host) {
-                update(gameRef, { host: myName }); // Lock it in!
+                update(gameRef, { host: myName }); 
             }
             set(ref(db, 'behind_the_wall/players/' + myName), { name: myName });
             
-            document.getElementById('join-area').classList.add('hidden');
-            document.getElementById('wait-area').classList.remove('hidden');
+            // Now that we have a name, trigger a manual UI update based on current state
+            updateUI(snap.val() || {});
         }, { onlyOnce: true });
     };
 
@@ -155,11 +165,6 @@
             rounds: selected,
             isRevealed: false
         });
-    };
-
-    window.resetServer = () => {
-        remove(gameRef);
-        location.reload();
     };
 
     window.triggerReveal = () => update(gameRef, { isRevealed: true });
@@ -180,7 +185,17 @@
         const data = snapshot.val();
         if (!data) return;
 
-        // Establish who the Host actually is, regardless of alphabetical order
+        // THE FIX: Do absolutely nothing if the player hasn't entered their name yet!
+        // This forces them to stay in the lobby to log in, even if a game is running.
+        if (myName === "") return; 
+
+        updateUI(data);
+    });
+
+    // --- UI RENDER LOGIC ---
+    function updateUI(data) {
+        if (!data) return;
+        
         isHost = (data.host === myName && myName !== "");
 
         // Lobby Sync
@@ -191,13 +206,19 @@
         Object.keys(players).forEach(n => {
             const span = document.createElement('span');
             span.className = 'player-tag';
-            span.innerHTML = n + (data.host === n ? " 👑" : ""); // Crown the true host
+            span.innerHTML = n + (data.host === n ? " 👑" : ""); 
             playerList.appendChild(span);
         });
+
+        // Hide Join area, show wait area once logged in
+        document.getElementById('join-area').classList.add('hidden');
+        document.getElementById('wait-area').classList.remove('hidden');
 
         // Show Host Start panel in lobby
         if (isHost && (!data.state || data.state === 'lobby')) {
             document.getElementById('host-panel').classList.remove('hidden');
+        } else {
+            document.getElementById('host-panel').classList.add('hidden');
         }
 
         // Game Flow Sync
@@ -209,14 +230,12 @@
             document.getElementById('round-num').innerText = `Round ${data.round + 1} / 7`;
             document.getElementById('quote-box').innerText = `"${curRound.q}"`;
 
-            // Force the Host Actions box to be visible for the host
             if (isHost) {
                 document.getElementById('host-actions').classList.remove('hidden');
             } else {
                 document.getElementById('host-actions').classList.add('hidden');
             }
 
-            // Handle Reveal State
             if (data.isRevealed) {
                 document.getElementById('reveal-layer').classList.add('show');
                 const avatarUrl = `https://api.dicebear.com/7.x/avataaars/svg?seed=${curRound.p.replace(/\s+/g, '')}&backgroundColor=b6e3f4`;
@@ -238,14 +257,12 @@
             }
         }
 
-        // Results State
         if (data.state === 'results') {
             document.getElementById('game-screen').classList.add('hidden');
             document.getElementById('results-screen').classList.remove('hidden');
         }
-    });
+    }
 
-    // Option Rendering Logic
     function renderOptions(opts) {
         const area = document.getElementById('options-area');
         area.innerHTML = "";
