@@ -28,6 +28,7 @@
         .turn-banner {
             text-align: center; font-size: 15px; margin-bottom: 15px; padding: 10px;
             border: 1px dashed #475569; border-radius: 6px; background: rgba(0,0,0,0.5);
+            transition: all 0.3s;
         }
 
         /* --- LAYOUT --- */
@@ -49,13 +50,14 @@
         }
         button:hover { background: var(--neon-blue); color: #000; box-shadow: 0 0 10px var(--neon-blue); transform: translateY(-2px); }
         button:active { transform: scale(0.95); }
+        button:disabled { opacity: 0.5; cursor: not-allowed; border-color: #475569; color: #475569; box-shadow: none; background: transparent; }
         
         .btn-gold { border-color: var(--neon-gold); color: var(--neon-gold); }
-        .btn-gold:hover { background: var(--neon-gold); color: #000; box-shadow: 0 0 10px var(--neon-gold); }
+        .btn-gold:hover:not(:disabled) { background: var(--neon-gold); color: #000; box-shadow: 0 0 10px var(--neon-gold); }
         .btn-red { border-color: var(--neon-red); color: var(--neon-red); }
-        .btn-red:hover { background: var(--neon-red); color: #000; box-shadow: 0 0 10px var(--neon-red); }
+        .btn-red:hover:not(:disabled) { background: var(--neon-red); color: #000; box-shadow: 0 0 10px var(--neon-red); }
         .btn-green { border-color: var(--neon-green); color: var(--neon-green); }
-        .btn-green:hover { background: var(--neon-green); color: #000; box-shadow: 0 0 10px var(--neon-green); }
+        .btn-green:hover:not(:disabled) { background: var(--neon-green); color: #000; box-shadow: 0 0 10px var(--neon-green); }
 
         input { background: rgba(0,0,0,0.5); border: 1px solid #475569; color: white; padding: 10px; font-size: 16px; border-radius: 4px; width: 100%; box-sizing: border-box; margin-bottom: 15px; }
 
@@ -73,17 +75,25 @@
         .crate-mass { font-weight: bold; font-size: 14px; color: var(--neon-gold); }
 
         /* The Ship Loading Bay */
-        .ship-bay { border: 3px solid #475569; padding: 20px; border-radius: 12px; text-align: center; position: relative; background: #000; transition: all 0.3s;}
-        .ship-bay.perfect { border-color: var(--neon-green); box-shadow: 0 0 20px rgba(57, 255, 20, 0.3); }
+        .ship-bay { border: 3px solid #475569; padding: 20px; border-radius: 12px; text-align: center; position: relative; background: #000; transition: all 0.3s; overflow: hidden;}
+        .ship-bay.perfect { border-color: var(--neon-green); box-shadow: inset 0 0 30px rgba(57, 255, 20, 0.2), 0 0 20px rgba(57, 255, 20, 0.3); }
         .ship-bay.overweight { border-color: var(--neon-red); animation: shake 0.5s infinite; }
         
         @keyframes shake { 0% { transform: translateX(0); } 25% { transform: translateX(-5px); } 50% { transform: translateX(5px); } 75% { transform: translateX(-5px); } 100% { transform: translateX(0); } }
 
-        .ship-emoji { font-size: 60px; margin-bottom: 10px; display: inline-block;}
+        .ship-emoji { font-size: 80px; margin-bottom: 10px; display: inline-block; position: relative; z-index: 5;}
         .ship-bay.perfect .ship-emoji { animation: float 2s infinite ease-in-out; }
         @keyframes float { 0% { transform: translateY(0px); } 50% { transform: translateY(-10px); } 100% { transform: translateY(0px); } }
+        
+        /* Rocket Blastoff Animation */
+        @keyframes blastoff {
+            0% { transform: translateY(0) scale(1); opacity: 1; }
+            20% { transform: translateY(10px) scale(0.95); opacity: 1; } /* Squat before jump */
+            100% { transform: translateY(-800px) scale(1.2); opacity: 0; }
+        }
+        .launching { animation: blastoff 1.5s cubic-bezier(0.5, 0, 0.2, 1) forwards !important; }
 
-        .weight-readout { font-size: 24px; font-weight: bold; margin: 10px 0; background: #151522; padding: 10px; border-radius: 8px; display: inline-block;}
+        .weight-readout { font-size: 28px; font-weight: bold; margin: 10px 0; background: #151522; padding: 10px; border-radius: 8px; display: inline-block; border: 1px solid #334155;}
 
         .loaded-cargo { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 15px; padding: 15px; background: rgba(255,255,255,0.05); border-radius: 8px; min-height: 50px;}
         .loaded-crate { background: #334155; padding: 5px 10px; border-radius: 4px; font-size: 14px; cursor: pointer; border: 1px solid #94a3b8; display: flex; align-items: center; gap: 5px; }
@@ -104,12 +114,24 @@
         .mission-btn.active { border-color: var(--neon-green); box-shadow: 0 0 15px rgba(57,255,20,0.4); }
         .roster-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
         .roster-team { background: rgba(0,0,0,0.5); padding: 15px; border-radius: 8px; border-top: 3px solid var(--neon-blue); }
+
+        /* --- GLOBAL OVERLAYS --- */
+        #global-announcement {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9); z-index: 9999; display: flex;
+            flex-direction: column; align-items: center; justify-content: center; text-align: center;
+        }
     </style>
 </head>
 <body>
 
     <div id="header">
-        <h2 style="margin:0; color:var(--neon-blue);">🚀 Galactic Cargo Co.</h2>
+        <h2 style="margin:0; color:var(--neon-blue);">🚀 Galactic Cargo</h2>
+        
+        <div id="global-timer" class="hidden" style="font-size: 24px; font-weight: bold; color: var(--neon-red); background: #000; padding: 5px 15px; border: 2px solid var(--neon-red); border-radius: 8px; box-shadow: 0 0 10px rgba(255,0,85,0.4);">
+            ⏱️ <span id="time-left">60</span>s
+        </div>
+
         <div id="player-info" class="hidden" style="font-size: 14px;">
             <span id="my-name-display" style="color:var(--neon-gold); font-weight:bold;"></span> | 
             <span id="my-team-display" style="color:var(--neon-green); font-weight:bold;"></span>
@@ -131,7 +153,7 @@
     <div id="screen-lobby" class="app-container hidden" style="flex-direction: column;">
         <div class="panel" style="flex: 1; align-items: center;">
             <h2 style="color: var(--neon-gold); margin-bottom: 5px;">Hangar Waiting Area</h2>
-            <p id="lobby-status-msg" style="color:#94a3b8; margin-top:0;">Waiting for the Fleet Admiral to start the mission...</p>
+            <p id="lobby-status-msg" style="color:#94a3b8; margin-top:0;">Waiting for the Fleet Admiral to start a 60-second mission...</p>
             
             <div id="host-lobby-controls" class="hidden" style="margin: 20px 0; width: 100%; text-align: center;">
                 <button class="btn-green" style="font-size: 20px; padding: 15px 30px;" onclick="window.switchScreen('screen-host')">Open Mission Control Dashboard</button>
@@ -139,8 +161,7 @@
 
             <div style="width: 100%; max-width: 800px; margin-top: 20px;">
                 <h3 style="border-bottom: 1px solid #475569; padding-bottom: 10px;">Live Fleet Roster</h3>
-                <div id="global-roster" class="roster-grid">
-                    </div>
+                <div id="global-roster" class="roster-grid"></div>
             </div>
         </div>
     </div>
@@ -153,51 +174,33 @@
             </div>
             
             <div style="background: rgba(255,184,0,0.1); border: 1px solid var(--neon-gold); padding: 10px; border-radius: 8px; margin-bottom: 15px; font-size: 14px; line-height: 1.5;">
-                <b style="color:var(--neon-gold);">HOST GUIDE:</b><br>
-                1) Click a Mission below to instantly send players to that planet. <br>
-                2) Watch the Live Telemetry below. Teams must use teamwork to load exactly the Target Weight (Mass × Gravity).<br>
-                3) When a team's ship turns GREEN, they are ready to launch!<br>
-                4) Click 'Abort / End Mission' to reset the cargo bays and return them to the hangar.
+                <b style="color:var(--neon-gold);">HOST GUIDE:</b> Click a mission to begin a <b>60-Second Round</b>. The first team to lock in the exact weight and hit LAUNCH wins the round.
             </div>
 
             <div style="background: #000; padding: 15px; border: 1px solid #475569; border-radius: 8px; margin-bottom: 20px;">
-                <h3 style="color: var(--neon-blue); margin-bottom: 15px; text-align: center;">Quick-Launch Missions (Click to Start)</h3>
+                <h3 style="color: var(--neon-blue); margin-bottom: 15px; text-align: center;">Quick-Launch Missions (60s Timer)</h3>
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
-                    
                     <div class="mission-btn" onclick="startMission('Earth', 10, 500, '🌍')">
-                        <div style="font-size: 30px;">🌍</div>
-                        <div style="font-weight: bold; color:white; margin: 5px 0;">Earth Delivery</div>
-                        <div style="font-size: 12px; color:#94a3b8;">Gravity: 10 N/kg</div>
+                        <div style="font-size: 30px;">🌍</div><div style="font-weight: bold; color:white;">Earth</div>
                         <div style="color:var(--neon-green); font-weight:bold; margin-top:5px;">Target: 500 N</div>
                     </div>
-
                     <div class="mission-btn" onclick="startMission('Moon', 1.6, 160, '🌕')">
-                        <div style="font-size: 30px;">🌕</div>
-                        <div style="font-weight: bold; color:white; margin: 5px 0;">Lunar Base</div>
-                        <div style="font-size: 12px; color:#94a3b8;">Gravity: 1.6 N/kg</div>
+                        <div style="font-size: 30px;">🌕</div><div style="font-weight: bold; color:white;">Moon</div>
                         <div style="color:var(--neon-green); font-weight:bold; margin-top:5px;">Target: 160 N</div>
                     </div>
-
                     <div class="mission-btn" onclick="startMission('Mars', 3.7, 370, '🔴')">
-                        <div style="font-size: 30px;">🔴</div>
-                        <div style="font-weight: bold; color:white; margin: 5px 0;">Mars Colony</div>
-                        <div style="font-size: 12px; color:#94a3b8;">Gravity: 3.7 N/kg</div>
+                        <div style="font-size: 30px;">🔴</div><div style="font-weight: bold; color:white;">Mars</div>
                         <div style="color:var(--neon-green); font-weight:bold; margin-top:5px;">Target: 370 N</div>
                     </div>
-
                     <div class="mission-btn" onclick="startMission('Jupiter', 25, 1000, '🪐')">
-                        <div style="font-size: 30px;">🪐</div>
-                        <div style="font-weight: bold; color:white; margin: 5px 0;">Jupiter Station</div>
-                        <div style="font-size: 12px; color:#94a3b8;">Gravity: 25 N/kg</div>
+                        <div style="font-size: 30px;">🪐</div><div style="font-weight: bold; color:white;">Jupiter</div>
                         <div style="color:var(--neon-green); font-weight:bold; margin-top:5px;">Target: 1000 N</div>
                     </div>
-
                 </div>
             </div>
 
             <h3 style="border-bottom: 1px solid #475569; padding-bottom: 10px;">Live Fleet Telemetry</h3>
-            <div id="host-telemetry" class="roster-grid">
-                </div>
+            <div id="host-telemetry" class="roster-grid"></div>
             
             <div style="margin-top: auto; padding-top: 20px; text-align: center;">
                 <button id="btn-reset" class="btn-red" style="background: #4a0404;">⚠️ Hard Reset Entire Game</button>
@@ -208,44 +211,23 @@
     <div id="screen-game" class="app-container hidden" style="flex-direction: row; flex-wrap: wrap;">
         
         <div class="panel" style="flex: 1; min-width: 250px;">
-            
-            <div style="background: rgba(0,240,255,0.1); border: 1px solid var(--neon-blue); padding: 10px; border-radius: 8px; margin-bottom: 15px; font-size: 14px; text-align: center;">
-                <b>MISSION BRIEFING:</b> Work with your team to hit the exact Target Weight. <br>
-                <i style="color:var(--neon-gold);">Formula: Weight = Mass × Gravity</i>
-            </div>
-
             <div class="status-screen">
                 <div style="font-size: 12px; color: #94a3b8;">CURRENT MISSION</div>
-                <div style="font-size: 24px; font-weight: bold; color: white;">
-                    <span id="env-icon">🌍</span> <span id="env-planet">Earth</span>
-                </div>
+                <div style="font-size: 24px; font-weight: bold; color: white;"><span id="env-icon">🌍</span> <span id="env-planet">Earth</span></div>
                 <div style="color: var(--neon-gold); font-size: 14px;">Gravity: <b id="env-gravity">10</b> N/kg</div>
             </div>
 
-            <div id="player-turn-banner" class="turn-banner">
-                Loading Turn System...
-            </div>
+            <div id="player-turn-banner" class="turn-banner">Loading Turn System...</div>
 
             <div id="cargo-interaction-zone">
                 <div class="cargo-grid">
-                    <div class="crate" onclick="interactCrate(20, '🛰️')">
-                        <div class="crate-emoji">🛰️</div><div class="crate-mass">20 kg</div>
-                    </div>
-                    <div class="crate" onclick="interactCrate(10, '🛢️')">
-                        <div class="crate-emoji">🛢️</div><div class="crate-mass">10 kg</div>
-                    </div>
-                    <div class="crate" onclick="interactCrate(5, '📦')">
-                        <div class="crate-emoji">📦</div><div class="crate-mass">5 kg</div>
-                    </div>
-                    <div class="crate" onclick="interactCrate(2, '🔧')">
-                        <div class="crate-emoji">🔧</div><div class="crate-mass">2 kg</div>
-                    </div>
-                    <div class="crate" onclick="interactCrate(1, '🍔')">
-                        <div class="crate-emoji">🍔</div><div class="crate-mass">1 kg</div>
-                    </div>
+                    <div class="crate" onclick="interactCrate(20, '🛰️')"><div class="crate-emoji">🛰️</div><div class="crate-mass">20 kg</div></div>
+                    <div class="crate" onclick="interactCrate(10, '🛢️')"><div class="crate-emoji">🛢️</div><div class="crate-mass">10 kg</div></div>
+                    <div class="crate" onclick="interactCrate(5, '📦')"><div class="crate-emoji">📦</div><div class="crate-mass">5 kg</div></div>
+                    <div class="crate" onclick="interactCrate(2, '🔧')"><div class="crate-emoji">🔧</div><div class="crate-mass">2 kg</div></div>
+                    <div class="crate" onclick="interactCrate(1, '🍔')"><div class="crate-emoji">🍔</div><div class="crate-mass">1 kg</div></div>
                 </div>
-                <button id="btn-pass-turn" class="btn-gold hidden" style="width: 100%; margin-bottom: 15px;" onclick="advanceTurn(true)">⏭️ Pass Turn to Teammate</button>
-            </div>
+                </div>
 
             <h3 style="margin-top: 15px; margin-bottom: 5px; font-size: 14px; color: #94a3b8;">📻 Team Radio</h3>
             <div class="chat-container">
@@ -262,7 +244,7 @@
                 <div id="ship-icon" class="ship-emoji">🚀</div>
                 <h2 style="margin: 0; color:white;">Team Ship</h2>
                 
-                <div class="weight-readout">
+                <div class="weight-readout" id="weight-readout-box">
                     Current: <span id="ship-weight" style="color:white;">0</span> N 
                     <span style="color:#64748b; font-size:16px;">/ Target: <span id="ship-target" style="color:var(--neon-green);">0</span> N</span>
                 </div>
@@ -271,22 +253,27 @@
                     Total Mass inside: <span id="ship-mass" style="font-weight:bold;">0</span> kg
                 </div>
 
-                <div id="launch-controls" class="hidden">
-                    <div style="color:var(--neon-green); font-weight:bold; margin-bottom: 10px; font-size: 18px;">WEIGHT PERFECT. READY FOR LAUNCH.</div>
-                    <button class="btn-green" style="font-size: 20px; padding: 10px 30px;" onclick="attemptLaunch()">🚀 INITIATE LAUNCH</button>
+                <div id="launch-controls" class="hidden" style="margin-bottom:15px;">
+                    <button id="btn-launch" class="btn-green" style="font-size: 22px; padding: 15px 40px; box-shadow: 0 0 20px var(--neon-green); width:100%;" onclick="attemptLaunch()">🚀 INITIATE LAUNCH 🚀</button>
+                    <div style="color:var(--neon-green); font-size: 12px; margin-top:5px;">(Only the active player can hit Launch!)</div>
                 </div>
 
                 <div id="error-controls" style="color:var(--neon-red); font-weight:bold; font-size: 18px;" class="hidden">
                     ⚠️ OVERWEIGHT! REMOVE CARGO!
                 </div>
 
-                <h4 style="text-align: left; margin-top: 30px; border-bottom: 1px solid #475569; padding-bottom: 5px;">Cargo Manifest (Click to Remove)</h4>
+                <h4 style="text-align: left; margin-top: 15px; border-bottom: 1px solid #475569; padding-bottom: 5px;">Cargo Manifest (Click to Remove)</h4>
                 <div id="manifest-list" class="loaded-cargo">
                     <span style="color:#64748b; font-style:italic;">Bay is empty. Add cargo!</span>
                 </div>
             </div>
         </div>
+    </div>
 
+    <div id="global-announcement" class="hidden">
+        <h1 id="announcement-title" style="font-size: 60px; margin-bottom: 10px;"></h1>
+        <p id="announcement-sub" style="font-size: 24px; color: #e2e8f0; margin-bottom: 30px;"></p>
+        <button class="btn-blue" onclick="document.getElementById('global-announcement').classList.add('hidden')">Close Announcement</button>
     </div>
 
     <script type="module">
@@ -309,12 +296,13 @@
         const db = getDatabase();
 
         let myUID = "", myName = "", myTeam = "", isHost = false, isSolo = false;
-        let globalState = { phase: 'lobby', planet: 'Earth', gravity: 10, targetWeight: 500, icon: '🌍' };
+        let globalState = { phase: 'lobby', planet: 'Earth', gravity: 10, targetWeight: 500, icon: '🌍', endTime: 0 };
         let teamData = { crates: {} };
         
         let myTeamMembers = [];
         let currentTurnIndex = 0;
         let isMyTurn = false;
+        let countdownTimer;
 
         window.switchScreen = function(screenId) {
             document.querySelectorAll('.app-container').forEach(el => el.classList.add('hidden'));
@@ -381,19 +369,36 @@
         // --- GAME STATE LISTENER ---
         function listenToGame() {
             onValue(ref(db, 'cargoGame/state'), (snap) => {
-                globalState = snap.val() || { phase: 'lobby', planet: 'Earth', gravity: 10, targetWeight: 500, icon: '🌍' };
+                globalState = snap.val() || { phase: 'lobby' };
                 
-                document.getElementById('env-planet').innerText = globalState.planet;
-                document.getElementById('env-icon').innerText = globalState.icon;
-                document.getElementById('env-gravity').innerText = globalState.gravity;
-                document.getElementById('ship-target').innerText = globalState.targetWeight;
-                
-                if (globalState.phase === 'playing' && !isHost) {
-                    window.switchScreen('screen-game');
-                    recalculateShip();
-                    updateTurnUI();
-                } else if (globalState.phase === 'lobby' && !isHost) {
-                    window.switchScreen('screen-lobby');
+                // Hide announcement if we start a new game or go to lobby
+                if(globalState.phase === 'lobby' || globalState.phase === 'playing') {
+                    document.getElementById('global-announcement').classList.add('hidden');
+                    document.getElementById('ship-icon').classList.remove('launching');
+                }
+
+                if (globalState.phase === 'playing') {
+                    document.getElementById('env-planet').innerText = globalState.planet;
+                    document.getElementById('env-icon').innerText = globalState.icon;
+                    document.getElementById('env-gravity').innerText = globalState.gravity;
+                    document.getElementById('ship-target').innerText = globalState.targetWeight;
+                    document.getElementById('global-timer').classList.remove('hidden');
+
+                    startTimer();
+
+                    if (!isHost) {
+                        window.switchScreen('screen-game');
+                        recalculateShip();
+                        updateTurnUI();
+                    }
+                } else if (globalState.phase === 'finished') {
+                    clearInterval(countdownTimer);
+                    document.getElementById('global-timer').classList.add('hidden');
+                    handleGameEnd(globalState);
+                } else if (globalState.phase === 'lobby') {
+                    clearInterval(countdownTimer);
+                    document.getElementById('global-timer').classList.add('hidden');
+                    if (!isHost) window.switchScreen('screen-lobby');
                 }
             });
 
@@ -409,14 +414,11 @@
                     if(!teamsMap[p.team]) teamsMap[p.team] = [];
                     teamsMap[p.team].push(p.name);
 
-                    // Track my team specifically for turn order
-                    if(p.team === myTeam && !isHost) {
-                        members.push({ uid: p.uid, name: p.name });
-                    }
+                    if(p.team === myTeam && !isHost) members.push({ uid: p.uid, name: p.name });
                 });
 
                 if(!isHost && !isSolo) {
-                    members.sort((a, b) => a.uid.localeCompare(b.uid)); // Consistent order
+                    members.sort((a, b) => a.uid.localeCompare(b.uid));
                     myTeamMembers = members;
                     updateTurnUI();
                 }
@@ -433,19 +435,16 @@
             });
 
             if (!isHost) {
-                // Listen for Turn Changes
                 onValue(ref(db, `cargoGame/teams/${myTeam}/turnIndex`), (snap) => {
                     currentTurnIndex = snap.val() || 0;
                     updateTurnUI();
                 });
 
-                // Cargo
                 onValue(ref(db, `cargoGame/teams/${myTeam}/crates`), (snap) => {
                     teamData.crates = snap.val() || {};
                     recalculateShip();
                 });
                 
-                // Chat
                 onValue(ref(db, `cargoGame/teams/${myTeam}/chat`), (snap) => {
                     const messages = snap.val() || {};
                     const chatBox = document.getElementById('chat-messages');
@@ -460,6 +459,7 @@
 
             if (isHost) {
                 onValue(ref(db, 'cargoGame/teams'), (snap) => {
+                    if(globalState.phase !== 'playing') return;
                     const teams = snap.val() || {};
                     const container = document.getElementById('host-telemetry');
                     container.innerHTML = "";
@@ -479,12 +479,47 @@
                             <div class="roster-team" style="border-color:${statusColor}">
                                 <h3 style="color:var(--neon-blue); margin-bottom:5px;">${teamName}</h3>
                                 <div>Status: <b style="color:${statusColor};">${statusText}</b></div>
-                                <div style="margin-top: 10px;">Mass: <b>${totalMass} kg</b></div>
                                 <div>Weight: <b style="font-size:18px;">${totalWeight} N</b></div>
                             </div>
                         `;
                     });
                 });
+            }
+        }
+
+        // --- TIMER & WIN LOGIC ---
+        function startTimer() {
+            clearInterval(countdownTimer);
+            countdownTimer = setInterval(() => {
+                let timeLeft = Math.max(0, Math.floor((globalState.endTime - Date.now()) / 1000));
+                document.getElementById('time-left').innerText = timeLeft;
+                
+                if (timeLeft <= 0 && isHost && globalState.phase === 'playing') {
+                    update(ref(db, 'cargoGame/state'), { phase: 'finished', winner: 'None', reason: 'timeout' });
+                }
+            }, 1000);
+        }
+
+        function handleGameEnd(state) {
+            const overlay = document.getElementById('global-announcement');
+            const title = document.getElementById('announcement-title');
+            const sub = document.getElementById('announcement-sub');
+            
+            overlay.classList.remove('hidden');
+            
+            if (state.reason === 'timeout') {
+                title.innerText = "⏰ TIME'S UP!";
+                title.style.color = "var(--neon-red)";
+                sub.innerText = "No team managed to lock in the correct weight.";
+            } else if (state.reason === 'success') {
+                title.innerText = `🏆 ${state.winner.toUpperCase()} WINS!`;
+                title.style.color = "var(--neon-green)";
+                sub.innerText = `They perfectly loaded the ${state.planet} cargo!`;
+                
+                // Trigger rocket animation for the winning team's screen
+                if (myTeam === state.winner && !isHost) {
+                    document.getElementById('ship-icon').classList.add('launching');
+                }
             }
         }
 
@@ -495,13 +530,14 @@
             const turnBanner = document.getElementById('player-turn-banner');
             const interactionZone = document.getElementById('cargo-interaction-zone');
             const manifest = document.getElementById('manifest-list');
-            const passBtn = document.getElementById('btn-pass-turn');
+            const launchBtn = document.getElementById('btn-launch');
 
             if (isSolo || myTeamMembers.length === 0) {
                 isMyTurn = true;
                 turnBanner.classList.add('hidden');
                 interactionZone.classList.remove('disabled-interaction');
                 manifest.classList.remove('disabled-interaction');
+                if(launchBtn) launchBtn.disabled = false;
                 return;
             }
 
@@ -510,136 +546,45 @@
             isMyTurn = (activeMember.uid === myUID);
 
             if (isMyTurn) {
-                turnBanner.innerHTML = `🟢 <b>YOUR TURN:</b> Add cargo, remove cargo, or pass.`;
+                turnBanner.innerHTML = `🟢 <b>YOUR TURN:</b> Select exactly ONE item to Add or Remove.`;
                 turnBanner.style.color = "var(--neon-green)";
                 turnBanner.style.borderColor = "var(--neon-green)";
+                turnBanner.style.transform = "scale(1.05)";
                 interactionZone.classList.remove('disabled-interaction');
                 manifest.classList.remove('disabled-interaction');
-                passBtn.classList.remove('hidden');
+                if(launchBtn) launchBtn.disabled = false;
             } else {
-                turnBanner.innerHTML = `⏳ <b>WAITING:</b> It is ${activeMember.name}'s turn. Advise them in chat!`;
+                turnBanner.innerHTML = `⏳ <b>WAITING:</b> It is ${activeMember.name}'s turn to make a choice.`;
                 turnBanner.style.color = "var(--neon-gold)";
                 turnBanner.style.borderColor = "var(--neon-gold)";
+                turnBanner.style.transform = "scale(1)";
                 interactionZone.classList.add('disabled-interaction');
                 manifest.classList.add('disabled-interaction');
-                passBtn.classList.add('hidden');
+                if(launchBtn) launchBtn.disabled = true;
             }
         }
 
-        window.advanceTurn = function(isManualPass = false) {
+        window.advanceTurn = function() {
             if(!isMyTurn || isSolo) return;
             set(ref(db, `cargoGame/teams/${myTeam}/turnIndex`), currentTurnIndex + 1);
-            if(isManualPass) {
-                push(ref(db, `cargoGame/teams/${myTeam}/chat`), { name: "System", text: `${myName} passed their turn.` });
-            }
         };
 
         // --- CORE GAME MECHANICS (PLAYER) ---
         window.interactCrate = function(mass, emoji) {
             if (globalState.phase !== 'playing' || !isMyTurn) return;
-            
             push(ref(db, `cargoGame/teams/${myTeam}/crates`), { mass: mass, emoji: emoji });
             push(ref(db, `cargoGame/teams/${myTeam}/chat`), { name: "System", text: `${myName} added a ${mass}kg crate.` });
-            
-            window.advanceTurn(false);
+            window.advanceTurn(); // Instantly pass turn
         };
 
         window.unloadCrate = function(pushId, mass) {
             if (globalState.phase !== 'playing' || !isMyTurn) return;
-            
             remove(ref(db, `cargoGame/teams/${myTeam}/crates/${pushId}`));
             push(ref(db, `cargoGame/teams/${myTeam}/chat`), { name: "System", text: `${myName} removed a ${mass}kg crate.` });
-            
-            window.advanceTurn(false);
+            window.advanceTurn(); // Instantly pass turn
         };
 
         function recalculateShip() {
             let totalMass = 0;
             const manifest = document.getElementById('manifest-list');
-            manifest.innerHTML = "";
-
-            if (Object.keys(teamData.crates).length === 0) {
-                manifest.innerHTML = '<span style="color:#64748b; font-style:italic;">Bay is empty. Add cargo!</span>';
-            } else {
-                Object.entries(teamData.crates).forEach(([pushId, crate]) => {
-                    totalMass += crate.mass;
-                    manifest.innerHTML += `<div class="loaded-crate" onclick="window.unloadCrate('${pushId}', ${crate.mass})">${crate.emoji} ${crate.mass}kg ✖</div>`;
-                });
-            }
-
-            // CRITICAL PHYSICS: Weight = Mass x Gravity
-            let currentWeight = Math.round(totalMass * globalState.gravity * 10) / 10; 
-            
-            document.getElementById('ship-mass').innerText = totalMass;
-            
-            const weightDisplay = document.getElementById('ship-weight');
-            weightDisplay.innerText = currentWeight;
-
-            const bay = document.getElementById('ship-container');
-            const launchBtn = document.getElementById('launch-controls');
-            const errorMsg = document.getElementById('error-controls');
-
-            // Visual Status
-            bay.classList.remove('perfect', 'overweight');
-            launchBtn.classList.add('hidden');
-            errorMsg.classList.add('hidden');
-            weightDisplay.style.color = "white";
-
-            if (currentWeight === globalState.targetWeight) {
-                bay.classList.add('perfect');
-                weightDisplay.style.color = "var(--neon-green)";
-                launchBtn.classList.remove('hidden');
-            } else if (currentWeight > globalState.targetWeight) {
-                bay.classList.add('overweight');
-                weightDisplay.style.color = "var(--neon-red)";
-                errorMsg.classList.remove('hidden');
-            }
-        }
-
-        // --- CHAT SYSTEM ---
-        document.getElementById('chat-form').addEventListener('submit', (e) => {
-            e.preventDefault();
-            const input = document.getElementById('chat-input');
-            const msg = input.value.trim();
-            if(msg && globalState.phase === 'playing') {
-                push(ref(db, `cargoGame/teams/${myTeam}/chat`), { name: myName, text: msg });
-                input.value = "";
-            }
-        });
-
-        window.attemptLaunch = function() {
-            push(ref(db, `cargoGame/teams/${myTeam}/chat`), { name: "🚀 SYSTEM", text: "LAUNCH INITIATED! Awaiting other teams..." });
-            alert(`SUCCESS! ${myTeam} is ready for launch! Keep helping your teammates until the Host ends the round.`);
-        };
-
-        // --- HOST CONTROLS ---
-        window.startMission = function(planetName, gravityValue, targetN, emojiIcon) {
-            document.querySelectorAll('.mission-btn').forEach(btn => btn.classList.remove('active'));
-            event.currentTarget.classList.add('active');
-
-            // Clear old team data (removes crates and resets turn index to 0)
-            remove(ref(db, 'cargoGame/teams'));
-            
-            // Push new state
-            update(ref(db, 'cargoGame/state'), { 
-                phase: 'playing', 
-                planet: planetName, 
-                gravity: gravityValue, 
-                targetWeight: targetN,
-                icon: emojiIcon
-            });
-        };
-
-        window.endRound = function() {
-            document.querySelectorAll('.mission-btn').forEach(btn => btn.classList.remove('active'));
-            update(ref(db, 'cargoGame/state'), { phase: 'lobby' });
-        };
-
-        document.getElementById('btn-reset').addEventListener('click', () => {
-            if(confirm("WARNING: This will wipe all data, kick everyone, and delete the roster. Proceed?")) {
-                remove(ref(db, 'cargoGame')).then(() => location.reload());
-            }
-        });
-    </script>
-</body>
-</html>
+            manifest.innerHTML =
