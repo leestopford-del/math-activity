@@ -10,8 +10,8 @@
         .container { max-width: 800px; margin: 0 auto; padding: 20px; }
         
         /* THE WALL */
-        .wall-container { position: relative; height: 350px; background: var(--wood); border: 12px solid #3e2723; border-radius: 5px; overflow: hidden; margin: 20px 0; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
-        .quote-bubble { background: var(--paper); color: #222; padding: 30px; width: 70%; font-size: 1.4rem; line-height: 1.6; box-shadow: 5px 5px 0px rgba(0,0,0,0.1); border-radius: 3px; position: relative; z-index: 2; transition: transform 0.5s; }
+        .wall-container { position: relative; height: 400px; background: var(--wood); border: 12px solid #3e2723; border-radius: 5px; overflow: hidden; margin: 20px 0; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
+        .quote-bubble { background: var(--paper); color: #222; padding: 30px; width: 80%; font-size: 1.4rem; line-height: 1.6; box-shadow: 5px 5px 0px rgba(0,0,0,0.1); border-radius: 3px; position: relative; z-index: 2; transition: transform 0.5s; font-style: italic; }
         .reveal-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #2c3e50; display: flex; flex-direction: column; align-items: center; justify-content: center; transform: translateY(100%); transition: 0.6s cubic-bezier(0.17, 0.67, 0.83, 0.67); z-index: 5; }
         .reveal-overlay.show { transform: translateY(0); }
 
@@ -19,11 +19,11 @@
         .card { background: #2c3e50; padding: 30px; border-radius: 15px; border-bottom: 5px solid var(--accent); }
         .btn { padding: 15px 30px; border: none; border-radius: 50px; font-weight: bold; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; transition: 0.2s; margin: 10px; }
         .btn-main { background: var(--accent); color: white; }
-        .btn-vote { background: #444; color: white; width: 45%; margin: 5px; }
+        .btn-vote { background: #444; color: white; width: 45%; margin: 5px; font-size: 1rem; }
         .btn-vote:hover { background: #555; }
         .btn-vote.selected { background: #3498db; border: 2px solid white; }
         .hidden { display: none !important; }
-        .player-tag { background: rgba(255,255,255,0.1); padding: 5px 15px; border-radius: 20px; margin: 5px; display: inline-block; }
+        .player-tag { background: rgba(255,255,255,0.1); padding: 8px 15px; border-radius: 20px; margin: 5px; display: inline-block; }
     </style>
 </head>
 <body>
@@ -32,8 +32,9 @@
     <div id="lobby-screen" class="card">
         <h1>Who's Behind the Wall?</h1>
         <p><i>IGCSE English 5.2: Adapting Voice, Tone & Register</i></p>
+        <p style="font-size: 0.9rem; color: #aaa;">(Note: The first person to enter their name automatically becomes the Host)</p>
         <div id="join-area">
-            <input type="text" id="player-name" placeholder="Your Name..." style="padding: 12px; border-radius: 5px; border: none; width: 200px;">
+            <input type="text" id="player-name" placeholder="Your Name..." style="padding: 12px; border-radius: 5px; border: none; width: 200px; font-size: 1rem;">
             <button class="btn btn-main" onclick="joinGame()">Enter Lobby</button>
         </div>
         <div id="wait-area" class="hidden">
@@ -53,16 +54,17 @@
         <div class="wall-container">
             <div id="quote-box" class="quote-bubble">"Checking for a voice..."</div>
             <div id="reveal-layer" class="reveal-overlay">
-                <h2 style="color: var(--green);">PERSONA REVEALED:</h2>
-                <h1 id="correct-answer-text">???</h1>
-                <p id="register-hint" style="padding: 0 40px; font-size: 0.9rem;"></p>
+                <h3 style="color: var(--green); margin: 5px 0;">PERSONA REVEALED:</h3>
+                <h2 id="correct-answer-text" style="margin: 0;">???</h2>
+                <p id="register-hint" style="padding: 0 40px; font-size: 1rem; color: #ecf0f1;"></p>
             </div>
         </div>
 
         <div id="options-area" style="display: flex; flex-wrap: wrap; justify-content: center;"></div>
 
         <div id="host-actions" class="hidden" style="margin-top: 30px; background: #333; padding: 15px; border-radius: 10px;">
-            <button class="btn btn-main" id="reveal-btn" onclick="triggerReveal()">REVEAL NOW</button>
+            <p style="margin-top: 0; color: #aaa; font-size: 0.9rem;">Host Controls</p>
+            <button class="btn btn-main" id="reveal-btn" onclick="triggerReveal()">REVEAL ANSWER</button>
             <button class="btn btn-main hidden" id="next-btn" onclick="triggerNext()">NEXT ROUND</button>
         </div>
     </div>
@@ -93,7 +95,7 @@
     const db = getDatabase(app);
     const gameRef = ref(db, 'behind_the_wall');
 
-    // PERSONA DATASET (15 Scenarios based on IGCSE Register Slips)
+    // 25 PERSONAS FOR IGCSE ENGLISH
     const personaBank = [
         { q: "Attention students. It has come to my attention that some of you are treating the common room like a landfill. This ends now.", p: "Strict Headteacher", hint: "Register: Formal/Authoritative. Tone: Stern.", opts: ["Strict Headteacher", "Frustrated Student", "Local Mayor", "Angry Janitor"] },
         { q: "Listen, I’m writing to complain because the laptop I bought from you is literally a brick. It won’t even turn on.", p: "Disgruntled Customer", hint: "Register: Semi-formal. Tone: Aggressive/Accusatory.", opts: ["Disgruntled Customer", "Tech Support Agent", "Bored Teenager", "Formal Lawyer"] },
@@ -109,7 +111,17 @@
         { q: "Ladies and Gentlemen, please fasten your seatbelts. We are experiencing a bit of turbulence.", p: "Flight Pilot", hint: "Register: Professional. Tone: Calm/Reassuring.", opts: ["Flight Pilot", "Scared Passenger", "Tour Guide", "Train Guard"] },
         { q: "I'm so sorry I missed your birthday, man! I totally lost track of the days. Let's hang out soon?", p: "Casual Friend", hint: "Register: Informal. Tone: Apologetic.", opts: ["Casual Friend", "Strict Boss", "Formal Secretary", "Distant Relative"] },
         { q: "The results of your blood test are back. I'd like you to come in for a chat this afternoon.", p: "Medical Doctor", hint: "Register: Clinical. Tone: Serious/Professional.", opts: ["Medical Doctor", "Worried Parent", "Friendly Nurse", "Health Blogger"] },
-        { q: "I reckon if we head south by sunset, we'll hit the border before the sheriff catches us.", p: "Outlaw/Cowboy", hint: "Register: Dialect/Informal. Tone: Determined.", opts: ["Outlaw/Cowboy", "History Professor", "Police Officer", "Friendly Guide"] }
+        { q: "I reckon if we head south by sunset, we'll hit the border before the sheriff catches us.", p: "Outlaw", hint: "Register: Dialect/Informal. Tone: Determined.", opts: ["Outlaw", "History Professor", "Police Officer", "Friendly Guide"] },
+        { q: "Would you mind awfully keeping the noise down? Some of us are trying to enjoy a quiet cup of tea.", p: "Polite Pensioner", hint: "Register: Formal/Polite. Tone: Gentle but Annoyed.", opts: ["Polite Pensioner", "Strict Teacher", "Angry Musician", "Busy Waiter"] },
+        { q: "Yo, pass the controller! You've been playing for like, three hours straight!", p: "Impatient Sibling", hint: "Register: Informal/Slang. Tone: Annoyed/Urgent.", opts: ["Impatient Sibling", "Professional Gamer", "Strict Parent", "Store Clerk"] },
+        { q: "The structural integrity of this bridge is compromised; we must evacuate the sector immediately.", p: "Lead Engineer", hint: "Register: Technical/Formal. Tone: Urgent/Objective.", opts: ["Lead Engineer", "Scared Tourist", "Local Politician", "Art Critic"] },
+        { q: "Oh, darling, that dress is simply exquisite! Where on earth did you find such a treasure?", p: "Wealthy Socialite", hint: "Register: Expressive/Formal. Tone: Enthusiastic.", opts: ["Wealthy Socialite", "Bored Teenager", "Strict Judge", "Tired Retail Worker"] },
+        { q: "If you do not hand over the blueprints by midnight, your little operation will be shut down permanently.", p: "Menacing Villain", hint: "Register: Formal. Tone: Threatening/Cold.", opts: ["Menacing Villain", "Angry Teacher", "Frustrated Colleague", "Lost Tourist"] },
+        { q: "Step right up, folks! See the amazing, the spectacular, the one-and-only juggling monkey!", p: "Carnival Barker", hint: "Register: Persuasive/Loud. Tone: Energetic.", opts: ["Carnival Barker", "News Anchor", "Quiet Librarian", "Strict Coach"] },
+        { q: "We are gathered here today to celebrate the union of two wonderful individuals.", p: "Wedding Celebrant", hint: "Register: Formal/Ceremonial. Tone: Warm/Reverent.", opts: ["Wedding Celebrant", "Corporate Boss", "Sports Commentator", "Angry Neighbor"] },
+        { q: "I'm afraid your luggage has been routed to Tokyo. We apologize for the inconvenience.", p: "Airline Agent", hint: "Register: Professional. Tone: Apologetic/Neutral.", opts: ["Airline Agent", "Excited Traveler", "Angry Pilot", "Tour Guide"] },
+        { q: "Listen up, recruits! You are the worst batch of trainees I have ever laid eyes on!", p: "Drill Sergeant", hint: "Register: Imperative. Tone: Harsh/Aggressive.", opts: ["Drill Sergeant", "Friendly Teacher", "Polite Shopkeeper", "Tired Doctor"] },
+        { q: "Like and subscribe, guys! We're doing a massive giveaway at the end of this video!", p: "YouTube Vlogger", hint: "Register: Informal/Persuasive. Tone: Energetic/Casual.", opts: ["YouTube Vlogger", "News Reporter", "Formal Professor", "Quiet Artist"] }
     ];
 
     let myName = "";
@@ -120,9 +132,18 @@
         const input = document.getElementById('player-name');
         if (!input.value) return alert("Enter your name!");
         myName = input.value;
-        document.getElementById('join-area').classList.add('hidden');
-        document.getElementById('wait-area').classList.remove('hidden');
-        set(ref(db, 'behind_the_wall/players/' + myName), { name: myName });
+        
+        // Claim the Official Host title in the database
+        onValue(gameRef, (snap) => {
+            const data = snap.val() || {};
+            if (!data.host) {
+                update(gameRef, { host: myName }); // Lock it in!
+            }
+            set(ref(db, 'behind_the_wall/players/' + myName), { name: myName });
+            
+            document.getElementById('join-area').classList.add('hidden');
+            document.getElementById('wait-area').classList.remove('hidden');
+        }, { onlyOnce: true });
     };
 
     window.startGame = () => {
@@ -158,23 +179,25 @@
         const data = snapshot.val();
         if (!data) return;
 
-        // Lobby Sync & Host Designation
+        // Establish who the Host actually is, regardless of alphabetical order
+        isHost = (data.host === myName && myName !== "");
+
+        // Lobby Sync
         const players = data.players || {};
         const playerList = document.getElementById('player-list');
         playerList.innerHTML = "";
-        const names = Object.keys(players);
         
-        names.forEach((n, i) => {
+        Object.keys(players).forEach(n => {
             const span = document.createElement('span');
             span.className = 'player-tag';
-            span.innerHTML = n + (i === 0 ? " 👑" : "");
+            span.innerHTML = n + (data.host === n ? " 👑" : ""); // Crown the true host
             playerList.appendChild(span);
-            // The first person to join becomes Host
-            if (i === 0 && n === myName) {
-                isHost = true;
-                document.getElementById('host-panel').classList.remove('hidden');
-            }
         });
+
+        // Show Host Start panel in lobby
+        if (isHost && (!data.state || data.state === 'lobby')) {
+            document.getElementById('host-panel').classList.remove('hidden');
+        }
 
         // Game Flow Sync
         if (data.state === 'playing') {
@@ -185,11 +208,20 @@
             document.getElementById('round-num').innerText = `Round ${data.round + 1} / 7`;
             document.getElementById('quote-box').innerText = `"${curRound.q}"`;
 
+            // Force the Host Actions box to be visible for the host
+            if (isHost) {
+                document.getElementById('host-actions').classList.remove('hidden');
+            } else {
+                document.getElementById('host-actions').classList.add('hidden');
+            }
+
             // Handle Reveal State
             if (data.isRevealed) {
                 document.getElementById('reveal-layer').classList.add('show');
-                document.getElementById('correct-answer-text').innerText = curRound.p;
+                const avatarUrl = `https://api.dicebear.com/7.x/avataaars/svg?seed=${curRound.p.replace(/\s+/g, '')}&backgroundColor=b6e3f4`;
+                document.getElementById('correct-answer-text').innerHTML = `<img src="${avatarUrl}" style="width: 140px; height: 140px; border-radius: 50%; margin-bottom: 10px; border: 4px solid white; box-shadow: 0 4px 8px rgba(0,0,0,0.3);"><br>${curRound.p}`;
                 document.getElementById('register-hint').innerText = curRound.hint;
+                
                 if (isHost) {
                     document.getElementById('reveal-btn').classList.add('hidden');
                     document.getElementById('next-btn').classList.remove('hidden');
@@ -197,8 +229,8 @@
             } else {
                 document.getElementById('reveal-layer').classList.remove('show');
                 renderOptions(curRound.opts);
+                
                 if (isHost) {
-                    document.getElementById('host-actions').classList.remove('hidden');
                     document.getElementById('reveal-btn').classList.remove('hidden');
                     document.getElementById('next-btn').classList.add('hidden');
                 }
