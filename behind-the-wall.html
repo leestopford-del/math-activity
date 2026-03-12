@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Behind the Wall: IGCSE English 5.2</title>
     <style>
         :root { --wood: #5d4037; --paper: #fdfdfd; --accent: #e67e22; --green: #2ecc71; }
@@ -18,7 +19,7 @@
         .card { background: #2c3e50; padding: 30px; border-radius: 15px; border-bottom: 5px solid var(--accent); }
         .btn { padding: 15px 30px; border: none; border-radius: 50px; font-weight: bold; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; transition: 0.2s; margin: 10px; }
         .btn-main { background: var(--accent); color: white; }
-        .btn-vote { background: #444; color: white; width: 45%; }
+        .btn-vote { background: #444; color: white; width: 45%; margin: 5px; }
         .btn-vote:hover { background: #555; }
         .btn-vote.selected { background: #3498db; border: 2px solid white; }
         .hidden { display: none !important; }
@@ -75,13 +76,16 @@
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
-    import { getDatabase, ref, set, onValue, update, remove, query, limitToFirst } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-database.js";
+    import { getDatabase, ref, set, onValue, update, remove } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-database.js";
 
+    // Your exact Firebase configuration
     const firebaseConfig = {
         apiKey: "AIzaSyBpf5wi0wShnatqUhcmPhSOdnd0NdBL65A",
         authDomain: "symmetry-and-nets.firebaseapp.com",
         databaseURL: "https://symmetry-and-nets-default-rtdb.europe-west1.firebasedatabase.app",
         projectId: "symmetry-and-nets",
+        storageBucket: "symmetry-and-nets.firebasestorage.app",
+        messagingSenderId: "250211420064",
         appId: "1:250211420064:web:fe4a064715042bedf546c5"
     };
 
@@ -89,7 +93,7 @@
     const db = getDatabase(app);
     const gameRef = ref(db, 'behind_the_wall');
 
-    // PERSONA DATASET (25 Scenarios based on IGCSE Register Slips)
+    // PERSONA DATASET (15 Scenarios based on IGCSE Register Slips)
     const personaBank = [
         { q: "Attention students. It has come to my attention that some of you are treating the common room like a landfill. This ends now.", p: "Strict Headteacher", hint: "Register: Formal/Authoritative. Tone: Stern.", opts: ["Strict Headteacher", "Frustrated Student", "Local Mayor", "Angry Janitor"] },
         { q: "Listen, I’m writing to complain because the laptop I bought from you is literally a brick. It won’t even turn on.", p: "Disgruntled Customer", hint: "Register: Semi-formal. Tone: Aggressive/Accusatory.", opts: ["Disgruntled Customer", "Tech Support Agent", "Bored Teenager", "Formal Lawyer"] },
@@ -106,13 +110,12 @@
         { q: "I'm so sorry I missed your birthday, man! I totally lost track of the days. Let's hang out soon?", p: "Casual Friend", hint: "Register: Informal. Tone: Apologetic.", opts: ["Casual Friend", "Strict Boss", "Formal Secretary", "Distant Relative"] },
         { q: "The results of your blood test are back. I'd like you to come in for a chat this afternoon.", p: "Medical Doctor", hint: "Register: Clinical. Tone: Serious/Professional.", opts: ["Medical Doctor", "Worried Parent", "Friendly Nurse", "Health Blogger"] },
         { q: "I reckon if we head south by sunset, we'll hit the border before the sheriff catches us.", p: "Outlaw/Cowboy", hint: "Register: Dialect/Informal. Tone: Determined.", opts: ["Outlaw/Cowboy", "History Professor", "Police Officer", "Friendly Guide"] }
-        // ... (The randomizer handles selecting 7 of these)
     ];
 
     let myName = "";
     let isHost = false;
 
-    // JOIN LOBBY
+    // --- GAME FUNCTIONS ---
     window.joinGame = () => {
         const input = document.getElementById('player-name');
         if (!input.value) return alert("Enter your name!");
@@ -122,7 +125,6 @@
         set(ref(db, 'behind_the_wall/players/' + myName), { name: myName });
     };
 
-    // HOST START
     window.startGame = () => {
         const selected = personaBank.sort(() => 0.5 - Math.random()).slice(0, 7);
         update(gameRef, {
@@ -133,23 +135,25 @@
         });
     };
 
-    // HOST RESET
     window.resetServer = () => {
         remove(gameRef);
         location.reload();
     };
 
-    // HOST REVEAL/NEXT
     window.triggerReveal = () => update(gameRef, { isRevealed: true });
+    
     window.triggerNext = () => {
         onValue(gameRef, (snap) => {
             const data = snap.val();
-            if (data.round >= 6) update(gameRef, { state: 'results' });
-            else update(gameRef, { round: data.round + 1, isRevealed: false });
+            if (data.round >= 6) {
+                update(gameRef, { state: 'results' });
+            } else {
+                update(gameRef, { round: data.round + 1, isRevealed: false });
+            }
         }, { onlyOnce: true });
     };
 
-    // SYNC STATE
+    // --- REALTIME SYNC ---
     onValue(gameRef, (snapshot) => {
         const data = snapshot.val();
         if (!data) return;
@@ -159,11 +163,13 @@
         const playerList = document.getElementById('player-list');
         playerList.innerHTML = "";
         const names = Object.keys(players);
+        
         names.forEach((n, i) => {
             const span = document.createElement('span');
             span.className = 'player-tag';
             span.innerHTML = n + (i === 0 ? " 👑" : "");
             playerList.appendChild(span);
+            // The first person to join becomes Host
             if (i === 0 && n === myName) {
                 isHost = true;
                 document.getElementById('host-panel').classList.remove('hidden');
@@ -174,11 +180,12 @@
         if (data.state === 'playing') {
             document.getElementById('lobby-screen').classList.add('hidden');
             document.getElementById('game-screen').classList.remove('hidden');
+            
             const curRound = data.rounds[data.round];
             document.getElementById('round-num').innerText = `Round ${data.round + 1} / 7`;
             document.getElementById('quote-box').innerText = `"${curRound.q}"`;
 
-            // Handle Reveal
+            // Handle Reveal State
             if (data.isRevealed) {
                 document.getElementById('reveal-layer').classList.add('show');
                 document.getElementById('correct-answer-text').innerText = curRound.p;
@@ -198,12 +205,14 @@
             }
         }
 
+        // Results State
         if (data.state === 'results') {
             document.getElementById('game-screen').classList.add('hidden');
             document.getElementById('results-screen').classList.remove('hidden');
         }
     });
 
+    // Option Rendering Logic
     function renderOptions(opts) {
         const area = document.getElementById('options-area');
         area.innerHTML = "";
