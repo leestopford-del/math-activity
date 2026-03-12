@@ -111,7 +111,6 @@
         /* --- HOST DASHBOARD --- */
         .mission-btn { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 15px; background: #1e293b; border: 2px solid #475569; border-radius: 8px; cursor: pointer; transition: 0.2s;}
         .mission-btn:hover { border-color: var(--neon-blue); background: #334155; transform: translateY(-3px);}
-        .mission-btn.active { border-color: var(--neon-green); box-shadow: 0 0 15px rgba(57,255,20,0.4); }
         .roster-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
         .roster-team { background: rgba(0,0,0,0.5); padding: 15px; border-radius: 8px; border-top: 3px solid var(--neon-blue); }
 
@@ -143,10 +142,10 @@
             <div style="font-size: 50px; margin-bottom: 10px;">🧑‍🚀</div>
             <h2 style="color:var(--neon-blue); margin-bottom: 20px;">Handler Login</h2>
             <input type="text" id="login-name" placeholder="Enter Call Sign (Name)..." maxlength="15">
-            <button id="btn-join-team" style="margin-bottom: 10px; width: 100%;">Join Team Fleet</button>
-            <button id="btn-join-solo" class="btn-gold" style="margin-bottom: 20px; width: 100%;">Play Solo</button>
+            <button onclick="window.joinGame(false, false)" style="margin-bottom: 10px; width: 100%;">Join Team Fleet</button>
+            <button onclick="window.joinGame(false, true)" class="btn-gold" style="margin-bottom: 20px; width: 100%;">Play Solo</button>
             <hr style="border-color: #334155; width: 100%; margin: 15px 0;">
-            <button id="btn-host" class="btn-red" style="width: 100%;">Admin: Host Session</button>
+            <button onclick="window.joinGame(true, false)" class="btn-red" style="width: 100%;">Admin: Host Session</button>
         </div>
     </div>
 
@@ -170,7 +169,7 @@
         <div class="panel" style="flex: 1;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                 <h2 style="color: var(--neon-red); margin:0;">👑 Mission Control</h2>
-                <button onclick="endRound()" class="btn-red">Abort / End Mission</button>
+                <button onclick="window.endRound()" class="btn-red">Abort / End Mission</button>
             </div>
             
             <div style="background: rgba(255,184,0,0.1); border: 1px solid var(--neon-gold); padding: 10px; border-radius: 8px; margin-bottom: 15px; font-size: 14px; line-height: 1.5;">
@@ -180,19 +179,19 @@
             <div style="background: #000; padding: 15px; border: 1px solid #475569; border-radius: 8px; margin-bottom: 20px;">
                 <h3 style="color: var(--neon-blue); margin-bottom: 15px; text-align: center;">Quick-Launch Missions (60s Timer)</h3>
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
-                    <div class="mission-btn" onclick="startMission('Earth', 10, 500, '🌍')">
+                    <div class="mission-btn" onclick="window.startMission('Earth', 10, 500, '🌍')">
                         <div style="font-size: 30px;">🌍</div><div style="font-weight: bold; color:white;">Earth</div>
                         <div style="color:var(--neon-green); font-weight:bold; margin-top:5px;">Target: 500 N</div>
                     </div>
-                    <div class="mission-btn" onclick="startMission('Moon', 1.6, 160, '🌕')">
+                    <div class="mission-btn" onclick="window.startMission('Moon', 1.6, 160, '🌕')">
                         <div style="font-size: 30px;">🌕</div><div style="font-weight: bold; color:white;">Moon</div>
                         <div style="color:var(--neon-green); font-weight:bold; margin-top:5px;">Target: 160 N</div>
                     </div>
-                    <div class="mission-btn" onclick="startMission('Mars', 3.7, 370, '🔴')">
+                    <div class="mission-btn" onclick="window.startMission('Mars', 3.7, 370, '🔴')">
                         <div style="font-size: 30px;">🔴</div><div style="font-weight: bold; color:white;">Mars</div>
                         <div style="color:var(--neon-green); font-weight:bold; margin-top:5px;">Target: 370 N</div>
                     </div>
-                    <div class="mission-btn" onclick="startMission('Jupiter', 25, 1000, '🪐')">
+                    <div class="mission-btn" onclick="window.startMission('Jupiter', 25, 1000, '🪐')">
                         <div style="font-size: 30px;">🪐</div><div style="font-weight: bold; color:white;">Jupiter</div>
                         <div style="color:var(--neon-green); font-weight:bold; margin-top:5px;">Target: 1000 N</div>
                     </div>
@@ -203,7 +202,7 @@
             <div id="host-telemetry" class="roster-grid"></div>
             
             <div style="margin-top: auto; padding-top: 20px; text-align: center;">
-                <button id="btn-reset" class="btn-red" style="background: #4a0404;">⚠️ Hard Reset Entire Game</button>
+                <button onclick="window.hardReset()" class="btn-red" style="background: #4a0404;">⚠️ Hard Reset Entire Game</button>
             </div>
         </div>
     </div>
@@ -211,6 +210,12 @@
     <div id="screen-game" class="app-container hidden" style="flex-direction: row; flex-wrap: wrap;">
         
         <div class="panel" style="flex: 1; min-width: 250px;">
+            
+            <div style="background: rgba(0,240,255,0.1); border: 1px solid var(--neon-blue); padding: 10px; border-radius: 8px; margin-bottom: 15px; font-size: 14px; text-align: center;">
+                <b>MISSION BRIEFING:</b> Work with your team to hit the exact Target Weight. <br>
+                <i style="color:var(--neon-gold);">Formula: Weight = Mass × Gravity</i>
+            </div>
+
             <div class="status-screen">
                 <div style="font-size: 12px; color: #94a3b8;">CURRENT MISSION</div>
                 <div style="font-size: 24px; font-weight: bold; color: white;"><span id="env-icon">🌍</span> <span id="env-planet">Earth</span></div>
@@ -221,13 +226,13 @@
 
             <div id="cargo-interaction-zone">
                 <div class="cargo-grid">
-                    <div class="crate" onclick="interactCrate(20, '🛰️')"><div class="crate-emoji">🛰️</div><div class="crate-mass">20 kg</div></div>
-                    <div class="crate" onclick="interactCrate(10, '🛢️')"><div class="crate-emoji">🛢️</div><div class="crate-mass">10 kg</div></div>
-                    <div class="crate" onclick="interactCrate(5, '📦')"><div class="crate-emoji">📦</div><div class="crate-mass">5 kg</div></div>
-                    <div class="crate" onclick="interactCrate(2, '🔧')"><div class="crate-emoji">🔧</div><div class="crate-mass">2 kg</div></div>
-                    <div class="crate" onclick="interactCrate(1, '🍔')"><div class="crate-emoji">🍔</div><div class="crate-mass">1 kg</div></div>
+                    <div class="crate" onclick="window.interactCrate(20, '🛰️')"><div class="crate-emoji">🛰️</div><div class="crate-mass">20 kg</div></div>
+                    <div class="crate" onclick="window.interactCrate(10, '🛢️')"><div class="crate-emoji">🛢️</div><div class="crate-mass">10 kg</div></div>
+                    <div class="crate" onclick="window.interactCrate(5, '📦')"><div class="crate-emoji">📦</div><div class="crate-mass">5 kg</div></div>
+                    <div class="crate" onclick="window.interactCrate(2, '🔧')"><div class="crate-emoji">🔧</div><div class="crate-mass">2 kg</div></div>
+                    <div class="crate" onclick="window.interactCrate(1, '🍔')"><div class="crate-emoji">🍔</div><div class="crate-mass">1 kg</div></div>
                 </div>
-                </div>
+            </div>
 
             <h3 style="margin-top: 15px; margin-bottom: 5px; font-size: 14px; color: #94a3b8;">📻 Team Radio</h3>
             <div class="chat-container">
@@ -254,7 +259,7 @@
                 </div>
 
                 <div id="launch-controls" class="hidden" style="margin-bottom:15px;">
-                    <button id="btn-launch" class="btn-green" style="font-size: 22px; padding: 15px 40px; box-shadow: 0 0 20px var(--neon-green); width:100%;" onclick="attemptLaunch()">🚀 INITIATE LAUNCH 🚀</button>
+                    <button id="btn-launch" class="btn-green" style="font-size: 22px; padding: 15px 40px; box-shadow: 0 0 20px var(--neon-green); width:100%;" onclick="window.attemptLaunch()">🚀 INITIATE LAUNCH 🚀</button>
                     <div style="color:var(--neon-green); font-size: 12px; margin-top:5px;">(Only the active player can hit Launch!)</div>
                 </div>
 
@@ -304,17 +309,13 @@
         let isMyTurn = false;
         let countdownTimer;
 
+        // Exposed globally to prevent module scoping issues
         window.switchScreen = function(screenId) {
             document.querySelectorAll('.app-container').forEach(el => el.classList.add('hidden'));
             document.getElementById(screenId).classList.remove('hidden');
         };
 
-        // --- LOGIN LOGIC ---
-        document.getElementById('btn-join-team').addEventListener('click', () => joinGame(false, false));
-        document.getElementById('btn-join-solo').addEventListener('click', () => joinGame(false, true));
-        document.getElementById('btn-host').addEventListener('click', () => joinGame(true, false));
-
-        function joinGame(hostAttempt, soloAttempt) {
+        window.joinGame = function(hostAttempt, soloAttempt) {
             myName = document.getElementById('login-name').value.trim() || "Handler " + Math.floor(Math.random()*100);
             isHost = hostAttempt;
             isSolo = soloAttempt;
@@ -366,7 +367,6 @@
             listenToGame();
         }
 
-        // --- GAME STATE LISTENER ---
         function listenToGame() {
             onValue(ref(db, 'cargoGame/state'), (snap) => {
                 globalState = snap.val() || { phase: 'lobby' };
@@ -516,7 +516,6 @@
                 title.style.color = "var(--neon-green)";
                 sub.innerText = `They perfectly loaded the ${state.planet} cargo!`;
                 
-                // Trigger rocket animation for the winning team's screen
                 if (myTeam === state.winner && !isHost) {
                     document.getElementById('ship-icon').classList.add('launching');
                 }
@@ -574,17 +573,102 @@
             if (globalState.phase !== 'playing' || !isMyTurn) return;
             push(ref(db, `cargoGame/teams/${myTeam}/crates`), { mass: mass, emoji: emoji });
             push(ref(db, `cargoGame/teams/${myTeam}/chat`), { name: "System", text: `${myName} added a ${mass}kg crate.` });
-            window.advanceTurn(); // Instantly pass turn
+            window.advanceTurn();
         };
 
         window.unloadCrate = function(pushId, mass) {
             if (globalState.phase !== 'playing' || !isMyTurn) return;
             remove(ref(db, `cargoGame/teams/${myTeam}/crates/${pushId}`));
             push(ref(db, `cargoGame/teams/${myTeam}/chat`), { name: "System", text: `${myName} removed a ${mass}kg crate.` });
-            window.advanceTurn(); // Instantly pass turn
+            window.advanceTurn();
         };
 
         function recalculateShip() {
             let totalMass = 0;
             const manifest = document.getElementById('manifest-list');
-            manifest.innerHTML =
+            manifest.innerHTML = "";
+
+            if (Object.keys(teamData.crates).length === 0) {
+                manifest.innerHTML = '<span style="color:#64748b; font-style:italic;">Bay is empty. Add cargo!</span>';
+            } else {
+                Object.entries(teamData.crates).forEach(([pushId, crate]) => {
+                    totalMass += crate.mass;
+                    manifest.innerHTML += `<div class="loaded-crate" onclick="window.unloadCrate('${pushId}', ${crate.mass})">${crate.emoji} ${crate.mass}kg ✖</div>`;
+                });
+            }
+
+            let currentWeight = Math.round(totalMass * globalState.gravity * 10) / 10; 
+            document.getElementById('ship-mass').innerText = totalMass;
+            
+            const weightDisplay = document.getElementById('ship-weight');
+            weightDisplay.innerText = currentWeight;
+
+            const bay = document.getElementById('ship-container');
+            const launchControls = document.getElementById('launch-controls');
+            const errorMsg = document.getElementById('error-controls');
+
+            // Reset visual states
+            bay.classList.remove('perfect', 'overweight');
+            launchControls.classList.add('hidden');
+            errorMsg.classList.add('hidden');
+            weightDisplay.style.color = "white";
+
+            if (currentWeight === globalState.targetWeight) {
+                bay.classList.add('perfect');
+                weightDisplay.style.color = "var(--neon-green)";
+                launchControls.classList.remove('hidden');
+            } else if (currentWeight > globalState.targetWeight) {
+                bay.classList.add('overweight');
+                weightDisplay.style.color = "var(--neon-red)";
+                errorMsg.classList.remove('hidden');
+            }
+        }
+
+        // --- WIN TRIGGER ---
+        window.attemptLaunch = function() {
+            if (!isMyTurn && !isSolo) {
+                alert("It is not your turn! Tell the active player to hit LAUNCH!");
+                return;
+            }
+            update(ref(db, 'cargoGame/state'), { phase: 'finished', winner: myTeam, reason: 'success' });
+        };
+
+        // --- CHAT SYSTEM ---
+        document.getElementById('chat-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const input = document.getElementById('chat-input');
+            const msg = input.value.trim();
+            if(msg && globalState.phase === 'playing') {
+                push(ref(db, `cargoGame/teams/${myTeam}/chat`), { name: myName, text: msg });
+                input.value = "";
+            }
+        });
+
+        // --- HOST CONTROLS ---
+        window.startMission = function(planetName, gravityValue, targetN, emojiIcon) {
+            // Clear old team data (removes crates and resets turn index to 0)
+            remove(ref(db, 'cargoGame/teams'));
+            
+            // Push new state with 60 second timer
+            update(ref(db, 'cargoGame/state'), { 
+                phase: 'playing', 
+                planet: planetName, 
+                gravity: gravityValue, 
+                targetWeight: targetN,
+                icon: emojiIcon,
+                endTime: Date.now() + 60000 // 60 seconds from now
+            });
+        };
+
+        window.endRound = function() {
+            update(ref(db, 'cargoGame/state'), { phase: 'lobby' });
+        };
+
+        window.hardReset = function() {
+            if(confirm("WARNING: This will wipe all data, kick everyone, and delete the roster. Proceed?")) {
+                remove(ref(db, 'cargoGame')).then(() => location.reload());
+            }
+        };
+    </script>
+</body>
+</html>
