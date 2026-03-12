@@ -18,6 +18,18 @@
         h1, h2, h3, h4 { text-transform: uppercase; margin-top: 0; letter-spacing: 1px; }
         .hidden { display: none !important; }
 
+        /* --- TURN SYSTEM CSS --- */
+        .disabled-interaction {
+            opacity: 0.4;
+            pointer-events: none;
+            filter: grayscale(80%);
+            transition: all 0.3s;
+        }
+        .turn-banner {
+            text-align: center; font-size: 15px; margin-bottom: 15px; padding: 10px;
+            border: 1px dashed #475569; border-radius: 6px; background: rgba(0,0,0,0.5);
+        }
+
         /* --- LAYOUT --- */
         #header {
             background: rgba(0,0,0,0.8); border-bottom: 2px solid var(--neon-blue); padding: 10px 20px;
@@ -140,6 +152,14 @@
                 <button onclick="endRound()" class="btn-red">Abort / End Mission</button>
             </div>
             
+            <div style="background: rgba(255,184,0,0.1); border: 1px solid var(--neon-gold); padding: 10px; border-radius: 8px; margin-bottom: 15px; font-size: 14px; line-height: 1.5;">
+                <b style="color:var(--neon-gold);">HOST GUIDE:</b><br>
+                1) Click a Mission below to instantly send players to that planet. <br>
+                2) Watch the Live Telemetry below. Teams must use teamwork to load exactly the Target Weight (Mass × Gravity).<br>
+                3) When a team's ship turns GREEN, they are ready to launch!<br>
+                4) Click 'Abort / End Mission' to reset the cargo bays and return them to the hangar.
+            </div>
+
             <div style="background: #000; padding: 15px; border: 1px solid #475569; border-radius: 8px; margin-bottom: 20px;">
                 <h3 style="color: var(--neon-blue); margin-bottom: 15px; text-align: center;">Quick-Launch Missions (Click to Start)</h3>
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
@@ -188,6 +208,12 @@
     <div id="screen-game" class="app-container hidden" style="flex-direction: row; flex-wrap: wrap;">
         
         <div class="panel" style="flex: 1; min-width: 250px;">
+            
+            <div style="background: rgba(0,240,255,0.1); border: 1px solid var(--neon-blue); padding: 10px; border-radius: 8px; margin-bottom: 15px; font-size: 14px; text-align: center;">
+                <b>MISSION BRIEFING:</b> Work with your team to hit the exact Target Weight. <br>
+                <i style="color:var(--neon-gold);">Formula: Weight = Mass × Gravity</i>
+            </div>
+
             <div class="status-screen">
                 <div style="font-size: 12px; color: #94a3b8;">CURRENT MISSION</div>
                 <div style="font-size: 24px; font-weight: bold; color: white;">
@@ -196,23 +222,29 @@
                 <div style="color: var(--neon-gold); font-size: 14px;">Gravity: <b id="env-gravity">10</b> N/kg</div>
             </div>
 
-            <h3 style="text-align: center; color: var(--neon-blue); margin-top: 10px;">Available Cargo</h3>
-            <div class="cargo-grid">
-                <div class="crate" onclick="interactCrate(20, '🛰️')">
-                    <div class="crate-emoji">🛰️</div><div class="crate-mass">20 kg</div>
+            <div id="player-turn-banner" class="turn-banner">
+                Loading Turn System...
+            </div>
+
+            <div id="cargo-interaction-zone">
+                <div class="cargo-grid">
+                    <div class="crate" onclick="interactCrate(20, '🛰️')">
+                        <div class="crate-emoji">🛰️</div><div class="crate-mass">20 kg</div>
+                    </div>
+                    <div class="crate" onclick="interactCrate(10, '🛢️')">
+                        <div class="crate-emoji">🛢️</div><div class="crate-mass">10 kg</div>
+                    </div>
+                    <div class="crate" onclick="interactCrate(5, '📦')">
+                        <div class="crate-emoji">📦</div><div class="crate-mass">5 kg</div>
+                    </div>
+                    <div class="crate" onclick="interactCrate(2, '🔧')">
+                        <div class="crate-emoji">🔧</div><div class="crate-mass">2 kg</div>
+                    </div>
+                    <div class="crate" onclick="interactCrate(1, '🍔')">
+                        <div class="crate-emoji">🍔</div><div class="crate-mass">1 kg</div>
+                    </div>
                 </div>
-                <div class="crate" onclick="interactCrate(10, '🛢️')">
-                    <div class="crate-emoji">🛢️</div><div class="crate-mass">10 kg</div>
-                </div>
-                <div class="crate" onclick="interactCrate(5, '📦')">
-                    <div class="crate-emoji">📦</div><div class="crate-mass">5 kg</div>
-                </div>
-                <div class="crate" onclick="interactCrate(2, '🔧')">
-                    <div class="crate-emoji">🔧</div><div class="crate-mass">2 kg</div>
-                </div>
-                <div class="crate" onclick="interactCrate(1, '🍔')">
-                    <div class="crate-emoji">🍔</div><div class="crate-mass">1 kg</div>
-                </div>
+                <button id="btn-pass-turn" class="btn-gold hidden" style="width: 100%; margin-bottom: 15px;" onclick="advanceTurn(true)">⏭️ Pass Turn to Teammate</button>
             </div>
 
             <h3 style="margin-top: 15px; margin-bottom: 5px; font-size: 14px; color: #94a3b8;">📻 Team Radio</h3>
@@ -276,11 +308,14 @@
         const auth = getAuth();
         const db = getDatabase();
 
-        let myUID = "", myName = "", myTeam = "", isHost = false;
+        let myUID = "", myName = "", myTeam = "", isHost = false, isSolo = false;
         let globalState = { phase: 'lobby', planet: 'Earth', gravity: 10, targetWeight: 500, icon: '🌍' };
         let teamData = { crates: {} };
+        
+        let myTeamMembers = [];
+        let currentTurnIndex = 0;
+        let isMyTurn = false;
 
-        // Make switchScreen accessible globally so the HTML onclick can find it
         window.switchScreen = function(screenId) {
             document.querySelectorAll('.app-container').forEach(el => el.classList.add('hidden'));
             document.getElementById(screenId).classList.remove('hidden');
@@ -294,6 +329,7 @@
         function joinGame(hostAttempt, soloAttempt) {
             myName = document.getElementById('login-name').value.trim() || "Handler " + Math.floor(Math.random()*100);
             isHost = hostAttempt;
+            isSolo = soloAttempt;
 
             signInAnonymously(auth).then(() => {
                 myUID = auth.currentUser.uid;
@@ -331,7 +367,7 @@
 
         function finalizeJoin() {
             const pRef = ref(db, `cargoGame/players/${myUID}`);
-            set(pRef, { name: myName, team: myTeam });
+            set(pRef, { name: myName, team: myTeam, uid: myUID });
             onDisconnect(pRef).remove(); 
             
             document.getElementById('player-info').classList.remove('hidden');
@@ -344,54 +380,71 @@
 
         // --- GAME STATE LISTENER ---
         function listenToGame() {
-            // 1. Listen to Global Environment
             onValue(ref(db, 'cargoGame/state'), (snap) => {
                 globalState = snap.val() || { phase: 'lobby', planet: 'Earth', gravity: 10, targetWeight: 500, icon: '🌍' };
                 
-                // Update UI Environment
                 document.getElementById('env-planet').innerText = globalState.planet;
                 document.getElementById('env-icon').innerText = globalState.icon;
                 document.getElementById('env-gravity').innerText = globalState.gravity;
                 document.getElementById('ship-target').innerText = globalState.targetWeight;
                 
-                // Phase Routing
                 if (globalState.phase === 'playing' && !isHost) {
                     window.switchScreen('screen-game');
                     recalculateShip();
+                    updateTurnUI();
                 } else if (globalState.phase === 'lobby' && !isHost) {
                     window.switchScreen('screen-lobby');
                 }
             });
 
-            // 2. Listen to Lobby Roster
             onValue(ref(db, 'cargoGame/players'), (snap) => {
                 const players = snap.val() || {};
                 const rosterContainer = document.getElementById('global-roster');
-                rosterContainer.innerHTML = "";
+                if(rosterContainer) rosterContainer.innerHTML = "";
                 
-                // Group players by team
                 let teamsMap = {};
+                let members = [];
+
                 Object.values(players).forEach(p => {
                     if(!teamsMap[p.team]) teamsMap[p.team] = [];
                     teamsMap[p.team].push(p.name);
+
+                    // Track my team specifically for turn order
+                    if(p.team === myTeam && !isHost) {
+                        members.push({ uid: p.uid, name: p.name });
+                    }
                 });
 
-                Object.keys(teamsMap).sort().forEach(teamName => {
-                    let teamColor = teamName === myTeam ? "var(--neon-green)" : "white";
-                    let html = `<div class="roster-team"><h4 style="color:${teamColor}; margin-bottom:10px;">${teamName}</h4>`;
-                    teamsMap[teamName].forEach(name => html += `<div>🧑‍🚀 ${name}</div>`);
-                    html += `</div>`;
-                    rosterContainer.innerHTML += html;
-                });
+                if(!isHost && !isSolo) {
+                    members.sort((a, b) => a.uid.localeCompare(b.uid)); // Consistent order
+                    myTeamMembers = members;
+                    updateTurnUI();
+                }
+
+                if(rosterContainer) {
+                    Object.keys(teamsMap).sort().forEach(teamName => {
+                        let teamColor = teamName === myTeam ? "var(--neon-green)" : "white";
+                        let html = `<div class="roster-team"><h4 style="color:${teamColor}; margin-bottom:10px;">${teamName}</h4>`;
+                        teamsMap[teamName].forEach(name => html += `<div>🧑‍🚀 ${name}</div>`);
+                        html += `</div>`;
+                        rosterContainer.innerHTML += html;
+                    });
+                }
             });
 
-            // 3. Listen to My Team's Cargo Bay & Chat
             if (!isHost) {
+                // Listen for Turn Changes
+                onValue(ref(db, `cargoGame/teams/${myTeam}/turnIndex`), (snap) => {
+                    currentTurnIndex = snap.val() || 0;
+                    updateTurnUI();
+                });
+
                 // Cargo
                 onValue(ref(db, `cargoGame/teams/${myTeam}/crates`), (snap) => {
                     teamData.crates = snap.val() || {};
                     recalculateShip();
                 });
+                
                 // Chat
                 onValue(ref(db, `cargoGame/teams/${myTeam}/chat`), (snap) => {
                     const messages = snap.val() || {};
@@ -401,11 +454,10 @@
                         let isMe = msg.name === myName ? "mine" : "";
                         chatBox.innerHTML += `<div class="chat-msg ${isMe}"><b>${msg.name}:</b> ${msg.text}</div>`;
                     });
-                    chatBox.scrollTop = chatBox.scrollHeight; // Auto-scroll
+                    chatBox.scrollTop = chatBox.scrollHeight; 
                 });
             }
 
-            // 4. Listen to All Teams (Host Telemetry)
             if (isHost) {
                 onValue(ref(db, 'cargoGame/teams'), (snap) => {
                     const teams = snap.val() || {};
@@ -436,19 +488,69 @@
             }
         }
 
+        // --- TURN MANAGER LOGIC ---
+        function updateTurnUI() {
+            if (globalState.phase !== 'playing' || isHost) return;
+
+            const turnBanner = document.getElementById('player-turn-banner');
+            const interactionZone = document.getElementById('cargo-interaction-zone');
+            const manifest = document.getElementById('manifest-list');
+            const passBtn = document.getElementById('btn-pass-turn');
+
+            if (isSolo || myTeamMembers.length === 0) {
+                isMyTurn = true;
+                turnBanner.classList.add('hidden');
+                interactionZone.classList.remove('disabled-interaction');
+                manifest.classList.remove('disabled-interaction');
+                return;
+            }
+
+            turnBanner.classList.remove('hidden');
+            let activeMember = myTeamMembers[currentTurnIndex % myTeamMembers.length];
+            isMyTurn = (activeMember.uid === myUID);
+
+            if (isMyTurn) {
+                turnBanner.innerHTML = `🟢 <b>YOUR TURN:</b> Add cargo, remove cargo, or pass.`;
+                turnBanner.style.color = "var(--neon-green)";
+                turnBanner.style.borderColor = "var(--neon-green)";
+                interactionZone.classList.remove('disabled-interaction');
+                manifest.classList.remove('disabled-interaction');
+                passBtn.classList.remove('hidden');
+            } else {
+                turnBanner.innerHTML = `⏳ <b>WAITING:</b> It is ${activeMember.name}'s turn. Advise them in chat!`;
+                turnBanner.style.color = "var(--neon-gold)";
+                turnBanner.style.borderColor = "var(--neon-gold)";
+                interactionZone.classList.add('disabled-interaction');
+                manifest.classList.add('disabled-interaction');
+                passBtn.classList.add('hidden');
+            }
+        }
+
+        window.advanceTurn = function(isManualPass = false) {
+            if(!isMyTurn || isSolo) return;
+            set(ref(db, `cargoGame/teams/${myTeam}/turnIndex`), currentTurnIndex + 1);
+            if(isManualPass) {
+                push(ref(db, `cargoGame/teams/${myTeam}/chat`), { name: "System", text: `${myName} passed their turn.` });
+            }
+        };
+
         // --- CORE GAME MECHANICS (PLAYER) ---
         window.interactCrate = function(mass, emoji) {
-            if (globalState.phase !== 'playing') return;
-            push(ref(db, `cargoGame/teams/${myTeam}/crates`), { mass: mass, emoji: emoji });
+            if (globalState.phase !== 'playing' || !isMyTurn) return;
             
-            // Auto-send a chat message to help communication
+            push(ref(db, `cargoGame/teams/${myTeam}/crates`), { mass: mass, emoji: emoji });
             push(ref(db, `cargoGame/teams/${myTeam}/chat`), { name: "System", text: `${myName} added a ${mass}kg crate.` });
+            
+            window.advanceTurn(false);
         };
 
         window.unloadCrate = function(pushId, mass) {
-            if (globalState.phase !== 'playing') return;
+            if (globalState.phase !== 'playing' || !isMyTurn) return;
+            
             remove(ref(db, `cargoGame/teams/${myTeam}/crates/${pushId}`));
             push(ref(db, `cargoGame/teams/${myTeam}/chat`), { name: "System", text: `${myName} removed a ${mass}kg crate.` });
+            
+            window.advanceTurn(false);
         };
 
         function recalculateShip() {
@@ -466,7 +568,7 @@
             }
 
             // CRITICAL PHYSICS: Weight = Mass x Gravity
-            let currentWeight = Math.round(totalMass * globalState.gravity * 10) / 10; // rounding for floating point quirks
+            let currentWeight = Math.round(totalMass * globalState.gravity * 10) / 10; 
             
             document.getElementById('ship-mass').innerText = totalMass;
             
@@ -512,11 +614,10 @@
 
         // --- HOST CONTROLS ---
         window.startMission = function(planetName, gravityValue, targetN, emojiIcon) {
-            // Visual feedback on buttons
             document.querySelectorAll('.mission-btn').forEach(btn => btn.classList.remove('active'));
             event.currentTarget.classList.add('active');
 
-            // Clear old team data
+            // Clear old team data (removes crates and resets turn index to 0)
             remove(ref(db, 'cargoGame/teams'));
             
             // Push new state
