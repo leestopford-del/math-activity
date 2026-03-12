@@ -6,7 +6,7 @@
     <title>Behind the Wall: IGCSE English 5.2</title>
     <style>
         :root { --wood: #5d4037; --paper: #fdfdfd; --accent: #e67e22; --green: #2ecc71; }
-        body { font-family: 'Georgia', serif; background: #1a1a1a; color: white; text-align: center; margin: 0; }
+        body { font-family: 'Georgia', serif; div id="host-actions" class="hidden" style="margin-top: #1a1a1a; color: white; text-align: center; margin: 0; }
         .container { max-width: 800px; margin: 0 auto; padding: 20px; }
         
         /* THE WALL */
@@ -66,8 +66,9 @@
             <p style="margin-top: 0; color: #aaa; font-size: 0.9rem;">Host Controls</p>
             <button class="btn btn-main" id="reveal-btn" onclick="triggerReveal()">REVEAL ANSWER</button>
             <button class="btn btn-main hidden" id="next-btn" onclick="triggerNext()">NEXT ROUND</button>
+            <br>
+            <button class="btn" style="background: #c0392b; color: white; padding: 10px 20px; font-size: 0.8rem; margin-top: 15px;" onclick="resetServer()">⚠️ FORCE RESET SERVER</button>
         </div>
-    </div>
 
     <div id="results-screen" class="hidden" class="card">
         <h1>Class Performance Complete!</h1>
