@@ -387,8 +387,15 @@
         return {x: 0, y: 0};
     }
 
+    // MATH FIX: Completely isolated Round 4 logic to prevent Team 3/4 from flipping Cartesian coordinates!
     function localToGlobal(lx, ly, team, round) {
-        if (round === 4) return { x: lx + 10, y: ly + 10 };
+        // In Round 4, everyone uses the exact same absolute Cartesian plane. NO FLIPPING!
+        if (round === 4) {
+            // Converts Cartesian (-10 to 10) to Global HTML map (0 to 20)
+            return { x: lx + 10, y: ly + 10 }; 
+        }
+        
+        // Rounds 1-3 use relative Team perspective logic
         if(team === 1) return {x: lx, y: ly};
         if(team === 2) return {x: 10 - lx, y: ly};
         if(team === 3) return {x: 10 - lx, y: 10 - ly};
@@ -396,8 +403,15 @@
         return {x: lx, y: ly};
     }
 
+    // MATH FIX: Counter-part to the above fix
     function globalToLocal(gx, gy, team, round) {
-        if (round === 4) return { x: gx - 10, y: gy - 10 };
+        // In Round 4, everyone views the exact same absolute Cartesian plane. NO FLIPPING!
+        if (round === 4) {
+            // Converts Global HTML map (0 to 20) back to Cartesian (-10 to 10)
+            return { x: gx - 10, y: gy - 10 };
+        }
+
+        // Rounds 1-3 use relative Team perspective logic
         if(team === 1) return {x: gx, y: gy};
         if(team === 2) return {x: 10 - gx, y: gy};
         if(team === 3) return {x: 10 - gx, y: 10 - gy};
@@ -558,7 +572,6 @@
         Object.entries(globalTreasures).forEach(([tid, t]) => {
             let loc = globalToLocal(t.gx, t.gy, viewTeam, currentRound);
             
-            // MATH FIX: Shift mapping to prevent icons drawing in the corner during Round 4
             let drawX = currentRound === 4 ? (loc.x + 10) : loc.x;
             let drawY = currentRound === 4 ? (loc.y + 10) : loc.y;
             
@@ -605,7 +618,6 @@
         Object.entries(globalUsers).forEach(([uid, u]) => {
             let loc = globalToLocal(u.globalX, u.globalY, viewTeam, currentRound);
             
-            // MATH FIX
             let drawX = currentRound === 4 ? (loc.x + 10) : loc.x;
             let drawY = currentRound === 4 ? (loc.y + 10) : loc.y;
             
