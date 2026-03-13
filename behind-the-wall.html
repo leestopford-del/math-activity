@@ -33,13 +33,21 @@
         .hidden { display: none !important; }
         .player-tag { background: rgba(255,255,255,0.1); padding: 8px 15px; border-radius: 20px; margin: 5px; display: inline-block; }
         
-        /* VOTING GRID */
+        /* VOTING GRID & STATUS BADGES */
         .voting-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 20px; }
         .vote-column { background: #2c3e50; padding: 15px; border-radius: 10px; }
-        .vote-column h4 { margin: 0 0 10px 0; color: var(--blue); border-bottom: 1px solid #444; padding-bottom: 5px; }
-        .btn-vote { background: #444; color: white; width: 100%; margin: 4px 0; font-size: 0.9rem; padding: 10px; border-radius: 5px; text-align: left; transition: 0.2s; }
+        .vote-column h4 { margin: 0 0 10px 0; color: var(--blue); border-bottom: 1px solid #444; padding-bottom: 5px; display: flex; justify-content: space-between; align-items: center; }
+        
+        .vote-badge { font-size: 0.7rem; font-family: sans-serif; background: #444; color: #aaa; padding: 4px 8px; border-radius: 12px; font-weight: normal; letter-spacing: 0.5px; }
+        .vote-badge.partial { background: var(--accent); color: white; }
+        .vote-badge.complete { background: var(--green); color: white; }
+
+        .btn-vote { background: #444; color: white; width: 100%; margin: 4px 0; font-size: 0.9rem; padding: 10px; border-radius: 5px; text-align: left; transition: 0.2s; border: none; cursor: pointer; }
         .btn-vote:hover { background: #555; }
         .btn-vote.selected { background: var(--blue); border-left: 5px solid white; font-weight: bold; transform: scale(1.02); }
+
+        /* TIMER */
+        .timer-display { font-size: 1.5rem; font-family: monospace; font-weight: bold; color: var(--accent); margin: 5px 0; transition: color 0.3s; }
 
         /* EMERGENCY RESET */
         .emergency-btn { position: fixed; bottom: 10px; right: 10px; background: #c0392b; color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-size: 0.8rem; font-weight: bold; opacity: 0.5; transition: 0.3s; z-index: 1000; }
@@ -68,7 +76,8 @@
     </div>
 
     <div id="game-screen" class="hidden">
-        <h4 id="round-num" style="color: var(--accent); margin-bottom: 0;">Round 1 / 7</h4>
+        <h4 id="round-num" style="color: #aaa; margin-bottom: 0;">Round 1 / 7</h4>
+        <div class="timer-display" id="timer-display">⏱️ 60s</div>
         <h2 style="margin-top: 5px; font-size: 2rem; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">
             Who's behind door number <span id="door-num-display" style="color: var(--green);">1</span>?
         </h2>
@@ -89,10 +98,22 @@
         </div>
 
         <div id="options-area" class="voting-container">
-            <div class="vote-column" id="col-persona"><h4>🗣️ Persona</h4><div class="btns"></div></div>
-            <div class="vote-column" id="col-tone"><h4>🎭 Tone</h4><div class="btns"></div></div>
-            <div class="vote-column" id="col-audience"><h4>👥 Audience</h4><div class="btns"></div></div>
-            <div class="vote-column" id="col-purpose"><h4>🎯 Purpose</h4><div class="btns"></div></div>
+            <div class="vote-column" id="col-persona">
+                <h4>🗣️ Persona <span class="vote-badge" id="badge-col-persona">Waiting...</span></h4>
+                <div class="btns"></div>
+            </div>
+            <div class="vote-column" id="col-tone">
+                <h4>🎭 Tone <span class="vote-badge" id="badge-col-tone">Waiting...</span></h4>
+                <div class="btns"></div>
+            </div>
+            <div class="vote-column" id="col-audience">
+                <h4>👥 Audience <span class="vote-badge" id="badge-col-audience">Waiting...</span></h4>
+                <div class="btns"></div>
+            </div>
+            <div class="vote-column" id="col-purpose">
+                <h4>🎯 Purpose <span class="vote-badge" id="badge-col-purpose">Waiting...</span></h4>
+                <div class="btns"></div>
+            </div>
         </div>
 
         <div id="host-actions" class="hidden" style="margin-top: 30px; background: #333; padding: 15px; border-radius: 10px;">
@@ -135,13 +156,12 @@
         }
     };
 
+    // Shuffles an array randomly to ensure the correct answer isn't always at the top
     function shuffleOptions(array) {
-        let shuffled = [...array];
-        for (let i = shuffled.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-        }
-        return shuffled;
+        return array
+            .map(value => ({ value, sort: Math.random() }))
+            .sort((a, b) => a.sort - b.sort)
+            .map(({ value }) => value);
     }
 
     const personaBank = [
@@ -153,11 +173,11 @@
             pur: ["To deliver formal bad news", "To vent frustration", "To ask for donations", "To persuade someone to play"]
         },
         { 
-            q: "I cannot believe the absolute state of this! I paid for next-day delivery, and you sent me a box of shattered glass!", 
-            p: ["Outraged Customer", "Rival Business Owner", "Strict Inspector", "Stressed Delivery Driver"],
-            t: ["Furious & Accusatory", "Stern & Objective", "Panicked & Fearful", "Sarcastic & Witty"],
-            a: ["Customer Service Rep", "A Close Friend", "A Judge in Court", "Social Media Followers"],
-            pur: ["To demand a resolution/refund", "To write a formal business report", "To gossip about a bad day", "To threaten legal action"]
+            q: "To Whom It May Concern: I am writing to formally lodge a complaint regarding the unacceptable delay in processing my recent visa application, which has caused significant financial disruption.", 
+            p: ["Frustrated Applicant", "Travel Agent", "Government Official", "Customer Service Rep"],
+            t: ["Formal & Indignant", "Apologetic & Professional", "Casual & Annoyed", "Aggressive & Threatening"],
+            a: ["An Immigration Department", "A Hotel Manager", "A Close Colleague", "A Local Politician"],
+            pur: ["To officially record a grievance", "To ask for travel advice", "To issue a legal threat", "To apologize for a mistake"]
         },
         { 
             q: "Look, the data clearly shows a 15% increase in coastal erosion. If we do not act immediately, these homes will be gone.", 
@@ -174,11 +194,11 @@
             pur: ["To drive engagement/views", "To report breaking news", "To apologize for a mistake", "To educate on a serious topic"]
         },
         { 
-            q: "The defendant was observed exiting the premises at 22:00 hours, carrying a concealed item that matched the description.", 
-            p: ["Police Officer", "Gossip Columnist", "Nervous Eyewitness", "Private Detective"],
-            t: ["Objective & Clinical", "Dramatic & Suspenseful", "Hesitant & Unsure", "Aggressive & Accusatory"],
-            a: ["A Judge or Jury", "Readers of a Tabloid", "A Group of Friends", "The Suspect Themselves"],
-            pur: ["To provide an official factual record", "To entertain with a mystery", "To convince someone of a rumor", "To extract a confession"]
+            q: "October 14th: The isolation of this research station is finally getting to me. I spend hours staring at the ice shelves, documenting the fractures, but the silence is deafening.", 
+            p: ["Antarctic Researcher", "Stranded Astronaut", "Lost Tourist", "Lighthouse Keeper"],
+            t: ["Reflective & Melancholic", "Frantic & Panicked", "Scientific & Detached", "Upbeat & Optimistic"],
+            a: ["A Personal Journal / Diary", "A Rescue Team", "A Science Magazine Readership", "A Family Member"],
+            pur: ["To process personal emotions", "To publish a scientific finding", "To call for emergency help", "To entertain blog readers"]
         },
         { 
             q: "If you don't get those knees up and push through the pain, you're handing them the trophy on a silver platter! Let's GO!", 
@@ -195,17 +215,18 @@
             pur: ["To offer a snobbish critique", "To formally review a service", "To demand a refund", "To politely compliment the host"]
         },
         { 
-            q: "I reckon if we keep to the shadows by the old mill, the sheriff’s men won't spot us till we're halfway to the border.", 
-            p: ["Fugitive Outlaw", "Historical Tour Guide", "Lost Hiker", "Military Tactician"],
-            t: ["Cautious & Informal", "Heroic & Bold", "Panicked & Hysterical", "Formal & Strategic"],
-            a: ["A Partner in Crime", "A Group of Tourists", "A Commanding Officer", "A Captive Hostage"],
-            pur: ["To plan a secretive escape", "To narrate a historical event", "To beg for immediate help", "To issue a formal military order"]
+            q: "The defendant was observed exiting the premises at 22:00 hours, carrying a concealed item that matched the description.", 
+            p: ["Police Officer", "Gossip Columnist", "Nervous Eyewitness", "Private Detective"],
+            t: ["Objective & Clinical", "Dramatic & Suspenseful", "Hesitant & Unsure", "Aggressive & Accusatory"],
+            a: ["A Judge or Jury", "Readers of a Tabloid", "A Group of Friends", "The Suspect Themselves"],
+            pur: ["To provide an official factual record", "To entertain with a mystery", "To convince someone of a rumor", "To extract a confession"]
         }
     ];
 
     let myName = "";
     let isHost = false;
-    let currentRenderedRound = -1; // THE FIX: This tracks which round's buttons are currently on screen
+    let currentRenderedRound = -1;
+    let timerInterval = null;
 
     window.joinGame = () => {
         const input = document.getElementById('player-name');
@@ -222,8 +243,8 @@
 
     window.startGame = () => {
         const selected = personaBank.sort(() => 0.5 - Math.random()).slice(0, 7);
-        currentRenderedRound = -1; // Reset tracker when starting a new game
-        update(gameRef, { state: 'playing', round: 0, rounds: selected, isRevealed: false });
+        currentRenderedRound = -1;
+        update(gameRef, { state: 'playing', round: 0, rounds: selected, isRevealed: false, endTime: Date.now() + 60000, votes: null });
     };
 
     window.triggerReveal = () => update(gameRef, { isRevealed: true });
@@ -232,7 +253,7 @@
         onValue(gameRef, (snap) => {
             const data = snap.val();
             if (data.round >= 6) update(gameRef, { state: 'results' });
-            else update(gameRef, { round: data.round + 1, isRevealed: false });
+            else update(gameRef, { round: data.round + 1, isRevealed: false, endTime: Date.now() + 60000, votes: null });
         }, { onlyOnce: true });
     };
 
@@ -248,9 +269,13 @@
         isHost = (data.host === myName && myName !== "");
 
         const players = data.players || {};
+        const playerNames = Object.keys(players);
+        
+        const totalVoters = playerNames.filter(p => p !== data.host).length;
+
         const playerList = document.getElementById('player-list');
         playerList.innerHTML = "";
-        Object.keys(players).forEach(n => {
+        playerNames.forEach(n => {
             const span = document.createElement('span');
             span.className = 'player-tag';
             span.innerHTML = n + (data.host === n ? " 👑" : ""); 
@@ -280,6 +305,51 @@
             const wallElement = document.getElementById('the-wall');
             wallElement.className = `wall-container wall-theme-${data.round % 5}`;
 
+            const votes = data.votes || {};
+            const voteCounts = { 'col-persona': 0, 'col-tone': 0, 'col-audience': 0, 'col-purpose': 0 };
+            
+            Object.values(votes).forEach(playerVotes => {
+                Object.keys(playerVotes).forEach(category => {
+                    if (voteCounts[category] !== undefined) voteCounts[category]++;
+                });
+            });
+
+            ['col-persona', 'col-tone', 'col-audience', 'col-purpose'].forEach(col => {
+                const badge = document.getElementById(`badge-${col}`);
+                const count = voteCounts[col];
+                
+                badge.className = 'vote-badge'; 
+                if (count === 0 || totalVoters === 0) {
+                    badge.innerText = "Waiting...";
+                } else if (count < totalVoters) {
+                    badge.classList.add('partial');
+                    badge.innerText = "Voting...";
+                } else {
+                    badge.classList.add('complete');
+                    badge.innerText = "All Votes In!";
+                }
+            });
+
+            clearInterval(timerInterval);
+            const timerDisplay = document.getElementById('timer-display');
+            
+            if (!data.isRevealed && data.endTime) {
+                timerInterval = setInterval(() => {
+                    const timeLeft = Math.max(0, Math.floor((data.endTime - Date.now()) / 1000));
+                    if (timeLeft > 0) {
+                        timerDisplay.innerText = `⏱️ ${timeLeft}s`;
+                        timerDisplay.style.color = "var(--accent)";
+                    } else {
+                        timerDisplay.innerText = `⏱️ Time's Up!`;
+                        timerDisplay.style.color = "#c0392b";
+                        clearInterval(timerInterval);
+                    }
+                }, 1000);
+            } else {
+                timerDisplay.innerText = `⏱️ --`;
+                timerDisplay.style.color = "#aaa";
+            }
+
             if (isHost) document.getElementById('host-actions').classList.remove('hidden');
             else document.getElementById('host-actions').classList.add('hidden');
 
@@ -302,7 +372,6 @@
             } else {
                 document.getElementById('reveal-layer').classList.remove('show');
                 
-                // THE FIX IS HERE: Only re-render buttons if the round has actually changed
                 if (currentRenderedRound !== data.round) {
                     renderVoteColumn('col-persona', curRound.p);
                     renderVoteColumn('col-tone', curRound.t);
@@ -337,6 +406,10 @@
             b.onclick = () => {
                 container.querySelectorAll('.btn-vote').forEach(el => el.classList.remove('selected'));
                 b.classList.add('selected');
+                
+                if (!isHost) {
+                    update(ref(db, `behind_the_wall/votes/${myName}`), { [colId]: o });
+                }
             };
             container.appendChild(b);
         });
