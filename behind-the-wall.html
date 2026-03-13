@@ -5,26 +5,43 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Behind the Wall: IGCSE English 5.2</title>
     <style>
-        :root { --wood: #5d4037; --paper: #fdfdfd; --accent: #e67e22; --green: #2ecc71; }
+        :root { --paper: #fdfdfd; --accent: #e67e22; --green: #2ecc71; --blue: #3498db; }
         body { font-family: 'Georgia', serif; background: #1a1a1a; color: white; text-align: center; margin: 0; padding-bottom: 50px; }
-        .container { max-width: 800px; margin: 0 auto; padding: 20px; }
+        .container { max-width: 900px; margin: 0 auto; padding: 20px; }
         
-        /* THE WALL */
-        .wall-container { position: relative; height: 400px; background: var(--wood); border: 12px solid #3e2723; border-radius: 5px; overflow: hidden; margin: 20px 0; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
-        .quote-bubble { background: var(--paper); color: #222; padding: 30px; width: 80%; font-size: 1.4rem; line-height: 1.6; box-shadow: 5px 5px 0px rgba(0,0,0,0.1); border-radius: 3px; position: relative; z-index: 2; transition: transform 0.5s; font-style: italic; }
+        /* THE WALL & DYNAMIC THEMES */
+        .wall-container { position: relative; height: 350px; border: 12px solid; border-radius: 8px; overflow: hidden; margin: 15px 0 25px 0; display: flex; align-items: center; justify-content: center; box-shadow: inset 0 0 20px rgba(0,0,0,0.5), 0 10px 20px rgba(0,0,0,0.5); transition: background 0.8s ease, border-color 0.8s ease; }
+        
+        /* 5 Unique Door/Wall Themes */
+        .wall-theme-0 { background: #5d4037; border-color: #3e2723; } /* Oak Wood */
+        .wall-theme-1 { background: #c0392b; border-color: #7b241c; } /* Crimson Red */
+        .wall-theme-2 { background: #2980b9; border-color: #154360; } /* Ocean Blue */
+        .wall-theme-3 { background: #8e44ad; border-color: #512e5f; } /* Royal Amethyst */
+        .wall-theme-4 { background: #16a085; border-color: #0e6251; } /* Jade Green */
+
+        .quote-bubble { background: var(--paper); color: #222; padding: 30px; width: 85%; font-size: 1.3rem; line-height: 1.6; box-shadow: 5px 5px 0px rgba(0,0,0,0.1); border-radius: 3px; position: relative; z-index: 2; font-style: italic; }
+        
+        /* REVEAL LAYER */
         .reveal-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #2c3e50; display: flex; flex-direction: column; align-items: center; justify-content: center; transform: translateY(100%); transition: 0.6s cubic-bezier(0.17, 0.67, 0.83, 0.67); z-index: 5; }
         .reveal-overlay.show { transform: translateY(0); }
+        .tap-reveal-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; width: 90%; margin-top: 15px; font-size: 0.9rem; }
+        .tap-card { background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; border-top: 3px solid var(--accent); }
 
         /* LOBBY & UI */
         .card { background: #2c3e50; padding: 30px; border-radius: 15px; border-bottom: 5px solid var(--accent); }
-        .btn { padding: 15px 30px; border: none; border-radius: 50px; font-weight: bold; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; transition: 0.2s; margin: 10px; }
+        .btn { padding: 12px 25px; border: none; border-radius: 50px; font-weight: bold; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; transition: 0.2s; margin: 5px; }
         .btn-main { background: var(--accent); color: white; }
-        .btn-vote { background: #444; color: white; width: 45%; margin: 5px; font-size: 1rem; }
-        .btn-vote:hover { background: #555; }
-        .btn-vote.selected { background: #3498db; border: 2px solid white; }
         .hidden { display: none !important; }
         .player-tag { background: rgba(255,255,255,0.1); padding: 8px 15px; border-radius: 20px; margin: 5px; display: inline-block; }
         
+        /* VOTING GRID */
+        .voting-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 20px; }
+        .vote-column { background: #2c3e50; padding: 15px; border-radius: 10px; }
+        .vote-column h4 { margin: 0 0 10px 0; color: var(--blue); border-bottom: 1px solid #444; padding-bottom: 5px; }
+        .btn-vote { background: #444; color: white; width: 100%; margin: 4px 0; font-size: 0.9rem; padding: 10px; border-radius: 5px; text-align: left; transition: 0.2s; }
+        .btn-vote:hover { background: #555; }
+        .btn-vote.selected { background: var(--blue); border-left: 5px solid white; font-weight: bold; transform: scale(1.02); }
+
         /* EMERGENCY RESET BUTTON */
         .emergency-btn { position: fixed; bottom: 10px; right: 10px; background: #c0392b; color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-size: 0.8rem; font-weight: bold; opacity: 0.5; transition: 0.3s; z-index: 1000; }
         .emergency-btn:hover { opacity: 1; }
@@ -35,8 +52,7 @@
 <div class="container">
     <div id="lobby-screen" class="card">
         <h1>Who's Behind the Wall?</h1>
-        <p><i>IGCSE English 5.2: Adapting Voice, Tone & Register</i></p>
-        <p style="font-size: 0.9rem; color: #aaa;">(Note: The first person to enter their name automatically becomes the Host)</p>
+        <p><i>IGCSE English: Analyzing Persona, Tone, Audience & Purpose</i></p>
         <div id="join-area">
             <input type="text" id="player-name" placeholder="Your Name..." style="padding: 12px; border-radius: 5px; border: none; width: 200px; font-size: 1rem;">
             <button class="btn btn-main" onclick="joinGame()">Enter Lobby</button>
@@ -53,28 +69,44 @@
     </div>
 
     <div id="game-screen" class="hidden">
-        <h3 id="round-num">Round 1 / 7</h3>
-        <div class="wall-container">
+        <h4 id="round-num" style="color: var(--accent); margin-bottom: 0;">Round 1 / 7</h4>
+        
+        <h2 style="margin-top: 5px; font-size: 2rem; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">
+            Who's behind door number <span id="door-num-display" style="color: var(--green);">1</span>?
+        </h2>
+
+        <div id="the-wall" class="wall-container wall-theme-0">
             <div id="quote-box" class="quote-bubble">"Checking for a voice..."</div>
+            
             <div id="reveal-layer" class="reveal-overlay">
-                <h3 style="color: var(--green); margin: 5px 0;">PERSONA REVEALED:</h3>
-                <h2 id="correct-answer-text" style="margin: 0;">???</h2>
-                <p id="register-hint" style="padding: 0 40px; font-size: 1rem; color: #ecf0f1;"></p>
+                <h4 style="color: var(--green); margin: 5px 0; letter-spacing: 2px;">PERSONA REVEALED</h4>
+                <div id="rev-avatar"></div>
+                <h2 id="rev-persona" style="margin: 5px 0;">???</h2>
+                <div class="tap-reveal-grid">
+                    <div class="tap-card"><b>TONE</b><br><span id="rev-tone" style="color:#ecf0f1;"></span></div>
+                    <div class="tap-card"><b>AUDIENCE</b><br><span id="rev-audience" style="color:#ecf0f1;"></span></div>
+                    <div class="tap-card"><b>PURPOSE</b><br><span id="rev-purpose" style="color:#ecf0f1;"></span></div>
+                </div>
             </div>
         </div>
 
-        <div id="options-area" style="display: flex; flex-wrap: wrap; justify-content: center;"></div>
+        <div id="options-area" class="voting-container">
+            <div class="vote-column" id="col-persona"><h4>🗣️ Persona</h4><div class="btns"></div></div>
+            <div class="vote-column" id="col-tone"><h4>🎭 Tone</h4><div class="btns"></div></div>
+            <div class="vote-column" id="col-audience"><h4>👥 Audience</h4><div class="btns"></div></div>
+            <div class="vote-column" id="col-purpose"><h4>🎯 Purpose</h4><div class="btns"></div></div>
+        </div>
 
         <div id="host-actions" class="hidden" style="margin-top: 30px; background: #333; padding: 15px; border-radius: 10px;">
             <p style="margin-top: 0; color: #aaa; font-size: 0.9rem;">Host Controls</p>
-            <button class="btn btn-main" id="reveal-btn" onclick="triggerReveal()">REVEAL ANSWER</button>
+            <button class="btn btn-main" id="reveal-btn" onclick="triggerReveal()">REVEAL ANSWERS</button>
             <button class="btn btn-main hidden" id="next-btn" onclick="triggerNext()">NEXT ROUND</button>
         </div>
     </div>
 
     <div id="results-screen" class="hidden" class="card">
         <h1>Class Performance Complete!</h1>
-        <p>You have mastered Topic 5.2.</p>
+        <p>You have successfully analyzed Tone, Audience, and Purpose.</p>
         <button class="btn btn-main" onclick="location.reload()">Return to Menu</button>
     </div>
 </div>
@@ -85,7 +117,6 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
     import { getDatabase, ref, set, onValue, update, remove } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-database.js";
 
-    // Your exact Firebase configuration
     const firebaseConfig = {
         apiKey: "AIzaSyBpf5wi0wShnatqUhcmPhSOdnd0NdBL65A",
         authDomain: "symmetry-and-nets.firebaseapp.com",
@@ -100,46 +131,85 @@
     const db = getDatabase(app);
     const gameRef = ref(db, 'behind_the_wall');
 
-    // Make hard reset available globally
     window.hardReset = () => {
         if(confirm("Are you sure you want to completely reset the game for everyone?")) {
             remove(gameRef).then(() => location.reload());
         }
     };
 
-    // 25 PERSONAS FOR IGCSE ENGLISH
+    // --- SHUFFLE FUNCTION (Fisher-Yates) ---
+    function shuffleOptions(array) {
+        let shuffled = [...array];
+        for (let i = shuffled.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
+        return shuffled;
+    }
+
+    // --- UPGRADED T.A.P QUESTION BANK ---
     const personaBank = [
-        { q: "Attention students. It has come to my attention that some of you are treating the common room like a landfill. This ends now.", p: "Strict Headteacher", hint: "Register: Formal/Authoritative. Tone: Stern.", opts: ["Strict Headteacher", "Frustrated Student", "Local Mayor", "Angry Janitor"] },
-        { q: "Listen, I’m writing to complain because the laptop I bought from you is literally a brick. It won’t even turn on.", p: "Disgruntled Customer", hint: "Register: Semi-formal. Tone: Aggressive/Accusatory.", opts: ["Disgruntled Customer", "Tech Support Agent", "Bored Teenager", "Formal Lawyer"] },
-        { q: "OMG, I am literally crying right now. You will never guess who I just saw at the airport!", p: "Excited Teenager", hint: "Register: Informal. Tone: Hyperbolic.", opts: ["Excited Teenager", "Professional Reporter", "Stressed Pilot", "Formal Diplomat"] },
-        { q: "The defendant was observed exiting the premises at 22:00 hours, carrying a concealed item.", p: "Police Officer", hint: "Register: Formal/Technical. Tone: Objective.", opts: ["Police Officer", "Gossip Columnist", "Nervous Thief", "Academic Historian"] },
-        { q: "Welcome back to the morning show! Coming up next: how to bake the perfect soufflé in ten minutes.", p: "TV Presenter", hint: "Register: Enthusiastic. Tone: Engaging/Friendly.", opts: ["TV Presenter", "Bored Chef", "Professional Athlete", "Strict General"] },
-        { q: "I am writing to express my profound dissatisfaction with the lackluster service at your establishment.", p: "Formal Complainant", hint: "Register: High Formal. Tone: Sophisticated/Polite.", opts: ["Formal Complainant", "Angry Child", "Casual Reviewer", "Funny Comedian"] },
-        { q: "Look, the data clearly shows a 15% increase in global temperatures. We cannot ignore this any longer.", p: "Environmental Scientist", hint: "Register: Academic. Tone: Urgent/Informative.", opts: ["Environmental Scientist", "Politics Student", "Weather Reporter", "Nature Enthusiast"] },
-        { q: "Get those knees up! If you're not sweating, you're not trying! Let's go, let's go!", p: "Sports Coach", hint: "Register: Imperative. Tone: Motivational/Strict.", opts: ["Sports Coach", "Angry Parent", "Army Sergeant", "Friendly Librarian"] },
-        { q: "Once upon a time, in a kingdom far beyond the misty mountains, lived a very lonely giant.", p: "Storyteller", hint: "Register: Narrative. Tone: Whimsical.", opts: ["Storyteller", "History Teacher", "Bored Child", "Formal Author"] },
-        { q: "Your pizza is ready for pickup. That'll be twelve dollars and fifty cents, please.", p: "Fast Food Worker", hint: "Register: Transactional. Tone: Neutral/Polite.", opts: ["Fast Food Worker", "Professional Chef", "Hungry Customer", "Bank Teller"] },
-        { q: "May it please the court, my client is entirely innocent of these baseless accusations.", p: "Defence Lawyer", hint: "Register: Legal Formal. Tone: Persuasive.", opts: ["Defence Lawyer", "Angry Accuser", "Strict Judge", "Bored Clerk"] },
-        { q: "Ladies and Gentlemen, please fasten your seatbelts. We are experiencing a bit of turbulence.", p: "Flight Pilot", hint: "Register: Professional. Tone: Calm/Reassuring.", opts: ["Flight Pilot", "Scared Passenger", "Tour Guide", "Train Guard"] },
-        { q: "I'm so sorry I missed your birthday, man! I totally lost track of the days. Let's hang out soon?", p: "Casual Friend", hint: "Register: Informal. Tone: Apologetic.", opts: ["Casual Friend", "Strict Boss", "Formal Secretary", "Distant Relative"] },
-        { q: "The results of your blood test are back. I'd like you to come in for a chat this afternoon.", p: "Medical Doctor", hint: "Register: Clinical. Tone: Serious/Professional.", opts: ["Medical Doctor", "Worried Parent", "Friendly Nurse", "Health Blogger"] },
-        { q: "I reckon if we head south by sunset, we'll hit the border before the sheriff catches us.", p: "Outlaw", hint: "Register: Dialect/Informal. Tone: Determined.", opts: ["Outlaw", "History Professor", "Police Officer", "Friendly Guide"] },
-        { q: "Would you mind awfully keeping the noise down? Some of us are trying to enjoy a quiet cup of tea.", p: "Polite Pensioner", hint: "Register: Formal/Polite. Tone: Gentle but Annoyed.", opts: ["Polite Pensioner", "Strict Teacher", "Angry Musician", "Busy Waiter"] },
-        { q: "Yo, pass the controller! You've been playing for like, three hours straight!", p: "Impatient Sibling", hint: "Register: Informal/Slang. Tone: Annoyed/Urgent.", opts: ["Impatient Sibling", "Professional Gamer", "Strict Parent", "Store Clerk"] },
-        { q: "The structural integrity of this bridge is compromised; we must evacuate the sector immediately.", p: "Lead Engineer", hint: "Register: Technical/Formal. Tone: Urgent/Objective.", opts: ["Lead Engineer", "Scared Tourist", "Local Politician", "Art Critic"] },
-        { q: "Oh, darling, that dress is simply exquisite! Where on earth did you find such a treasure?", p: "Wealthy Socialite", hint: "Register: Expressive/Formal. Tone: Enthusiastic.", opts: ["Wealthy Socialite", "Bored Teenager", "Strict Judge", "Tired Retail Worker"] },
-        { q: "If you do not hand over the blueprints by midnight, your little operation will be shut down permanently.", p: "Menacing Villain", hint: "Register: Formal. Tone: Threatening/Cold.", opts: ["Menacing Villain", "Angry Teacher", "Frustrated Colleague", "Lost Tourist"] },
-        { q: "Step right up, folks! See the amazing, the spectacular, the one-and-only juggling monkey!", p: "Carnival Barker", hint: "Register: Persuasive/Loud. Tone: Energetic.", opts: ["Carnival Barker", "News Anchor", "Quiet Librarian", "Strict Coach"] },
-        { q: "We are gathered here today to celebrate the union of two wonderful individuals.", p: "Wedding Celebrant", hint: "Register: Formal/Ceremonial. Tone: Warm/Reverent.", opts: ["Wedding Celebrant", "Corporate Boss", "Sports Commentator", "Angry Neighbor"] },
-        { q: "I'm afraid your luggage has been routed to Tokyo. We apologize for the inconvenience.", p: "Airline Agent", hint: "Register: Professional. Tone: Apologetic/Neutral.", opts: ["Airline Agent", "Excited Traveler", "Angry Pilot", "Tour Guide"] },
-        { q: "Listen up, recruits! You are the worst batch of trainees I have ever laid eyes on!", p: "Drill Sergeant", hint: "Register: Imperative. Tone: Harsh/Aggressive.", opts: ["Drill Sergeant", "Friendly Teacher", "Polite Shopkeeper", "Tired Doctor"] },
-        { q: "Like and subscribe, guys! We're doing a massive giveaway at the end of this video!", p: "YouTube Vlogger", hint: "Register: Informal/Persuasive. Tone: Energetic/Casual.", opts: ["YouTube Vlogger", "News Reporter", "Formal Professor", "Quiet Artist"] }
+        { 
+            q: "It is with deep regret that I must inform you of the immediate suspension of the planned sports facility, pending further budgetary review.", 
+            p: ["School Headteacher", "Frustrated Student Prefect", "Angry Local Mayor", "Sports Coach"],
+            t: ["Formal & Disappointed", "Aggressive & Hostile", "Casual & Apologetic", "Sarcastic & Bitter"],
+            a: ["Parents and Staff", "Close Friends", "A Rival Sports Team", "The Custodial Staff"],
+            pur: ["To deliver formal bad news", "To vent frustration", "To ask for donations", "To persuade someone to play"]
+        },
+        { 
+            q: "I cannot believe the absolute state of this! I paid for next-day delivery, and you sent me a box of shattered glass!", 
+            p: ["Outraged Customer", "Rival Business Owner", "Strict Inspector", "Stressed Delivery Driver"],
+            t: ["Furious & Accusatory", "Stern & Objective", "Panicked & Fearful", "Sarcastic & Witty"],
+            a: ["Customer Service Rep", "A Close Friend", "A Judge in Court", "Social Media Followers"],
+            pur: ["To demand a resolution/refund", "To write a formal business report", "To gossip about a bad day", "To threaten legal action"]
+        },
+        { 
+            q: "Look, the data clearly shows a 15% increase in coastal erosion. If we do not act immediately, these homes will be gone.", 
+            p: ["Environmental Scientist", "Passionate Climate Activist", "Panicked Homeowner", "Weather Presenter"],
+            t: ["Urgent & Objective", "Angry & Emotional", "Calm & Reassuring", "Dramatic & Exaggerated"],
+            a: ["A Panel of Politicians", "A Rally of Protesters", "Primary School Students", "Tourists on a Beach"],
+            pur: ["To persuade using evidence", "To cause panic and fear", "To advertise a new seawall", "To entertain with a story"]
+        },
+        { 
+            q: "Hey guys! Welcome back to the channel. Before we dive into today's insane challenge, smash that subscribe button!", 
+            p: ["Energetic Content Creator", "Professional News Anchor", "Excited Tourist", "Casual Teenager"],
+            t: ["Hyperactive & Persuasive", "Informative & Serious", "Desperate & Pleading", "Sarcastic & Edgy"],
+            a: ["A Young Online Audience", "Corporate Sponsors", "Close Friends", "Older Family Members"],
+            pur: ["To drive engagement/views", "To report breaking news", "To apologize for a mistake", "To educate on a serious topic"]
+        },
+        { 
+            q: "The defendant was observed exiting the premises at 22:00 hours, carrying a concealed item that matched the description.", 
+            p: ["Police Officer", "Gossip Columnist", "Nervous Eyewitness", "Private Detective"],
+            t: ["Objective & Clinical", "Dramatic & Suspenseful", "Hesitant & Unsure", "Aggressive & Accusatory"],
+            a: ["A Judge or Jury", "Readers of a Tabloid", "A Group of Friends", "The Suspect Themselves"],
+            pur: ["To provide an official factual record", "To entertain with a mystery", "To convince someone of a rumor", "To extract a confession"]
+        },
+        { 
+            q: "If you don't get those knees up and push through the pain, you're handing them the trophy on a silver platter! Let's GO!", 
+            p: ["Intense Sports Coach", "Angry Parent", "Strict Military General", "Fitness Influencer"],
+            t: ["Motivational & Demanding", "Cruel & Demeaning", "Encouraging & Gentle", "Frustrated & Defeated"],
+            a: ["A Team of Athletes", "A Single Disobedient Child", "A Gym Full of Customers", "Rival Team Members"],
+            pur: ["To inspire maximum physical effort", "To publicly humiliate", "To explain a complex strategy", "To sell a fitness program"]
+        },
+        { 
+            q: "Darling, the canapés were simply divine, but the floral arrangements were tragically uninspired. One simply must have orchids.", 
+            p: ["Wealthy Socialite", "Professional Event Planner", "Strict Restaurant Critic", "Bored Teenager"],
+            t: ["Pretentious & Expressive", "Objective & Analytical", "Furious & Demanding", "Polite & Grateful"],
+            a: ["A Peer in High Society", "A Catering Manager", "A Newspaper Readership", "A Close Family Member"],
+            pur: ["To offer a snobbish critique", "To formally review a service", "To demand a refund", "To politely compliment the host"]
+        },
+        { 
+            q: "I reckon if we keep to the shadows by the old mill, the sheriff’s men won't spot us till we're halfway to the border.", 
+            p: ["Fugitive Outlaw", "Historical Tour Guide", "Lost Hiker", "Military Tactician"],
+            t: ["Cautious & Informal", "Heroic & Bold", "Panicked & Hysterical", "Formal & Strategic"],
+            a: ["A Partner in Crime", "A Group of Tourists", "A Commanding Officer", "A Captive Hostage"],
+            pur: ["To plan a secretive escape", "To narrate a historical event", "To beg for immediate help", "To issue a formal military order"]
+        }
     ];
 
     let myName = "";
     let isHost = false;
 
-    // --- GAME FUNCTIONS ---
     window.joinGame = () => {
         const input = document.getElementById('player-name');
         if (!input.value) return alert("Enter your name!");
@@ -147,24 +217,15 @@
         
         onValue(gameRef, (snap) => {
             const data = snap.val() || {};
-            if (!data.host) {
-                update(gameRef, { host: myName }); 
-            }
+            if (!data.host) update(gameRef, { host: myName }); 
             set(ref(db, 'behind_the_wall/players/' + myName), { name: myName });
-            
-            // Now that we have a name, trigger a manual UI update based on current state
             updateUI(snap.val() || {});
         }, { onlyOnce: true });
     };
 
     window.startGame = () => {
         const selected = personaBank.sort(() => 0.5 - Math.random()).slice(0, 7);
-        update(gameRef, {
-            state: 'playing',
-            round: 0,
-            rounds: selected,
-            isRevealed: false
-        });
+        update(gameRef, { state: 'playing', round: 0, rounds: selected, isRevealed: false });
     };
 
     window.triggerReveal = () => update(gameRef, { isRevealed: true });
@@ -172,37 +233,26 @@
     window.triggerNext = () => {
         onValue(gameRef, (snap) => {
             const data = snap.val();
-            if (data.round >= 6) {
-                update(gameRef, { state: 'results' });
-            } else {
-                update(gameRef, { round: data.round + 1, isRevealed: false });
-            }
+            if (data.round >= 6) update(gameRef, { state: 'results' });
+            else update(gameRef, { round: data.round + 1, isRevealed: false });
         }, { onlyOnce: true });
     };
 
-    // --- REALTIME SYNC ---
     onValue(gameRef, (snapshot) => {
         const data = snapshot.val();
         if (!data) return;
-
-        // THE FIX: Do absolutely nothing if the player hasn't entered their name yet!
-        // This forces them to stay in the lobby to log in, even if a game is running.
         if (myName === "") return; 
-
         updateUI(data);
     });
 
-    // --- UI RENDER LOGIC ---
     function updateUI(data) {
         if (!data) return;
-        
         isHost = (data.host === myName && myName !== "");
 
         // Lobby Sync
         const players = data.players || {};
         const playerList = document.getElementById('player-list');
         playerList.innerHTML = "";
-        
         Object.keys(players).forEach(n => {
             const span = document.createElement('span');
             span.className = 'player-tag';
@@ -210,45 +260,64 @@
             playerList.appendChild(span);
         });
 
-        // Hide Join area, show wait area once logged in
         document.getElementById('join-area').classList.add('hidden');
         document.getElementById('wait-area').classList.remove('hidden');
 
-        // Show Host Start panel in lobby
         if (isHost && (!data.state || data.state === 'lobby')) {
             document.getElementById('host-panel').classList.remove('hidden');
         } else {
             document.getElementById('host-panel').classList.add('hidden');
         }
 
-        // Game Flow Sync
+        // Game Flow
         if (data.state === 'playing') {
             document.getElementById('lobby-screen').classList.add('hidden');
             document.getElementById('game-screen').classList.remove('hidden');
             
             const curRound = data.rounds[data.round];
-            document.getElementById('round-num').innerText = `Round ${data.round + 1} / 7`;
+            const roundNumber = data.round + 1;
+            
+            // UPDATE TEXT HEADERS
+            document.getElementById('round-num').innerText = `Round ${roundNumber} / 7`;
+            document.getElementById('door-num-display').innerText = roundNumber;
             document.getElementById('quote-box').innerText = `"${curRound.q}"`;
 
-            if (isHost) {
-                document.getElementById('host-actions').classList.remove('hidden');
-            } else {
-                document.getElementById('host-actions').classList.add('hidden');
-            }
+            // UPDATE WALL THEME
+            const wallElement = document.getElementById('the-wall');
+            wallElement.className = `wall-container wall-theme-${data.round % 5}`;
+
+            if (isHost) document.getElementById('host-actions').classList.remove('hidden');
+            else document.getElementById('host-actions').classList.add('hidden');
 
             if (data.isRevealed) {
+                // SHOW REVEAL SCREEN
                 document.getElementById('reveal-layer').classList.add('show');
-                const avatarUrl = `https://api.dicebear.com/7.x/avataaars/svg?seed=${curRound.p.replace(/\s+/g, '')}&backgroundColor=b6e3f4`;
-                document.getElementById('correct-answer-text').innerHTML = `<img src="${avatarUrl}" style="width: 140px; height: 140px; border-radius: 50%; margin-bottom: 10px; border: 4px solid white; box-shadow: 0 4px 8px rgba(0,0,0,0.3);"><br>${curRound.p}`;
-                document.getElementById('register-hint').innerText = curRound.hint;
+                
+                // Get the CORRECT answers (always index 0 in the database array)
+                const correctPersona = curRound.p[0];
+                const avatarUrl = `https://api.dicebear.com/7.x/avataaars/svg?seed=${correctPersona.replace(/\s+/g, '')}&backgroundColor=b6e3f4`;
+                
+                document.getElementById('rev-avatar').innerHTML = `<img src="${avatarUrl}" style="width: 120px; height: 120px; border-radius: 50%; border: 4px solid white; box-shadow: 0 4px 8px rgba(0,0,0,0.3);">`;
+                document.getElementById('rev-persona').innerText = correctPersona;
+                document.getElementById('rev-tone').innerText = curRound.t[0];
+                document.getElementById('rev-audience').innerText = curRound.a[0];
+                document.getElementById('rev-purpose').innerText = curRound.pur[0];
                 
                 if (isHost) {
                     document.getElementById('reveal-btn').classList.add('hidden');
                     document.getElementById('next-btn').classList.remove('hidden');
                 }
             } else {
+                // HIDE REVEAL, RENDER VOTING BOOTHS
                 document.getElementById('reveal-layer').classList.remove('show');
-                renderOptions(curRound.opts);
+                
+                // Only render buttons if we haven't already rendered them for this round
+                if(!document.getElementById('col-persona').querySelector('.btn-vote')) {
+                    renderVoteColumn('col-persona', curRound.p);
+                    renderVoteColumn('col-tone', curRound.t);
+                    renderVoteColumn('col-audience', curRound.a);
+                    renderVoteColumn('col-purpose', curRound.pur);
+                }
                 
                 if (isHost) {
                     document.getElementById('reveal-btn').classList.remove('hidden');
@@ -263,18 +332,23 @@
         }
     }
 
-    function renderOptions(opts) {
-        const area = document.getElementById('options-area');
-        area.innerHTML = "";
-        opts.forEach(o => {
+    function renderVoteColumn(colId, optionsArray) {
+        const container = document.getElementById(colId).querySelector('.btns');
+        container.innerHTML = "";
+        
+        // SHUFFLE the options before rendering so index 0 isn't always at the top!
+        const shuffled = shuffleOptions(optionsArray);
+
+        shuffled.forEach(o => {
             const b = document.createElement('button');
             b.className = 'btn btn-vote';
             b.innerText = o;
             b.onclick = () => {
-                document.querySelectorAll('.btn-vote').forEach(el => el.classList.remove('selected'));
+                // Remove selection from other buttons in THIS specific column
+                container.querySelectorAll('.btn-vote').forEach(el => el.classList.remove('selected'));
                 b.classList.add('selected');
             };
-            area.appendChild(b);
+            container.appendChild(b);
         });
     }
 </script>
