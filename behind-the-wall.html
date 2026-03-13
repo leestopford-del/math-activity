@@ -214,4 +214,271 @@
             p: ["Wealthy Socialite", "Professional Event Planner", "Strict Restaurant Critic", "Bored Teenager"],
             t: ["Pretentious & Expressive", "Objective & Analytical", "Furious & Demanding", "Polite & Grateful"],
             a: ["A Peer in High Society", "A Catering Manager", "A Newspaper Readership", "A Close Family Member"],
-            pur: ["To offer a
+            pur: ["To offer a snobbish critique", "To formally review a service", "To demand a refund", "To politely compliment the host"]
+        },
+        { 
+            q: "The defendant was observed exiting the premises at 22:00 hours, carrying a concealed item that matched the description.", 
+            p: ["Police Officer", "Gossip Columnist", "Nervous Eyewitness", "Private Detective"],
+            t: ["Objective & Clinical", "Dramatic & Suspenseful", "Hesitant & Unsure", "Aggressive & Accusatory"],
+            a: ["A Judge or Jury", "Readers of a Tabloid", "A Group of Friends", "The Suspect Themselves"],
+            pur: ["To provide an official factual record", "To entertain with a mystery", "To convince someone of a rumor", "To extract a confession"]
+        }
+    ];
+
+    let myName = "";
+    let isHost = false;
+    let isSolo = false;
+    let soloData = null;
+    let currentRenderedRound = -1;
+    let timerInterval = null;
+
+    // --- SOLO MODE LOGIC ---
+    window.startSolo = () => {
+        const input = document.getElementById('player-name');
+        myName = input.value || "Solo Player";
+        isSolo = true;
+        isHost = true; // In solo, you are the host of your local game
+        
+        const selected = personaBank.sort(() => 0.5 - Math.random()).slice(0, 7);
+        
+        // Create a local game state that mimics Firebase
+        soloData = {
+            host: myName,
+            players: { [myName]: { name: myName } },
+            state: 'playing',
+            round: 0,
+            rounds: selected,
+            isRevealed: false,
+            endTime: Date.now() + 60000,
+            votes: {}
+        };
+        
+        updateUI(soloData);
+    };
+
+    // --- MULTIPLAYER LOGIC ---
+    window.joinGame = () => {
+        const input = document.getElementById('player-name');
+        if (!input.value) return alert("Enter your name!");
+        myName = input.value;
+        isSolo = false;
+        
+        // We write to Firebase here, but we let the global onValue listener trigger updateUI 
+        // to prevent the UI drawing before the DB has registered your name.
+        onValue(gameRef, (snap) => {
+            const data = snap.val() || {};
+            if (!data.host) update(gameRef, { host: myName }); 
+            set(ref(db, 'behind_the_wall/players/' + myName), { name: myName });
+        }, { onlyOnce: true });
+    };
+
+    window.startGame = () => {
+        const selected = personaBank.sort(() => 0.5 - Math.random()).slice(0, 7);
+        currentRenderedRound = -1;
+        update(gameRef, { state: 'playing', round: 0, rounds: selected, isRevealed: false, endTime: Date.now() + 60000, votes: null });
+    };
+
+    window.triggerReveal = () => {
+        if (isSolo) {
+            soloData.isRevealed = true;
+            updateUI(soloData);
+        } else {
+            update(gameRef, { isRevealed: true });
+        }
+    };
+    
+    window.triggerNext = () => {
+        if (isSolo) {
+            if (soloData.round >= 6) {
+                soloData.state = 'results';
+            } else {
+                soloData.round++;
+                soloData.isRevealed = false;
+                soloData.endTime = Date.now() + 60000;
+                soloData.votes = {};
+                currentRenderedRound = -1;
+            }
+            updateUI(soloData);
+        } else {
+            onValue(gameRef, (snap) => {
+                const data = snap.val();
+                if (data.round >= 6) update(gameRef, { state: 'results' });
+                else update(gameRef, { round: data.round + 1, isRevealed: false, endTime: Date.now() + 60000, votes: null });
+            }, { onlyOnce: true });
+        }
+    };
+
+    // Global listener only triggers if we are NOT in solo mode
+    onValue(gameRef, (snapshot) => {
+        if (isSolo) return; 
+        const data = snapshot.val();
+        if (!data || myName === "") return; 
+        updateUI(data);
+    });
+
+    function updateUI(data) {
+        if (!data) return;
+        
+        if (!isSolo) {
+            isHost = (data.host === myName && myName !== "");
+        }
+
+        const players = data.players || {};
+        const playerNames = Object.keys(players);
+        
+        // In solo, the single player is the only voter. In multiplayer, host doesn't vote.
+        const totalVoters = isSolo ? 1 : playerNames.filter(p => p !== data.host).length;
+
+        const playerList = document.getElementById('player-list');
+        playerList.innerHTML = "";
+        playerNames.forEach(n => {
+            const span = document.createElement('span');
+            span.className = 'player-tag';
+            span.innerHTML = n + (data.host === n ? " 👑" : ""); 
+            playerList.appendChild(span);
+        });
+
+        document.getElementById('join-area').classList.add('hidden');
+        
+        // Skip the waiting area entirely if solo
+        if (!isSolo && (!data.state || data.state === 'lobby')) {
+            document.getElementById('wait-area').classList.remove('hidden');
+            if (isHost) document.getElementById('host-panel').classList.remove('hidden');
+            else document.getElementById('host-panel').classList.add('hidden');
+        } else {
+            document.getElementById('wait-area').classList.add('hidden');
+        }
+
+        if (data.state === 'playing') {
+            document.getElementById('lobby-screen').classList.add('hidden');
+            document.getElementById('game-screen').classList.remove('hidden');
+            
+            const curRound = data.rounds[data.round];
+            const roundNumber = data.round + 1;
+            
+            document.getElementById('round-num').innerText = `Round ${roundNumber} / 7`;
+            document.getElementById('door-num-display').innerText = roundNumber;
+            document.getElementById('quote-box').innerText = `"${curRound.q}"`;
+
+            const wallElement = document.getElementById('the-wall');
+            wallElement.className = `wall-container wall-theme-${data.round % 5}`;
+
+            const votes = data.votes || {};
+            const voteCounts = { 'col-persona': 0, 'col-tone': 0, 'col-audience': 0, 'col-purpose': 0 };
+            
+            Object.values(votes).forEach(playerVotes => {
+                Object.keys(playerVotes).forEach(category => {
+                    if (voteCounts[category] !== undefined) voteCounts[category]++;
+                });
+            });
+
+            ['col-persona', 'col-tone', 'col-audience', 'col-purpose'].forEach(col => {
+                const badge = document.getElementById(`badge-${col}`);
+                const count = voteCounts[col];
+                
+                badge.className = 'vote-badge'; 
+                if (count === 0 || totalVoters === 0) {
+                    badge.innerText = "Waiting...";
+                } else if (count < totalVoters) {
+                    badge.classList.add('partial');
+                    badge.innerText = "Voting...";
+                } else {
+                    badge.classList.add('complete');
+                    badge.innerText = "All Votes In!";
+                }
+            });
+
+            clearInterval(timerInterval);
+            const timerDisplay = document.getElementById('timer-display');
+            
+            if (!data.isRevealed && data.endTime) {
+                timerInterval = setInterval(() => {
+                    const timeLeft = Math.max(0, Math.floor((data.endTime - Date.now()) / 1000));
+                    if (timeLeft > 0) {
+                        timerDisplay.innerText = `⏱️ ${timeLeft}s`;
+                        timerDisplay.style.color = "var(--accent)";
+                    } else {
+                        timerDisplay.innerText = `⏱️ Time's Up!`;
+                        timerDisplay.style.color = "#c0392b";
+                        clearInterval(timerInterval);
+                    }
+                }, 1000);
+            } else {
+                timerDisplay.innerText = `⏱️ --`;
+                timerDisplay.style.color = "#aaa";
+            }
+
+            if (isHost) document.getElementById('host-actions').classList.remove('hidden');
+            else document.getElementById('host-actions').classList.add('hidden');
+
+            if (data.isRevealed) {
+                document.getElementById('reveal-layer').classList.add('show');
+                
+                const correctPersona = curRound.p[0];
+                const avatarUrl = `https://api.dicebear.com/7.x/avataaars/svg?seed=${correctPersona.replace(/\s+/g, '')}&backgroundColor=b6e3f4&facialHairProbability=0`;
+                
+                document.getElementById('rev-avatar').innerHTML = `<img src="${avatarUrl}" style="width: 120px; height: 120px; border-radius: 50%; border: 4px solid white; box-shadow: 0 4px 8px rgba(0,0,0,0.3);">`;
+                document.getElementById('rev-persona').innerText = correctPersona;
+                document.getElementById('rev-tone').innerText = curRound.t[0];
+                document.getElementById('rev-audience').innerText = curRound.a[0];
+                document.getElementById('rev-purpose').innerText = curRound.pur[0];
+                
+                if (isHost) {
+                    document.getElementById('reveal-btn').classList.add('hidden');
+                    document.getElementById('next-btn').classList.remove('hidden');
+                }
+            } else {
+                document.getElementById('reveal-layer').classList.remove('show');
+                
+                if (currentRenderedRound !== data.round) {
+                    renderVoteColumn('col-persona', curRound.p);
+                    renderVoteColumn('col-tone', curRound.t);
+                    renderVoteColumn('col-audience', curRound.a);
+                    renderVoteColumn('col-purpose', curRound.pur);
+                    currentRenderedRound = data.round;
+                }
+                
+                if (isHost) {
+                    document.getElementById('reveal-btn').classList.remove('hidden');
+                    document.getElementById('next-btn').classList.add('hidden');
+                }
+            }
+        }
+
+        if (data.state === 'results') {
+            document.getElementById('game-screen').classList.add('hidden');
+            document.getElementById('results-screen').classList.remove('hidden');
+        }
+    }
+
+    function renderVoteColumn(colId, optionsArray) {
+        const container = document.getElementById(colId).querySelector('.btns');
+        container.innerHTML = "";
+        
+        const shuffled = shuffleOptions(optionsArray);
+
+        shuffled.forEach(o => {
+            const b = document.createElement('button');
+            b.className = 'btn btn-vote';
+            b.innerText = o;
+            b.onclick = () => {
+                container.querySelectorAll('.btn-vote').forEach(el => el.classList.remove('selected'));
+                b.classList.add('selected');
+                
+                // Allow voting if playing solo, OR if playing multiplayer and not the host
+                if (isSolo) {
+                    if (!soloData.votes) soloData.votes = {};
+                    if (!soloData.votes[myName]) soloData.votes[myName] = {};
+                    soloData.votes[myName][colId] = o;
+                    updateUI(soloData);
+                } else if (!isHost) {
+                    update(ref(db, `behind_the_wall/votes/${myName}`), { [colId]: o });
+                }
+            };
+            container.appendChild(b);
+        });
+    }
+</script>
+
+</body>
+</html>
