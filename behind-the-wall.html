@@ -287,7 +287,7 @@
                 document.getElementById('reveal-layer').classList.add('show');
                 
                 const correctPersona = curRound.p[0];
-                const avatarUrl = `https://api.dicebear.com/7.x/avataaars/svg?seed=${correctPersona.replace(/\s+/g, '')}&backgroundColor=b6e3f4`;
+                const avatarUrl = `https://api.dicebear.com/7.x/avataaars/svg?seed=${correctPersona.replace(/\s+/g, '')}&backgroundColor=b6e3f4&facialHairProbability=0`;
                 
                 document.getElementById('rev-avatar').innerHTML = `<img src="${avatarUrl}" style="width: 120px; height: 120px; border-radius: 50%; border: 4px solid white; box-shadow: 0 4px 8px rgba(0,0,0,0.3);">`;
                 document.getElementById('rev-persona').innerText = correctPersona;
