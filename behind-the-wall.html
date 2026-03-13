@@ -12,7 +12,6 @@
         /* THE WALL & DYNAMIC THEMES */
         .wall-container { position: relative; height: 350px; border: 12px solid; border-radius: 8px; overflow: hidden; margin: 15px 0 25px 0; display: flex; align-items: center; justify-content: center; box-shadow: inset 0 0 20px rgba(0,0,0,0.5), 0 10px 20px rgba(0,0,0,0.5); transition: background 0.8s ease, border-color 0.8s ease; }
         
-        /* 5 Unique Door/Wall Themes */
         .wall-theme-0 { background: #5d4037; border-color: #3e2723; } /* Oak Wood */
         .wall-theme-1 { background: #c0392b; border-color: #7b241c; } /* Crimson Red */
         .wall-theme-2 { background: #2980b9; border-color: #154360; } /* Ocean Blue */
@@ -42,7 +41,7 @@
         .btn-vote:hover { background: #555; }
         .btn-vote.selected { background: var(--blue); border-left: 5px solid white; font-weight: bold; transform: scale(1.02); }
 
-        /* EMERGENCY RESET BUTTON */
+        /* EMERGENCY RESET */
         .emergency-btn { position: fixed; bottom: 10px; right: 10px; background: #c0392b; color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-size: 0.8rem; font-weight: bold; opacity: 0.5; transition: 0.3s; z-index: 1000; }
         .emergency-btn:hover { opacity: 1; }
     </style>
@@ -70,7 +69,6 @@
 
     <div id="game-screen" class="hidden">
         <h4 id="round-num" style="color: var(--accent); margin-bottom: 0;">Round 1 / 7</h4>
-        
         <h2 style="margin-top: 5px; font-size: 2rem; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">
             Who's behind door number <span id="door-num-display" style="color: var(--green);">1</span>?
         </h2>
@@ -137,7 +135,6 @@
         }
     };
 
-    // --- SHUFFLE FUNCTION (Fisher-Yates) ---
     function shuffleOptions(array) {
         let shuffled = [...array];
         for (let i = shuffled.length - 1; i > 0; i--) {
@@ -147,7 +144,6 @@
         return shuffled;
     }
 
-    // --- UPGRADED T.A.P QUESTION BANK ---
     const personaBank = [
         { 
             q: "It is with deep regret that I must inform you of the immediate suspension of the planned sports facility, pending further budgetary review.", 
@@ -209,6 +205,7 @@
 
     let myName = "";
     let isHost = false;
+    let currentRenderedRound = -1; // THE FIX: This tracks which round's buttons are currently on screen
 
     window.joinGame = () => {
         const input = document.getElementById('player-name');
@@ -225,6 +222,7 @@
 
     window.startGame = () => {
         const selected = personaBank.sort(() => 0.5 - Math.random()).slice(0, 7);
+        currentRenderedRound = -1; // Reset tracker when starting a new game
         update(gameRef, { state: 'playing', round: 0, rounds: selected, isRevealed: false });
     };
 
@@ -249,7 +247,6 @@
         if (!data) return;
         isHost = (data.host === myName && myName !== "");
 
-        // Lobby Sync
         const players = data.players || {};
         const playerList = document.getElementById('player-list');
         playerList.innerHTML = "";
@@ -269,7 +266,6 @@
             document.getElementById('host-panel').classList.add('hidden');
         }
 
-        // Game Flow
         if (data.state === 'playing') {
             document.getElementById('lobby-screen').classList.add('hidden');
             document.getElementById('game-screen').classList.remove('hidden');
@@ -277,12 +273,10 @@
             const curRound = data.rounds[data.round];
             const roundNumber = data.round + 1;
             
-            // UPDATE TEXT HEADERS
             document.getElementById('round-num').innerText = `Round ${roundNumber} / 7`;
             document.getElementById('door-num-display').innerText = roundNumber;
             document.getElementById('quote-box').innerText = `"${curRound.q}"`;
 
-            // UPDATE WALL THEME
             const wallElement = document.getElementById('the-wall');
             wallElement.className = `wall-container wall-theme-${data.round % 5}`;
 
@@ -290,10 +284,8 @@
             else document.getElementById('host-actions').classList.add('hidden');
 
             if (data.isRevealed) {
-                // SHOW REVEAL SCREEN
                 document.getElementById('reveal-layer').classList.add('show');
                 
-                // Get the CORRECT answers (always index 0 in the database array)
                 const correctPersona = curRound.p[0];
                 const avatarUrl = `https://api.dicebear.com/7.x/avataaars/svg?seed=${correctPersona.replace(/\s+/g, '')}&backgroundColor=b6e3f4`;
                 
@@ -308,15 +300,15 @@
                     document.getElementById('next-btn').classList.remove('hidden');
                 }
             } else {
-                // HIDE REVEAL, RENDER VOTING BOOTHS
                 document.getElementById('reveal-layer').classList.remove('show');
                 
-                // Only render buttons if we haven't already rendered them for this round
-                if(!document.getElementById('col-persona').querySelector('.btn-vote')) {
+                // THE FIX IS HERE: Only re-render buttons if the round has actually changed
+                if (currentRenderedRound !== data.round) {
                     renderVoteColumn('col-persona', curRound.p);
                     renderVoteColumn('col-tone', curRound.t);
                     renderVoteColumn('col-audience', curRound.a);
                     renderVoteColumn('col-purpose', curRound.pur);
+                    currentRenderedRound = data.round;
                 }
                 
                 if (isHost) {
@@ -336,7 +328,6 @@
         const container = document.getElementById(colId).querySelector('.btns');
         container.innerHTML = "";
         
-        // SHUFFLE the options before rendering so index 0 isn't always at the top!
         const shuffled = shuffleOptions(optionsArray);
 
         shuffled.forEach(o => {
@@ -344,7 +335,6 @@
             b.className = 'btn btn-vote';
             b.innerText = o;
             b.onclick = () => {
-                // Remove selection from other buttons in THIS specific column
                 container.querySelectorAll('.btn-vote').forEach(el => el.classList.remove('selected'));
                 b.classList.add('selected');
             };
