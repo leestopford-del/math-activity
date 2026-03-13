@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Behind the Wall: IGCSE English 5.2</title>
     <style>
-        :root { --paper: #fdfdfd; --accent: #e67e22; --green: #2ecc71; --blue: #3498db; }
+        :root { --paper: #fdfdfd; --accent: #e67e22; --green: #2ecc71; --blue: #3498db; --purple: #8e44ad; }
         body { font-family: 'Georgia', serif; background: #1a1a1a; color: white; text-align: center; margin: 0; padding-bottom: 50px; }
         .container { max-width: 900px; margin: 0 auto; padding: 20px; }
         
@@ -30,6 +30,7 @@
         .card { background: #2c3e50; padding: 30px; border-radius: 15px; border-bottom: 5px solid var(--accent); }
         .btn { padding: 12px 25px; border: none; border-radius: 50px; font-weight: bold; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; transition: 0.2s; margin: 5px; }
         .btn-main { background: var(--accent); color: white; }
+        .btn-solo { background: var(--purple); color: white; }
         .hidden { display: none !important; }
         .player-tag { background: rgba(255,255,255,0.1); padding: 8px 15px; border-radius: 20px; margin: 5px; display: inline-block; }
         
@@ -61,8 +62,10 @@
         <h1>Who's Behind the Wall?</h1>
         <p><i>IGCSE English: Analyzing Persona, Tone, Audience & Purpose</i></p>
         <div id="join-area">
-            <input type="text" id="player-name" placeholder="Your Name..." style="padding: 12px; border-radius: 5px; border: none; width: 200px; font-size: 1rem;">
-            <button class="btn btn-main" onclick="joinGame()">Enter Lobby</button>
+            <input type="text" id="player-name" placeholder="Your Name..." style="padding: 12px; border-radius: 5px; border: none; width: 200px; font-size: 1rem; margin-bottom: 15px;">
+            <br>
+            <button class="btn btn-main" onclick="joinGame()">Join Multiplayer</button>
+            <button class="btn btn-solo" onclick="startSolo()">Play Solo</button>
         </div>
         <div id="wait-area" class="hidden">
             <h3>Students in Lobby:</h3>
@@ -156,7 +159,6 @@
         }
     };
 
-    // Shuffles an array randomly to ensure the correct answer isn't always at the top
     function shuffleOptions(array) {
         return array
             .map(value => ({ value, sort: Math.random() }))
@@ -212,209 +214,4 @@
             p: ["Wealthy Socialite", "Professional Event Planner", "Strict Restaurant Critic", "Bored Teenager"],
             t: ["Pretentious & Expressive", "Objective & Analytical", "Furious & Demanding", "Polite & Grateful"],
             a: ["A Peer in High Society", "A Catering Manager", "A Newspaper Readership", "A Close Family Member"],
-            pur: ["To offer a snobbish critique", "To formally review a service", "To demand a refund", "To politely compliment the host"]
-        },
-        { 
-            q: "The defendant was observed exiting the premises at 22:00 hours, carrying a concealed item that matched the description.", 
-            p: ["Police Officer", "Gossip Columnist", "Nervous Eyewitness", "Private Detective"],
-            t: ["Objective & Clinical", "Dramatic & Suspenseful", "Hesitant & Unsure", "Aggressive & Accusatory"],
-            a: ["A Judge or Jury", "Readers of a Tabloid", "A Group of Friends", "The Suspect Themselves"],
-            pur: ["To provide an official factual record", "To entertain with a mystery", "To convince someone of a rumor", "To extract a confession"]
-        }
-    ];
-
-    let myName = "";
-    let isHost = false;
-    let currentRenderedRound = -1;
-    let timerInterval = null;
-
-    window.joinGame = () => {
-        const input = document.getElementById('player-name');
-        if (!input.value) return alert("Enter your name!");
-        myName = input.value;
-        
-        onValue(gameRef, (snap) => {
-            const data = snap.val() || {};
-            if (!data.host) update(gameRef, { host: myName }); 
-            set(ref(db, 'behind_the_wall/players/' + myName), { name: myName });
-            updateUI(snap.val() || {});
-        }, { onlyOnce: true });
-    };
-
-    window.startGame = () => {
-        const selected = personaBank.sort(() => 0.5 - Math.random()).slice(0, 7);
-        currentRenderedRound = -1;
-        update(gameRef, { state: 'playing', round: 0, rounds: selected, isRevealed: false, endTime: Date.now() + 60000, votes: null });
-    };
-
-    window.triggerReveal = () => update(gameRef, { isRevealed: true });
-    
-    window.triggerNext = () => {
-        onValue(gameRef, (snap) => {
-            const data = snap.val();
-            if (data.round >= 6) update(gameRef, { state: 'results' });
-            else update(gameRef, { round: data.round + 1, isRevealed: false, endTime: Date.now() + 60000, votes: null });
-        }, { onlyOnce: true });
-    };
-
-    onValue(gameRef, (snapshot) => {
-        const data = snapshot.val();
-        if (!data) return;
-        if (myName === "") return; 
-        updateUI(data);
-    });
-
-    function updateUI(data) {
-        if (!data) return;
-        isHost = (data.host === myName && myName !== "");
-
-        const players = data.players || {};
-        const playerNames = Object.keys(players);
-        
-        const totalVoters = playerNames.filter(p => p !== data.host).length;
-
-        const playerList = document.getElementById('player-list');
-        playerList.innerHTML = "";
-        playerNames.forEach(n => {
-            const span = document.createElement('span');
-            span.className = 'player-tag';
-            span.innerHTML = n + (data.host === n ? " 👑" : ""); 
-            playerList.appendChild(span);
-        });
-
-        document.getElementById('join-area').classList.add('hidden');
-        document.getElementById('wait-area').classList.remove('hidden');
-
-        if (isHost && (!data.state || data.state === 'lobby')) {
-            document.getElementById('host-panel').classList.remove('hidden');
-        } else {
-            document.getElementById('host-panel').classList.add('hidden');
-        }
-
-        if (data.state === 'playing') {
-            document.getElementById('lobby-screen').classList.add('hidden');
-            document.getElementById('game-screen').classList.remove('hidden');
-            
-            const curRound = data.rounds[data.round];
-            const roundNumber = data.round + 1;
-            
-            document.getElementById('round-num').innerText = `Round ${roundNumber} / 7`;
-            document.getElementById('door-num-display').innerText = roundNumber;
-            document.getElementById('quote-box').innerText = `"${curRound.q}"`;
-
-            const wallElement = document.getElementById('the-wall');
-            wallElement.className = `wall-container wall-theme-${data.round % 5}`;
-
-            const votes = data.votes || {};
-            const voteCounts = { 'col-persona': 0, 'col-tone': 0, 'col-audience': 0, 'col-purpose': 0 };
-            
-            Object.values(votes).forEach(playerVotes => {
-                Object.keys(playerVotes).forEach(category => {
-                    if (voteCounts[category] !== undefined) voteCounts[category]++;
-                });
-            });
-
-            ['col-persona', 'col-tone', 'col-audience', 'col-purpose'].forEach(col => {
-                const badge = document.getElementById(`badge-${col}`);
-                const count = voteCounts[col];
-                
-                badge.className = 'vote-badge'; 
-                if (count === 0 || totalVoters === 0) {
-                    badge.innerText = "Waiting...";
-                } else if (count < totalVoters) {
-                    badge.classList.add('partial');
-                    badge.innerText = "Voting...";
-                } else {
-                    badge.classList.add('complete');
-                    badge.innerText = "All Votes In!";
-                }
-            });
-
-            clearInterval(timerInterval);
-            const timerDisplay = document.getElementById('timer-display');
-            
-            if (!data.isRevealed && data.endTime) {
-                timerInterval = setInterval(() => {
-                    const timeLeft = Math.max(0, Math.floor((data.endTime - Date.now()) / 1000));
-                    if (timeLeft > 0) {
-                        timerDisplay.innerText = `⏱️ ${timeLeft}s`;
-                        timerDisplay.style.color = "var(--accent)";
-                    } else {
-                        timerDisplay.innerText = `⏱️ Time's Up!`;
-                        timerDisplay.style.color = "#c0392b";
-                        clearInterval(timerInterval);
-                    }
-                }, 1000);
-            } else {
-                timerDisplay.innerText = `⏱️ --`;
-                timerDisplay.style.color = "#aaa";
-            }
-
-            if (isHost) document.getElementById('host-actions').classList.remove('hidden');
-            else document.getElementById('host-actions').classList.add('hidden');
-
-            if (data.isRevealed) {
-                document.getElementById('reveal-layer').classList.add('show');
-                
-                const correctPersona = curRound.p[0];
-                const avatarUrl = `https://api.dicebear.com/7.x/avataaars/svg?seed=${correctPersona.replace(/\s+/g, '')}&backgroundColor=b6e3f4&facialHairProbability=0`;
-                
-                document.getElementById('rev-avatar').innerHTML = `<img src="${avatarUrl}" style="width: 120px; height: 120px; border-radius: 50%; border: 4px solid white; box-shadow: 0 4px 8px rgba(0,0,0,0.3);">`;
-                document.getElementById('rev-persona').innerText = correctPersona;
-                document.getElementById('rev-tone').innerText = curRound.t[0];
-                document.getElementById('rev-audience').innerText = curRound.a[0];
-                document.getElementById('rev-purpose').innerText = curRound.pur[0];
-                
-                if (isHost) {
-                    document.getElementById('reveal-btn').classList.add('hidden');
-                    document.getElementById('next-btn').classList.remove('hidden');
-                }
-            } else {
-                document.getElementById('reveal-layer').classList.remove('show');
-                
-                if (currentRenderedRound !== data.round) {
-                    renderVoteColumn('col-persona', curRound.p);
-                    renderVoteColumn('col-tone', curRound.t);
-                    renderVoteColumn('col-audience', curRound.a);
-                    renderVoteColumn('col-purpose', curRound.pur);
-                    currentRenderedRound = data.round;
-                }
-                
-                if (isHost) {
-                    document.getElementById('reveal-btn').classList.remove('hidden');
-                    document.getElementById('next-btn').classList.add('hidden');
-                }
-            }
-        }
-
-        if (data.state === 'results') {
-            document.getElementById('game-screen').classList.add('hidden');
-            document.getElementById('results-screen').classList.remove('hidden');
-        }
-    }
-
-    function renderVoteColumn(colId, optionsArray) {
-        const container = document.getElementById(colId).querySelector('.btns');
-        container.innerHTML = "";
-        
-        const shuffled = shuffleOptions(optionsArray);
-
-        shuffled.forEach(o => {
-            const b = document.createElement('button');
-            b.className = 'btn btn-vote';
-            b.innerText = o;
-            b.onclick = () => {
-                container.querySelectorAll('.btn-vote').forEach(el => el.classList.remove('selected'));
-                b.classList.add('selected');
-                
-                if (!isHost) {
-                    update(ref(db, `behind_the_wall/votes/${myName}`), { [colId]: o });
-                }
-            };
-            container.appendChild(b);
-        });
-    }
-</script>
-
-</body>
-</html>
+            pur: ["To offer a
