@@ -121,14 +121,16 @@
 
         <div id="host-actions" class="hidden" style="margin-top: 30px; background: #333; padding: 15px; border-radius: 10px;">
             <p style="margin-top: 0; color: #aaa; font-size: 0.9rem;">Host Controls</p>
-            <button class="btn btn-main" id="reveal-btn" onclick="triggerReveal()">REVEAL ANSWERS</button>
+            <button class="btn btn-main" id="reveal-btn" onclick="triggerReveal()">REVEAL ANSWERS & SCORE</button>
             <button class="btn btn-main hidden" id="next-btn" onclick="triggerNext()">NEXT ROUND</button>
         </div>
     </div>
 
     <div id="results-screen" class="hidden" class="card">
-        <h1>Class Performance Complete!</h1>
-        <p>You have successfully analyzed Tone, Audience, and Purpose.</p>
+        <h1 style="color: var(--accent);">Class Performance Complete!</h1>
+        <p>You have successfully analyzed Tone, Audience, and Purpose across 7 rounds.</p>
+        <div id="leaderboard" style="background: #1a1a1a; padding: 20px; border-radius: 10px; margin: 20px 0; max-height: 350px; overflow-y: auto;">
+            </div>
         <button class="btn btn-main" onclick="location.reload()">Return to Menu</button>
     </div>
 </div>
@@ -232,16 +234,51 @@
     let currentRenderedRound = -1;
     let timerInterval = null;
 
+    // --- SCORING LOGIC ---
+    function computeScoresData(data) {
+        let currentScores = data.scores || {};
+        const curRound = data.rounds[data.round];
+        const correctP = curRound.p[0];
+        const correctT = curRound.t[0];
+        const correctA = curRound.a[0];
+        const correctPur = curRound.pur[0];
+        
+        const votes = data.votes || {};
+        const players = data.players || {};
+        
+        // Ensure every active player (except multiplayer host) is on the board
+        Object.keys(players).forEach(p => {
+            if ((p !== data.host || isSolo) && currentScores[p] === undefined) {
+                currentScores[p] = 0;
+            }
+        });
+
+        // Award points for correct votes
+        Object.keys(votes).forEach(player => {
+            if (currentScores[player] === undefined) currentScores[player] = 0;
+            const pVote = votes[player]['col-persona'];
+            const tVote = votes[player]['col-tone'];
+            const aVote = votes[player]['col-audience'];
+            const purVote = votes[player]['col-purpose'];
+            
+            if(pVote === correctP) currentScores[player]++;
+            if(tVote === correctT) currentScores[player]++;
+            if(aVote === correctA) currentScores[player]++;
+            if(purVote === correctPur) currentScores[player]++;
+        });
+        
+        return currentScores;
+    }
+
     // --- SOLO MODE LOGIC ---
     window.startSolo = () => {
         const input = document.getElementById('player-name');
         myName = input.value || "Solo Player";
         isSolo = true;
-        isHost = true; // In solo, you are the host of your local game
+        isHost = true; 
         
         const selected = personaBank.sort(() => 0.5 - Math.random()).slice(0, 7);
         
-        // Create a local game state that mimics Firebase
         soloData = {
             host: myName,
             players: { [myName]: { name: myName } },
@@ -250,7 +287,8 @@
             rounds: selected,
             isRevealed: false,
             endTime: Date.now() + 60000,
-            votes: {}
+            votes: {},
+            scores: {}
         };
         
         updateUI(soloData);
@@ -263,8 +301,6 @@
         myName = input.value;
         isSolo = false;
         
-        // We write to Firebase here, but we let the global onValue listener trigger updateUI 
-        // to prevent the UI drawing before the DB has registered your name.
         onValue(gameRef, (snap) => {
             const data = snap.val() || {};
             if (!data.host) update(gameRef, { host: myName }); 
@@ -275,15 +311,25 @@
     window.startGame = () => {
         const selected = personaBank.sort(() => 0.5 - Math.random()).slice(0, 7);
         currentRenderedRound = -1;
-        update(gameRef, { state: 'playing', round: 0, rounds: selected, isRevealed: false, endTime: Date.now() + 60000, votes: null });
+        update(gameRef, { state: 'playing', round: 0, rounds: selected, isRevealed: false, endTime: Date.now() + 60000, votes: null, scores: null });
     };
 
     window.triggerReveal = () => {
         if (isSolo) {
-            soloData.isRevealed = true;
-            updateUI(soloData);
+            if (!soloData.isRevealed) {
+                soloData.scores = computeScoresData(soloData);
+                soloData.isRevealed = true;
+                updateUI(soloData);
+            }
         } else {
-            update(gameRef, { isRevealed: true });
+            // Read state once, compute points safely, then update Firebase
+            onValue(gameRef, (snap) => {
+                const data = snap.val();
+                if (data && !data.isRevealed) {
+                    const newScores = computeScoresData(data);
+                    update(gameRef, { isRevealed: true, scores: newScores });
+                }
+            }, { onlyOnce: true });
         }
     };
     
@@ -308,7 +354,6 @@
         }
     };
 
-    // Global listener only triggers if we are NOT in solo mode
     onValue(gameRef, (snapshot) => {
         if (isSolo) return; 
         const data = snapshot.val();
@@ -326,7 +371,6 @@
         const players = data.players || {};
         const playerNames = Object.keys(players);
         
-        // In solo, the single player is the only voter. In multiplayer, host doesn't vote.
         const totalVoters = isSolo ? 1 : playerNames.filter(p => p !== data.host).length;
 
         const playerList = document.getElementById('player-list');
@@ -340,7 +384,6 @@
 
         document.getElementById('join-area').classList.add('hidden');
         
-        // Skip the waiting area entirely if solo
         if (!isSolo && (!data.state || data.state === 'lobby')) {
             document.getElementById('wait-area').classList.remove('hidden');
             if (isHost) document.getElementById('host-panel').classList.remove('hidden');
@@ -448,6 +491,26 @@
         if (data.state === 'results') {
             document.getElementById('game-screen').classList.add('hidden');
             document.getElementById('results-screen').classList.remove('hidden');
+            
+            // --- POPULATE THE LEADERBOARD ---
+            const scores = data.scores || {};
+            const leaderboard = document.getElementById('leaderboard');
+            leaderboard.innerHTML = "<h3 style='margin-top: 0; color: var(--green);'>Final Scoreboard</h3>";
+            
+            // Sort players by score highest to lowest
+            const sortedPlayers = Object.keys(scores).sort((a, b) => scores[b] - scores[a]);
+            
+            if (sortedPlayers.length === 0) {
+                leaderboard.innerHTML += "<p style='color: #aaa;'>No points were scored this game.</p>";
+            } else {
+                sortedPlayers.forEach((p, index) => {
+                    const medal = index === 0 ? "🥇" : index === 1 ? "🥈" : index === 2 ? "🥉" : "🏅";
+                    const row = document.createElement('div');
+                    row.style = "display: flex; justify-content: space-between; padding: 12px; border-bottom: 1px solid #333; font-size: 1.2rem;";
+                    row.innerHTML = `<span>${medal} <b>${p}</b></span> <span style="color: var(--blue);"><b>${scores[p]}</b> / 28 pts</span>`;
+                    leaderboard.appendChild(row);
+                });
+            }
         }
     }
 
@@ -465,7 +528,6 @@
                 container.querySelectorAll('.btn-vote').forEach(el => el.classList.remove('selected'));
                 b.classList.add('selected');
                 
-                // Allow voting if playing solo, OR if playing multiplayer and not the host
                 if (isSolo) {
                     if (!soloData.votes) soloData.votes = {};
                     if (!soloData.votes[myName]) soloData.votes[myName] = {};
