@@ -58,14 +58,35 @@
         .player-tag { display: flex; justify-content: space-between; align-items: center; background: #334155; padding: 5px 10px; margin-bottom: 5px; border-radius: 5px; font-size: 0.9rem; }
         .kick-btn { background: var(--red); color: white; border: none; border-radius: 3px; cursor: pointer; padding: 2px 6px; font-weight: bold; }
 
-        /* PHASE 1: LASER SCRAPER */
+        /* PHASE 1: LASER SCRAPER (UPDATED SCI-FI UI) */
         .game-header { display: flex; justify-content: space-between; align-items: center; width: 100%; background: #1e293b; padding: 15px; border-radius: 10px; box-sizing: border-box; margin-bottom: 15px; border: 2px solid #475569; }
         #turn-indicator { font-size: 1.5rem; font-weight: bold; }
         #timer-box { font-size: 2rem; font-weight: bold; color: var(--red); background: #000; padding: 5px 15px; border-radius: 8px; border: 2px solid var(--red); }
         
-        .billboard { width: 100%; flex-grow: 1; background: #cbd5e1; border: 10px solid #475569; border-radius: 10px; padding: 30px; box-sizing: border-box; position: relative; overflow: hidden; display: flex; flex-wrap: wrap; align-content: flex-start; gap: 15px; }
-        .sentence { background: white; color: #000; padding: 10px 15px; border-radius: 5px; border: 3px solid transparent; font-size: 1.2rem; font-weight: bold; box-shadow: 2px 2px 5px rgba(0,0,0,0.2); user-select: none; pointer-events: none; transition: 0.3s; }
-        .sentence.vaporized { opacity: 0; transform: scale(0.5); }
+        .billboard { 
+            width: 100%; flex-grow: 1; 
+            background-color: #0b1426;
+            background-image: 
+                linear-gradient(rgba(59, 130, 246, 0.15) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(59, 130, 246, 0.15) 1px, transparent 1px);
+            background-size: 40px 40px;
+            box-shadow: inset 0 0 30px rgba(59, 130, 246, 0.5);
+            border: 4px solid #1e293b; border-radius: 10px; 
+            padding: 30px; box-sizing: border-box; position: relative; 
+            overflow: hidden; display: flex; flex-wrap: wrap; align-content: flex-start; justify-content: center; gap: 20px; 
+        }
+        
+        .sentence { 
+            background: rgba(15, 23, 42, 0.9); 
+            color: #7dd3fc; 
+            padding: 15px 20px; border-radius: 8px; 
+            border: 2px solid #0369a1; 
+            font-size: 1.2rem; font-family: 'Courier New', Courier, monospace; font-weight: bold; 
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5); 
+            user-select: none; pointer-events: none; transition: all 0.3s ease; 
+            text-shadow: 0 0 5px rgba(125, 211, 252, 0.5);
+        }
+        .sentence.vaporized { opacity: 0; transform: scale(0.1) rotate(10deg); }
         
         /* Targeted by Spotters */
         .targeted-1 { border-color: var(--red) !important; box-shadow: 0 0 15px var(--red); transform: scale(1.05); }
@@ -73,7 +94,7 @@
         .targeted-3 { border-color: var(--green) !important; box-shadow: 0 0 15px var(--green); transform: scale(1.05); }
         .targeted-4 { border-color: var(--yellow) !important; box-shadow: 0 0 15px var(--yellow); transform: scale(1.05); }
 
-        @keyframes shakeError { 0% { transform: translateX(0); background: #ef4444; color: white; } 25% { transform: translateX(-10px); } 50% { transform: translateX(10px); } 75% { transform: translateX(-10px); } 100% { transform: translateX(0); background: white; color: black; } }
+        @keyframes shakeError { 0% { transform: translateX(0); background: #ef4444; color: white; } 25% { transform: translateX(-10px); } 50% { transform: translateX(10px); } 75% { transform: translateX(-10px); } 100% { transform: translateX(0); background: rgba(15, 23, 42, 0.9); color: #7dd3fc; } }
         .error-shake { animation: shakeError 0.4s; }
 
         /* Custom Cursors */
@@ -251,7 +272,7 @@
                 } else {
                     isHost = true;
                     update(stateRef, { hostExists: true, phase: 'lobby' });
-                    // CRITICAL FIX: If host closes tab, wipe the host flag!
+                    // CRITICAL FIX: Wipe host flag on disconnect
                     onDisconnect(ref(db, 'space_agency/state/hostExists')).remove();
                 }
                 switchScreen('screen-host');
@@ -286,7 +307,7 @@
                 targetY: Math.floor(Math.random() * 80) + 10
             });
             
-            // CRITICAL FIX: Remove user avatar immediately when they close tab
+            // CRITICAL FIX: Remove user avatar on disconnect
             onDisconnect(ref(db, `space_agency/users/${myUID}`)).remove();
 
             const colors = {1:'--red', 2:'--blue', 3:'--green', 4:'--yellow'};
@@ -437,38 +458,35 @@
     });
 
     onValue(boardRef, (snap) => {
-        // The bug was here: We removed the "if(currentPhase !== 'scraping') return;" line!
-        const data = snap.val() || {};
+        const data = snap.val();
         const container = document.getElementById('billboard-container');
         
-        // If the database is empty (e.g. Host clicked Reset Station), clear the board
-        if (Object.keys(data).length === 0) {
-            container.innerHTML = "";
+        // If the database is completely empty, clear the screen
+        if (!data) {
+            if (container) container.innerHTML = "";
             return;
         }
 
-        // Render the sentences if the board is currently empty
-        if(container.children.length === 0) {
+        // BRUTE FORCE DRAW: Wipe the container and redraw everything every time.
+        // This guarantees players will NEVER be stuck with an empty box.
+        if (container) {
+            container.innerHTML = "";
+            
             Object.entries(data).forEach(([id, s]) => {
                 let span = document.createElement('div');
-                span.className = 'sentence'; span.id = `sent-${id}`;
-                span.innerText = s.text; span.setAttribute('data-id', id); span.setAttribute('data-good', s.good);
+                span.className = 'sentence'; 
+                span.id = `sent-${id}`;
+                span.innerText = s.text; 
+                span.setAttribute('data-id', id); 
+                span.setAttribute('data-good', s.good);
+                
+                // Apply visual states directly during the draw
+                if(s.vaporized) span.classList.add('vaporized');
+                if(s.targetedBy) span.classList.add(`targeted-${s.targetedBy}`);
+                
                 container.appendChild(span);
             });
         }
-        
-        // Update states: Vaporized AND Targeted
-        Object.entries(data).forEach(([id, s]) => {
-            let el = document.getElementById(`sent-${id}`);
-            if(el) {
-                if(s.vaporized) el.classList.add('vaporized');
-                
-                // Remove old targets
-                el.classList.remove('targeted-1', 'targeted-2', 'targeted-3', 'targeted-4');
-                // Apply new spotter target if exists
-                if(s.targetedBy) el.classList.add(`targeted-${s.targetedBy}`);
-            }
-        });
     });
 
     function updatePhase1UI(state) {
