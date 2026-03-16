@@ -9,23 +9,24 @@
             --bg: #0b1426; --panel: #1a2233; --border: #3b82f6;
             --red: #ef4444; --blue: #3b82f6; --green: #10b981; --yellow: #f59e0b;
         }
-        body { margin: 0; padding: 0; background: var(--bg); color: white; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; flex-direction: column; align-items: center; height: 100vh; overflow: hidden; }
-        .header { width: 100%; background: #000; padding: 15px 0; text-align: center; border-bottom: 3px solid var(--border); position: relative; }
+        body { margin: 0; padding: 0; background: var(--bg); color: white; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; flex-direction: column; align-items: center; height: 100vh; overflow: hidden; cursor: default; }
+        .header { width: 100%; background: #000; padding: 15px 0; text-align: center; border-bottom: 3px solid var(--border); position: relative; z-index: 100; }
         
         .secret-login { position: absolute; top: 15px; right: 20px; cursor: pointer; opacity: 0.3; transition: 0.3s; font-size: 1.5rem; }
         .secret-login:hover { opacity: 1; }
 
-        .container { display: flex; flex-direction: column; width: 100%; max-width: 1000px; padding: 20px; box-sizing: border-box; flex-grow: 1; overflow-y: auto; }
-        .screen { display: none; width: 100%; flex-direction: column; align-items: center; }
+        .container { display: flex; flex-direction: column; width: 100%; max-width: 1000px; padding: 20px; box-sizing: border-box; flex-grow: 1; overflow: hidden; }
+        .screen { display: none; width: 100%; height: 100%; flex-direction: column; align-items: center; }
         .active-screen { display: flex; }
 
-        .card { background: var(--panel); border: 2px solid #475569; border-radius: 15px; padding: 25px; width: 100%; max-width: 500px; box-sizing: border-box; text-align: center; margin-bottom: 20px; box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
+        .card { background: var(--panel); border: 2px solid #475569; border-radius: 15px; padding: 25px; width: 100%; max-width: 500px; text-align: center; margin: auto; box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
         
         input[type="text"] { padding: 12px; font-size: 1.1em; border-radius: 8px; border: 2px solid #334155; width: 80%; background: #0f172a; color: white; text-align: center; margin-bottom: 15px; }
         .btn { padding: 12px 25px; font-size: 1.1em; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; transition: 0.2s; color: white; margin: 5px; width: 80%; }
         .btn:hover { transform: scale(1.05); }
         .btn-main { background: var(--border); }
         .btn-solo { background: transparent; border: 2px solid #64748b; color: #94a3b8; }
+        .btn-guest { background: #475569; }
         .btn-danger { background: var(--red); }
         .btn-green { background: var(--green); }
 
@@ -33,30 +34,47 @@
         .emoji-option { padding: 10px; border-radius: 15px; border: 3px solid transparent; transition: 0.2s; }
         .emoji-option.selected { background: rgba(255,255,255,0.1); border-color: var(--border); transform: scale(1.1); }
 
-        /* ZERO-G HUB */
+        /* ZERO-G HUB & CHAT */
         .hub-layout { display: flex; gap: 20px; width: 100%; height: 60vh; max-width: 1000px; }
         .zero-g-box { flex: 2; background: #000; border: 3px solid #334155; border-radius: 15px; position: relative; overflow: hidden; background-image: radial-gradient(white, rgba(255,255,255,.2) 2px, transparent 40px); background-size: 90px 90px; cursor: crosshair; }
-        .avatar-entity { position: absolute; font-size: 2.5rem; transform: translate(-50%, -50%); transition: left 2s ease-out, top 2s ease-out; z-index: 10; display: flex; flex-direction: column; align-items: center; pointer-events: none; }
+        .avatar-entity { position: absolute; font-size: 2.5rem; transform: translate(-50%, -50%); transition: left 1.5s ease-out, top 1.5s ease-out; z-index: 10; display: flex; flex-direction: column; align-items: center; pointer-events: none; }
         .avatar-name { font-size: 0.7rem; background: rgba(0,0,0,0.7); padding: 2px 6px; border-radius: 5px; font-weight: bold; margin-bottom: 5px; white-space: nowrap; }
         
-        /* CHAT BOX */
-        .chat-container { flex: 1; background: var(--panel); border: 2px solid #334155; border-radius: 15px; display: flex; flex-direction: column; overflow: hidden; }
+        @keyframes boop { 0% { transform: translate(-50%, -50%) scale(1); } 50% { transform: translate(-50%, -50%) scale(1.4) rotate(15deg); } 100% { transform: translate(-50%, -50%) scale(1); } }
+        .bumping { animation: boop 0.4s ease-out; }
+
+        .chat-container { flex: 1; background: var(--panel); border: 2px solid #334155; border-radius: 15px; display: flex; flex-direction: column; overflow: hidden; min-width: 250px; }
         .chat-messages { flex-grow: 1; padding: 10px; overflow-y: auto; font-size: 0.9rem; display: flex; flex-direction: column; gap: 8px; }
         .chat-msg { background: #334155; padding: 8px; border-radius: 8px; align-self: flex-start; max-width: 90%; word-wrap: break-word; }
         .chat-msg.me { background: var(--border); align-self: flex-end; }
+        .chat-msg.host { background: var(--yellow); color: #000; align-self: center; width: 100%; text-align: center; font-weight: bold; }
         .chat-input-area { display: flex; padding: 10px; background: #0f172a; border-top: 1px solid #334155; }
         .chat-input-area input { margin: 0; width: 100%; border-radius: 5px 0 0 5px; border: none; font-size: 0.9rem; }
         .chat-input-area button { margin: 0; width: auto; border-radius: 0 5px 5px 0; padding: 10px; font-size: 0.9rem; }
 
         /* HOST PANEL */
-        .host-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; width: 100%; }
-        .team-roster { background: #0f172a; padding: 15px; border-radius: 10px; border-top: 4px solid; min-height: 150px; }
-        .team-roster.t1 { border-color: var(--red); }
-        .team-roster.t2 { border-color: var(--blue); }
-        .team-roster.t3 { border-color: var(--green); }
-        .team-roster.t4 { border-color: var(--yellow); }
+        .host-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; width: 100%; flex-grow: 1; }
+        .team-roster { background: #0f172a; padding: 15px; border-radius: 10px; border-top: 4px solid; min-height: 100px; }
         .player-tag { display: flex; justify-content: space-between; align-items: center; background: #334155; padding: 5px 10px; margin-bottom: 5px; border-radius: 5px; font-size: 0.9rem; }
         .kick-btn { background: var(--red); color: white; border: none; border-radius: 3px; cursor: pointer; padding: 2px 6px; font-weight: bold; }
+
+        /* PHASE 1: LASER SCRAPER */
+        .game-header { display: flex; justify-content: space-between; align-items: center; width: 100%; background: #1e293b; padding: 15px; border-radius: 10px; box-sizing: border-box; margin-bottom: 15px; border: 2px solid #475569; }
+        #turn-indicator { font-size: 1.5rem; font-weight: bold; }
+        #timer-box { font-size: 2rem; font-weight: bold; color: var(--red); background: #000; padding: 5px 15px; border-radius: 8px; border: 2px solid var(--red); }
+        
+        .billboard { width: 100%; flex-grow: 1; background: #cbd5e1; border: 10px solid #475569; border-radius: 10px; padding: 30px; box-sizing: border-box; position: relative; overflow: hidden; display: flex; flex-wrap: wrap; align-content: flex-start; gap: 15px; }
+        .sentence { background: white; color: #000; padding: 10px 15px; border-radius: 5px; font-size: 1.2rem; font-weight: bold; box-shadow: 2px 2px 5px rgba(0,0,0,0.2); user-select: none; pointer-events: none; transition: 0.3s; }
+        .sentence.vaporized { opacity: 0; transform: scale(0.5); }
+        
+        @keyframes shakeError { 0% { transform: translateX(0); background: #ef4444; color: white; } 25% { transform: translateX(-10px); } 50% { transform: translateX(10px); } 75% { transform: translateX(-10px); } 100% { transform: translateX(0); background: white; color: black; } }
+        .error-shake { animation: shakeError 0.4s; }
+
+        /* Custom Laser Cursor */
+        #laser-cursor { display: none; position: fixed; width: 30px; height: 30px; border: 3px solid var(--red); border-radius: 50%; pointer-events: none; z-index: 1000; transform: translate(-50%, -50%); box-shadow: 0 0 15px var(--red); background: rgba(239,68,68,0.3); }
+        #laser-cursor::after { content: ''; position: absolute; top: 13px; left: -5px; width: 34px; height: 2px; background: var(--red); }
+        #laser-cursor::before { content: ''; position: absolute; top: -5px; left: 13px; width: 2px; height: 34px; background: var(--red); }
+
     </style>
 </head>
 <body>
@@ -65,6 +83,8 @@
         <h2 style="margin: 0;">🪐 Intergalactic Ad Agency</h2>
         <div class="secret-login" onclick="hostLogin()">🔒</div>
     </div>
+
+    <div id="laser-cursor"></div>
 
     <div class="container">
         
@@ -80,57 +100,76 @@
                     <div class="emoji-option" onclick="selectEmoji(this, '🤖')">🤖</div>
                 </div>
                 <button class="btn btn-main" onclick="joinStation()">Deploy to Station</button>
-                <button class="btn btn-solo" onclick="startSolo()">Play Solo Practice</button>
+                <button class="btn btn-guest" onclick="joinGuest()">Watch as Guest</button>
             </div>
         </div>
 
         <div id="screen-hub" class="screen">
-            <h3 id="team-banner" style="margin-top: 0; padding: 10px; border-radius: 8px; width: 100%; text-align: center; max-width: 1000px;">
+            <h3 id="team-banner" style="margin-top: 0; padding: 10px; border-radius: 8px; width: 100%; text-align: center; background: #334155;">
                 Awaiting Commander's Orders...
             </h3>
             
             <div class="hub-layout">
-                <div class="zero-g-box" id="zero-g-box" onclick="thrustAvatar(event)">
-                    </div>
+                <div class="zero-g-box" id="zero-g-box" onclick="thrustAvatar(event)"></div>
                 
                 <div class="chat-container">
-                    <div style="background: #0f172a; padding: 10px; text-align: center; font-weight: bold; border-bottom: 1px solid #334155;">
-                        📻 Station Comms
-                    </div>
-                    <div class="chat-messages" id="chat-messages">
-                        </div>
-                    <div class="chat-input-area">
-                        <input type="text" id="chat-input" placeholder="Text only..." onkeypress="handleChatEnter(event)">
-                        <button class="btn btn-main" onclick="sendChat()">Send</button>
+                    <div style="background: #0f172a; padding: 10px; text-align: center; font-weight: bold; border-bottom: 1px solid #334155;">📻 Station Comms</div>
+                    <div class="chat-messages" id="chat-messages-hub"></div>
+                    <div class="chat-input-area" id="chat-input-area-hub">
+                        <input type="text" id="chat-input-hub" placeholder="Text only..." onkeypress="if(event.key==='Enter') sendChat('hub')">
+                        <button class="btn btn-main" onclick="sendChat('hub')">Send</button>
                     </div>
                 </div>
             </div>
         </div>
 
         <div id="screen-host" class="screen">
-            <div class="card" style="max-width: 800px; width: 100%; border-color: var(--yellow);">
-                <h2 style="color: var(--yellow); margin-top: 0;" id="host-title">👑 Command Deck</h2>
+            <div style="display: flex; gap: 20px; width: 100%; height: 100%;">
                 
-                <div style="display: flex; gap: 10px; justify-content: center; margin-bottom: 20px;">
-                    <button class="btn btn-green" style="width: auto;" onclick="initiateGame()" id="btn-start">🚀 INITIATE PHASE 1: LASER SCRAPING</button>
-                    <button class="btn btn-danger" style="width: auto;" onclick="clearChat()">🗑️ Clear Comms</button>
-                    <button class="btn btn-solo" style="width: auto;" onclick="resetLobby()">🛑 Reset Station</button>
+                <div class="card" style="flex: 2; border-color: var(--yellow); margin: 0; display: flex; flex-direction: column;">
+                    <h2 style="color: var(--yellow); margin-top: 0;" id="host-title">👑 Command Deck</h2>
+                    
+                    <div style="display: flex; gap: 10px; justify-content: center; margin-bottom: 15px;">
+                        <button class="btn btn-green" style="width: auto;" onclick="startPhase1()" id="btn-start">🚀 INITIATE PHASE 1: SCRAPING</button>
+                        <button class="btn btn-solo" style="width: auto;" onclick="resetLobby()">🛑 Reset Station</button>
+                    </div>
+
+                    <div class="host-grid">
+                        <div class="team-roster" style="border-color: var(--red);"><b style="color: var(--red);">Team Red</b><div id="roster-1"></div></div>
+                        <div class="team-roster" style="border-color: var(--blue);"><b style="color: var(--blue);">Team Blue</b><div id="roster-2"></div></div>
+                        <div class="team-roster" style="border-color: var(--green);"><b style="color: var(--green);">Team Green</b><div id="roster-3"></div></div>
+                        <div class="team-roster" style="border-color: var(--yellow);"><b style="color: var(--yellow);">Team Yellow</b><div id="roster-4"></div></div>
+                    </div>
                 </div>
 
-                <div class="host-grid">
-                    <div class="team-roster t1"><b style="color: var(--red);">Team Red</b><div id="roster-1"></div></div>
-                    <div class="team-roster t2"><b style="color: var(--blue);">Team Blue</b><div id="roster-2"></div></div>
-                    <div class="team-roster t3"><b style="color: var(--green);">Team Green</b><div id="roster-3"></div></div>
-                    <div class="team-roster t4"><b style="color: var(--yellow);">Team Yellow</b><div id="roster-4"></div></div>
+                <div class="chat-container">
+                    <div style="background: var(--yellow); color: #000; padding: 10px; text-align: center; font-weight: bold;">📻 Global Comms</div>
+                    <div class="chat-messages" id="chat-messages-host"></div>
+                    <div style="padding: 5px; background: #0f172a; text-align: center;"><button class="btn btn-danger" style="width: 90%; padding: 5px;" onclick="clearChat()">🗑️ Clear Comms</button></div>
+                    <div class="chat-input-area">
+                        <input type="text" id="chat-input-host" placeholder="Broadcast to station..." onkeypress="if(event.key==='Enter') sendChat('host')">
+                        <button class="btn btn-main" onclick="sendChat('host')">Send</button>
+                    </div>
                 </div>
+
             </div>
+        </div>
+
+        <div id="screen-game" class="screen">
+            <div class="game-header">
+                <div id="turn-indicator">WAITING FOR COMMANDER...</div>
+                <div id="timer-box">20</div>
+            </div>
+            
+            <div class="billboard" id="billboard-container">
+                </div>
         </div>
 
     </div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
-    import { getDatabase, ref, set, onValue, update, remove, push } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-database.js";
+    import { getDatabase, ref, set, onValue, update, remove, push, get } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-database.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyBpf5wi0wShnatqUhcmPhSOdnd0NdBL65A",
@@ -145,29 +184,37 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
     
-    // Database References
+    // DB References
     const stateRef = ref(db, 'space_agency/state');
     const usersRef = ref(db, 'space_agency/users');
     const chatRef = ref(db, 'space_agency/chat');
+    const boardRef = ref(db, 'space_agency/billboard');
 
-    // Configuration
-    const TEACHER_PIN = "73556"; // CHANGE THIS PIN IF YOU WANT!
+    const TEACHER_PIN = "73556"; 
     
     // User State
-    let myUID = sessionStorage.getItem('spaceUid');
-    if (!myUID) {
-        myUID = 'agent_' + Math.random().toString(36).substr(2, 9);
-        sessionStorage.setItem('spaceUid', myUID);
-    }
+    let myUID = sessionStorage.getItem('spaceUid') || 'agent_' + Math.random().toString(36).substr(2, 9);
+    sessionStorage.setItem('spaceUid', myUID);
     
-    let myName = "";
-    let myAvatar = "👩‍🚀";
-    let myTeam = 1;
-    let isHost = false;
-    let isObserver = false;
-    let isSolo = false;
+    let myName = "", myAvatar = "👩‍🚀", myTeam = 0;
+    let isHost = false, isObserver = false;
+    let currentPhase = 'lobby';
 
-    // --- GLOBALS EXPOSED FOR HTML ONCLICK ---
+    // Phase 1 Data
+    const initialBillboardData = [
+        { id: 's0', text: "NEW! Adopt a Zorb Pet today!", good: true },
+        { id: 's1', text: "Yesterday my uncle bought a red hat.", good: false },
+        { id: 's2', text: "Zorbs only eat solid titanium metal.", good: true },
+        { id: 's3', text: "I really like eating blue cheese on Tuesdays.", good: false },
+        { id: 's4', text: "WARNING: Zorbs will explode if they touch water.", good: true },
+        { id: 's5', text: "My favorite color is bright green.", good: false },
+        { id: 's6', text: "Cost: Only 500 Space Credits!", good: true },
+        { id: 's7', text: "This billboard is very big and rectangular.", good: false },
+        { id: 's8', text: "Includes a free titanium chew toy.", good: true },
+        { id: 's9', text: "The weather on Mars is dusty today.", good: false }
+    ];
+
+    // --- GLOBALS EXPOSED TO HTML ---
     window.selectEmoji = (element, emoji) => {
         document.querySelectorAll('.emoji-option').forEach(el => el.classList.remove('selected'));
         element.classList.add('selected');
@@ -177,10 +224,9 @@
     window.hostLogin = () => {
         const pin = prompt("Enter Commander PIN:");
         if (pin === TEACHER_PIN) {
-            onValue(stateRef, (snap) => {
-                const state = snap.val() || {};
-                if (state.hostExists && !isHost) {
-                    alert("Commander already present. Logging you in as Observer.");
+            get(stateRef).then((snap) => {
+                if (snap.exists() && snap.val().hostExists && !isHost) {
+                    alert("Commander present. Joining as Observer.");
                     isObserver = true;
                     document.getElementById('host-title').innerText = "👁️ Observer Deck";
                     document.getElementById('btn-start').style.display = "none";
@@ -189,10 +235,16 @@
                     update(stateRef, { hostExists: true, phase: 'lobby' });
                 }
                 switchScreen('screen-host');
-            }, { onlyOnce: true });
-        } else if (pin !== null) {
-            alert("Access Denied.");
-        }
+            });
+        } else if (pin !== null) alert("Access Denied.");
+    };
+
+    window.joinGuest = () => {
+        isObserver = true;
+        myName = "Guest Viewer";
+        document.getElementById('team-banner').innerHTML = "👁️ Observing Station Activities...";
+        document.getElementById('chat-input-area-hub').style.display = "none"; // Guests can't chat
+        switchScreen('screen-hub');
     };
 
     window.joinStation = () => {
@@ -200,200 +252,283 @@
         if (!input) return alert("Enter your name, Recruit!");
         myName = input;
         
-        // Auto-balance teams
-        onValue(usersRef, (snap) => {
+        get(usersRef).then((snap) => {
             const users = snap.val() || {};
             const counts = {1:0, 2:0, 3:0, 4:0};
             Object.values(users).forEach(u => { if(u.team) counts[u.team]++; });
             
-            let minTeam = 1;
-            for(let i=2; i<=4; i++) {
-                if(counts[i] < counts[minTeam]) minTeam = i;
-            }
-            myTeam = minTeam;
+            myTeam = 1;
+            for(let i=2; i<=4; i++) { if(counts[i] < counts[myTeam]) myTeam = i; }
 
-            // Set user in DB with a random starting position
             set(ref(db, `space_agency/users/${myUID}`), {
-                name: myName,
-                avatar: myAvatar,
-                team: myTeam,
+                name: myName, avatar: myAvatar, team: myTeam,
                 targetX: Math.floor(Math.random() * 80) + 10,
                 targetY: Math.floor(Math.random() * 80) + 10
             });
 
-            setupTeamBanner();
+            const colors = {1:'--red', 2:'--blue', 3:'--green', 4:'--yellow'};
+            const names = {1:'RED', 2:'BLUE', 3:'GREEN', 4:'YELLOW'};
+            document.getElementById('team-banner').innerHTML = `You are on the <b style="color:var(${colors[myTeam]});">${names[myTeam]} CREW</b>`;
             switchScreen('screen-hub');
-        }, { onlyOnce: true });
-    };
-
-    window.startSolo = () => {
-        alert("Solo mode will be activated in Phase 2!");
-    };
-
-    // --- ZERO-G MOVEMENT ---
-    window.thrustAvatar = (e) => {
-        if (isHost || isObserver || isSolo) return;
-        const box = document.getElementById('zero-g-box');
-        const rect = box.getBoundingClientRect();
-        
-        // Calculate percentage inside the box
-        const xPercent = ((e.clientX - rect.left) / rect.width) * 100;
-        const yPercent = ((e.clientY - rect.top) / rect.height) * 100;
-        
-        update(ref(db, `space_agency/users/${myUID}`), {
-            targetX: xPercent,
-            targetY: yPercent
         });
     };
 
-    // --- EMOJI-FREE CHAT ---
-    function stripEmojis(text) {
-        // Simple regex to remove non-standard text characters (emojis)
-        return text.replace(/([\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF])/g, '').trim();
-    }
-
-    window.handleChatEnter = (e) => {
-        if (e.key === 'Enter') window.sendChat();
+    // --- ZERO-G MOVEMENT & BUMPING ---
+    window.thrustAvatar = (e) => {
+        if (isHost || isObserver) return;
+        const box = document.getElementById('zero-g-box');
+        const rect = box.getBoundingClientRect();
+        update(ref(db, `space_agency/users/${myUID}`), {
+            targetX: ((e.clientX - rect.left) / rect.width) * 100,
+            targetY: ((e.clientY - rect.top) / rect.height) * 100
+        });
     };
 
-    window.sendChat = () => {
-        const input = document.getElementById('chat-input');
-        const cleanText = stripEmojis(input.value);
-        
-        if (cleanText.length > 0) {
-            push(chatRef, {
-                sender: myName,
-                text: cleanText,
-                uid: myUID
+    // Check distances for "Bumping" effect locally
+    setInterval(() => {
+        if(currentPhase !== 'lobby') return;
+        const avatars = document.querySelectorAll('.avatar-entity');
+        avatars.forEach(a => {
+            avatars.forEach(b => {
+                if (a.id !== b.id) {
+                    let dx = parseFloat(a.style.left) - parseFloat(b.style.left);
+                    let dy = parseFloat(a.style.top) - parseFloat(b.style.top);
+                    if (Math.sqrt(dx*dx + dy*dy) < 6) { // if within 6% of each other
+                        if (!a.classList.contains('bumping')) {
+                            a.classList.add('bumping');
+                            setTimeout(() => a.classList.remove('bumping'), 400);
+                        }
+                    }
+                }
             });
+        });
+    }, 200);
+
+    // --- CHAT SYSTEM ---
+    window.sendChat = (source) => {
+        const input = document.getElementById(`chat-input-${source}`);
+        let text = input.value.replace(/([\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF])/g, '').trim();
+        
+        if (text.length > 0) {
+            push(chatRef, { sender: isHost ? "COMMANDER" : myName, text: text, uid: isHost ? "HOST" : myUID });
             input.value = "";
         } else if (input.value.length > 0) {
-            alert("Comms restricted to text only. No emojis allowed!");
+            alert("No emojis allowed on Station Comms!");
             input.value = "";
         }
     };
+    window.clearChat = () => { if(isHost) remove(chatRef); };
 
-    window.clearChat = () => {
-        if (isHost) remove(chatRef);
-    };
-
-    // --- HOST CONTROLS ---
-    window.kickUser = (uid) => {
-        if (isHost) remove(ref(db, `space_agency/users/${uid}`));
-    };
-
-    window.resetLobby = () => {
-        if(confirm("Are you sure? This kicks everyone and resets the station.")) {
-            remove(ref(db, 'space_agency'));
-            location.reload();
-        }
-    };
-
-    window.initiateGame = () => {
-        if (isHost) {
-            alert("Phase 1 Laser Scraping is ready to be built!");
-            // update(stateRef, { phase: 'scraping' });
-        }
-    };
-
-    // --- REALTIME DATABASE LISTENERS ---
-    
-    // Listen for User Changes (Draw Avatars & Rosters)
+    // --- LOBBY LISTENER ---
     onValue(usersRef, (snap) => {
         const users = snap.val() || {};
-        
-        // Check if I was kicked
-        if (!isHost && !isObserver && !isSolo && myName !== "" && !users[myUID]) {
-            alert("You have been disconnected from the station.");
-            location.reload();
-        }
+        if (!isHost && !isObserver && myName !== "" && !users[myUID]) { alert("Disconnected."); location.reload(); }
 
         const box = document.getElementById('zero-g-box');
-        if (!isHost && !isObserver) {
-            // Draw floating avatars
+        if (!isHost) {
             const existingIds = [];
             Object.entries(users).forEach(([uid, u]) => {
                 existingIds.push(uid);
                 let el = document.getElementById(`avatar-${uid}`);
                 if (!el) {
                     el = document.createElement('div');
-                    el.id = `avatar-${uid}`;
-                    el.className = 'avatar-entity';
-                    
-                    // Add team color glow
-                    let color = "#ef4444";
-                    if(u.team === 2) color = "#3b82f6";
-                    if(u.team === 3) color = "#10b981";
-                    if(u.team === 4) color = "#f59e0b";
-                    
-                    el.innerHTML = `<div class="avatar-name" style="border-bottom: 2px solid ${color};">${u.name}</div>${u.avatar}`;
+                    el.id = `avatar-${uid}`; el.className = 'avatar-entity';
+                    const colors = {1:'#ef4444', 2:'#3b82f6', 3:'#10b981', 4:'#f59e0b'};
+                    el.innerHTML = `<div class="avatar-name" style="border-bottom: 2px solid ${colors[u.team]};">${u.name}</div>${u.avatar}`;
                     box.appendChild(el);
                 }
-                // Move them
-                el.style.left = `${u.targetX}%`;
-                el.style.top = `${u.targetY}%`;
+                el.style.left = `${u.targetX}%`; el.style.top = `${u.targetY}%`;
             });
-
-            // Remove disconnected users
-            Array.from(box.children).forEach(child => {
-                const childUid = child.id.replace('avatar-', '');
-                if (!existingIds.includes(childUid)) child.remove();
-            });
+            Array.from(box.children).forEach(c => { if(!existingIds.includes(c.id.replace('avatar-',''))) c.remove(); });
         }
 
-        // Update Host Rosters
         if (isHost || isObserver) {
-            let t1="", t2="", t3="", t4="";
+            let t={1:"", 2:"", 3:"", 4:""};
             Object.entries(users).forEach(([uid, u]) => {
-                const kickBtn = isHost ? `<button class="kick-btn" onclick="kickUser('${uid}')">X</button>` : "";
-                const tag = `<div class="player-tag"><span>${u.avatar} ${u.name}</span> ${kickBtn}</div>`;
-                if(u.team === 1) t1 += tag;
-                if(u.team === 2) t2 += tag;
-                if(u.team === 3) t3 += tag;
-                if(u.team === 4) t4 += tag;
+                const kick = isHost ? `<button class="kick-btn" onclick="kickUser('${uid}')">X</button>` : "";
+                t[u.team] += `<div class="player-tag"><span>${u.avatar} ${u.name}</span> ${kick}</div>`;
             });
-            document.getElementById('roster-1').innerHTML = t1 || "<i style='color:#64748b;'>Empty</i>";
-            document.getElementById('roster-2').innerHTML = t2 || "<i style='color:#64748b;'>Empty</i>";
-            document.getElementById('roster-3').innerHTML = t3 || "<i style='color:#64748b;'>Empty</i>";
-            document.getElementById('roster-4').innerHTML = t4 || "<i style='color:#64748b;'>Empty</i>";
+            for(let i=1; i<=4; i++) document.getElementById(`roster-${i}`).innerHTML = t[i] || "<i style='color:#64748b;'>Empty</i>";
         }
     });
 
-    // Listen for Chat Messages
     onValue(chatRef, (snap) => {
-        const messages = snap.val() || {};
-        const chatBox = document.getElementById('chat-messages');
-        chatBox.innerHTML = "";
-        
-        Object.values(messages).forEach(m => {
-            const div = document.createElement('div');
-            div.className = `chat-msg ${m.uid === myUID ? 'me' : ''}`;
-            div.innerHTML = `<b style="color:#94a3b8; font-size:0.8rem;">${m.sender}</b><br>${m.text}`;
-            chatBox.appendChild(div);
-        });
-        
-        // Auto-scroll to bottom
-        chatBox.scrollTop = chatBox.scrollHeight;
+        const msgs = snap.val() || {};
+        const renderChat = (boxId) => {
+            const box = document.getElementById(boxId);
+            if(!box) return;
+            box.innerHTML = "";
+            Object.values(msgs).forEach(m => {
+                const div = document.createElement('div');
+                let cssClass = m.uid === myUID || (isHost && m.uid === "HOST") ? 'me' : '';
+                if(m.uid === "HOST") cssClass = 'host';
+                div.className = `chat-msg ${cssClass}`;
+                div.innerHTML = `<b style="font-size:0.8rem; opacity:0.7;">${m.sender}</b><br>${m.text}`;
+                box.appendChild(div);
+            });
+            box.scrollTop = box.scrollHeight;
+        };
+        renderChat('chat-messages-hub');
+        renderChat('chat-messages-host');
     });
 
-    // Listen for Game State
+    window.kickUser = (uid) => { if(isHost) remove(ref(db, `space_agency/users/${uid}`)); };
+    window.resetLobby = () => { if(confirm("Reset Station?")) { remove(ref(db, 'space_agency')); location.reload(); } };
+
+
+    // ==========================================
+    // PHASE 1: ZERO-G LASER SCRAPER LOGIC
+    // ==========================================
+    
+    let hostTimerInterval;
+
+    window.startPhase1 = () => {
+        if (!isHost) return;
+        // Build initial billboard state
+        let boardState = {};
+        initialBillboardData.forEach(s => { boardState[s.id] = { text: s.text, good: s.good, vaporized: false }; });
+        set(boardRef, boardState);
+        update(stateRef, { phase: 'scraping', turn: 1, time: 20 });
+        
+        let time = 20, turn = 1;
+        hostTimerInterval = setInterval(() => {
+            time--;
+            if(time <= 0) {
+                turn++; time = 20;
+                if(turn > 4) { clearInterval(hostTimerInterval); update(stateRef, { phase: 'scraping_end' }); return; }
+            }
+            update(stateRef, { time: time, turn: turn });
+        }, 1000);
+    };
+
+    // State Listener for Phase Transitions
     onValue(stateRef, (snap) => {
         const state = snap.val() || {};
-        // Future implementation: if state.phase === 'scraping', switch to Game screen!
+        if(state.phase === 'scraping' && currentPhase !== 'scraping') {
+            currentPhase = 'scraping';
+            switchScreen(isHost || isObserver ? 'screen-game' : 'screen-game');
+            if(!isHost && !isObserver) setupLaserInteraction();
+        }
+        if(state.phase === 'scraping' || state.phase === 'scraping_end') {
+            updatePhase1UI(state);
+        }
     });
 
-    // --- HELPER FUNCTIONS ---
+    // Billboard Data Listener (Updates sentences in real time)
+    onValue(boardRef, (snap) => {
+        if(currentPhase !== 'scraping') return;
+        const data = snap.val() || {};
+        const container = document.getElementById('billboard-container');
+        
+        // Render if empty
+        if(container.children.length === 0) {
+            Object.entries(data).forEach(([id, s]) => {
+                let span = document.createElement('div');
+                span.className = 'sentence'; span.id = `sent-${id}`;
+                span.innerText = s.text; span.setAttribute('data-id', id); span.setAttribute('data-good', s.good);
+                container.appendChild(span);
+            });
+        }
+        
+        // Update opacity/vaporized state
+        Object.entries(data).forEach(([id, s]) => {
+            let el = document.getElementById(`sent-${id}`);
+            if(el && s.vaporized) el.classList.add('vaporized');
+        });
+    });
+
+    function updatePhase1UI(state) {
+        if(state.phase === 'scraping_end') {
+            document.getElementById('turn-indicator').innerText = "PHASE 1 COMPLETE!";
+            document.getElementById('turn-indicator').style.color = "var(--green)";
+            document.getElementById('timer-box').innerText = "0";
+            return;
+        }
+
+        const colors = {1:'--red', 2:'--blue', 3:'--green', 4:'--yellow'};
+        const names = {1:'TEAM RED', 2:'TEAM BLUE', 3:'TEAM GREEN', 4:'TEAM YELLOW'};
+        
+        document.getElementById('timer-box').innerText = state.time;
+        
+        let indicator = document.getElementById('turn-indicator');
+        if(state.turn === myTeam) {
+            indicator.innerHTML = `🔥 YOUR TURN! VAPORIZE JUNK!`;
+            indicator.style.color = `var(${colors[state.turn]})`;
+        } else {
+            indicator.innerHTML = `Current Turn: <span style="color:var(${colors[state.turn]})">${names[state.turn]}</span>`;
+            indicator.style.color = "white";
+        }
+
+        // Hide cursor for non-active players
+        if(!isHost && !isObserver && state.turn === myTeam) {
+            document.body.style.cursor = 'none';
+        } else {
+            document.body.style.cursor = 'default';
+            document.getElementById('laser-cursor').style.display = 'none';
+        }
+    }
+
+    // --- CUSTOM ZERO-G LASER LOGIC ---
+    let mouseX = window.innerWidth/2, mouseY = window.innerHeight/2;
+    let isLasering = false;
+
+    function setupLaserInteraction() {
+        document.addEventListener('mousemove', e => { mouseX = e.clientX; mouseY = e.clientY; });
+        document.addEventListener('mousedown', () => isLasering = true);
+        document.addEventListener('mouseup', () => isLasering = false);
+        requestAnimationFrame(laserLoop);
+    }
+
+    function laserLoop() {
+        if(currentPhase === 'scraping' && !isHost && !isObserver) {
+            get(stateRef).then(snap => {
+                let state = snap.val();
+                if(state && state.turn === myTeam) {
+                    const laser = document.getElementById('laser-cursor');
+                    laser.style.display = 'block';
+
+                    // Calculate Drift (Wobble)
+                    let timeSec = Date.now() / 600;
+                    let driftX = Math.sin(timeSec) * 50; 
+                    let driftY = Math.cos(timeSec * 1.3) * 50;
+                    
+                    let targetX = mouseX + driftX;
+                    let targetY = mouseY + driftY;
+                    
+                    laser.style.left = targetX + 'px';
+                    laser.style.top = targetY + 'px';
+
+                    // Vaporize Logic
+                    if(isLasering) {
+                        laser.style.display = 'none'; // hide temporarily to find element beneath
+                        let hitEl = document.elementFromPoint(targetX, targetY);
+                        laser.style.display = 'block';
+
+                        if(hitEl && hitEl.classList.contains('sentence') && !hitEl.classList.contains('vaporized')) {
+                            let isGood = hitEl.getAttribute('data-good') === 'true';
+                            let sid = hitEl.getAttribute('data-id');
+                            
+                            if(!isGood) {
+                                // Destroy Junk!
+                                update(ref(db, `space_agency/billboard/${sid}`), { vaporized: true });
+                            } else {
+                                // Hit good info! Penalty shake!
+                                if(!hitEl.classList.contains('error-shake')) {
+                                    hitEl.classList.add('error-shake');
+                                    setTimeout(() => hitEl.classList.remove('error-shake'), 400);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        if(currentPhase === 'scraping') requestAnimationFrame(laserLoop);
+    }
+
     function switchScreen(id) {
         document.querySelectorAll('.screen').forEach(s => s.classList.remove('active-screen'));
         document.getElementById(id).classList.add('active-screen');
-    }
-
-    function setupTeamBanner() {
-        const banner = document.getElementById('team-banner');
-        if (myTeam === 1) { banner.style.background = 'rgba(239, 68, 68, 0.2)'; banner.innerHTML = '🔴 You are on the <b style="color:var(--red);">RED CREW</b>'; }
-        if (myTeam === 2) { banner.style.background = 'rgba(59, 130, 246, 0.2)'; banner.innerHTML = '🔵 You are on the <b style="color:var(--blue);">BLUE CREW</b>'; }
-        if (myTeam === 3) { banner.style.background = 'rgba(16, 185, 129, 0.2)'; banner.innerHTML = '🟢 You are on the <b style="color:var(--green);">GREEN CREW</b>'; }
-        if (myTeam === 4) { banner.style.background = 'rgba(245, 158, 11, 0.2)'; banner.innerHTML = '🟡 You are on the <b style="color:var(--yellow);">YELLOW CREW</b>'; }
     }
 
 </script>
