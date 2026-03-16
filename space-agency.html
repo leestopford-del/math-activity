@@ -64,16 +64,24 @@
         #timer-box { font-size: 2rem; font-weight: bold; color: var(--red); background: #000; padding: 5px 15px; border-radius: 8px; border: 2px solid var(--red); }
         
         .billboard { width: 100%; flex-grow: 1; background: #cbd5e1; border: 10px solid #475569; border-radius: 10px; padding: 30px; box-sizing: border-box; position: relative; overflow: hidden; display: flex; flex-wrap: wrap; align-content: flex-start; gap: 15px; }
-        .sentence { background: white; color: #000; padding: 10px 15px; border-radius: 5px; font-size: 1.2rem; font-weight: bold; box-shadow: 2px 2px 5px rgba(0,0,0,0.2); user-select: none; pointer-events: none; transition: 0.3s; }
+        .sentence { background: white; color: #000; padding: 10px 15px; border-radius: 5px; border: 3px solid transparent; font-size: 1.2rem; font-weight: bold; box-shadow: 2px 2px 5px rgba(0,0,0,0.2); user-select: none; pointer-events: none; transition: 0.3s; }
         .sentence.vaporized { opacity: 0; transform: scale(0.5); }
         
+        /* Targeted by Spotters */
+        .targeted-1 { border-color: var(--red) !important; box-shadow: 0 0 15px var(--red); transform: scale(1.05); }
+        .targeted-2 { border-color: var(--blue) !important; box-shadow: 0 0 15px var(--blue); transform: scale(1.05); }
+        .targeted-3 { border-color: var(--green) !important; box-shadow: 0 0 15px var(--green); transform: scale(1.05); }
+        .targeted-4 { border-color: var(--yellow) !important; box-shadow: 0 0 15px var(--yellow); transform: scale(1.05); }
+
         @keyframes shakeError { 0% { transform: translateX(0); background: #ef4444; color: white; } 25% { transform: translateX(-10px); } 50% { transform: translateX(10px); } 75% { transform: translateX(-10px); } 100% { transform: translateX(0); background: white; color: black; } }
         .error-shake { animation: shakeError 0.4s; }
 
-        /* Custom Laser Cursor */
+        /* Custom Cursors */
         #laser-cursor { display: none; position: fixed; width: 30px; height: 30px; border: 3px solid var(--red); border-radius: 50%; pointer-events: none; z-index: 1000; transform: translate(-50%, -50%); box-shadow: 0 0 15px var(--red); background: rgba(239,68,68,0.3); }
         #laser-cursor::after { content: ''; position: absolute; top: 13px; left: -5px; width: 34px; height: 2px; background: var(--red); }
         #laser-cursor::before { content: ''; position: absolute; top: -5px; left: 13px; width: 2px; height: 34px; background: var(--red); }
+
+        #scanner-cursor { display: none; position: fixed; width: 20px; height: 20px; border: 2px dashed #fff; border-radius: 50%; pointer-events: none; z-index: 1000; transform: translate(-50%, -50%); box-shadow: 0 0 10px rgba(255,255,255,0.8); }
 
     </style>
 </head>
@@ -85,6 +93,7 @@
     </div>
 
     <div id="laser-cursor"></div>
+    <div id="scanner-cursor"></div>
 
     <div class="container">
         
@@ -157,7 +166,10 @@
 
         <div id="screen-game" class="screen">
             <div class="game-header">
-                <div id="turn-indicator">WAITING FOR COMMANDER...</div>
+                <div id="turn-indicator" style="display: flex; flex-direction: column;">
+                    <span>WAITING FOR COMMANDER...</span>
+                    <span id="turn-subtext" style="font-size: 0.9rem; font-weight: normal; color: #cbd5e1; margin-top: 5px;"></span>
+                </div>
                 <div id="timer-box">20</div>
             </div>
             
@@ -169,7 +181,7 @@
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
-    import { getDatabase, ref, set, onValue, update, remove, push, get } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-database.js";
+    import { getDatabase, ref, set, onValue, update, remove, push, get, onDisconnect } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-database.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyBpf5wi0wShnatqUhcmPhSOdnd0NdBL65A",
@@ -199,6 +211,7 @@
     let myName = "", myAvatar = "👩‍🚀", myTeam = 0;
     let isHost = false, isObserver = false;
     let currentPhase = 'lobby';
+    let currentActiveTeam = 0; // Tracks whose turn it is locally
 
     // Phase 1 Data
     const initialBillboardData = [
@@ -222,7 +235,12 @@
     };
 
     window.hostLogin = () => {
-        const pin = prompt("Enter Commander PIN:");
+        const pin = prompt("Enter Commander PIN (or type RESET to force clear):");
+        if (pin === "RESET") {
+            remove(ref(db, 'space_agency'));
+            alert("Station forcefully reset.");
+            return;
+        }
         if (pin === TEACHER_PIN) {
             get(stateRef).then((snap) => {
                 if (snap.exists() && snap.val().hostExists && !isHost) {
@@ -233,6 +251,8 @@
                 } else {
                     isHost = true;
                     update(stateRef, { hostExists: true, phase: 'lobby' });
+                    // CRITICAL FIX: If host closes tab, wipe the host flag!
+                    onDisconnect(ref(db, 'space_agency/state/hostExists')).remove();
                 }
                 switchScreen('screen-host');
             });
@@ -243,7 +263,7 @@
         isObserver = true;
         myName = "Guest Viewer";
         document.getElementById('team-banner').innerHTML = "👁️ Observing Station Activities...";
-        document.getElementById('chat-input-area-hub').style.display = "none"; // Guests can't chat
+        document.getElementById('chat-input-area-hub').style.display = "none"; 
         switchScreen('screen-hub');
     };
 
@@ -265,6 +285,9 @@
                 targetX: Math.floor(Math.random() * 80) + 10,
                 targetY: Math.floor(Math.random() * 80) + 10
             });
+            
+            // CRITICAL FIX: Remove user avatar immediately when they close tab
+            onDisconnect(ref(db, `space_agency/users/${myUID}`)).remove();
 
             const colors = {1:'--red', 2:'--blue', 3:'--green', 4:'--yellow'};
             const names = {1:'RED', 2:'BLUE', 3:'GREEN', 4:'YELLOW'};
@@ -293,7 +316,7 @@
                 if (a.id !== b.id) {
                     let dx = parseFloat(a.style.left) - parseFloat(b.style.left);
                     let dy = parseFloat(a.style.top) - parseFloat(b.style.top);
-                    if (Math.sqrt(dx*dx + dy*dy) < 6) { // if within 6% of each other
+                    if (Math.sqrt(dx*dx + dy*dy) < 6) { 
                         if (!a.classList.contains('bumping')) {
                             a.classList.add('bumping');
                             setTimeout(() => a.classList.remove('bumping'), 400);
@@ -384,7 +407,6 @@
 
     window.startPhase1 = () => {
         if (!isHost) return;
-        // Build initial billboard state
         let boardState = {};
         initialBillboardData.forEach(s => { boardState[s.id] = { text: s.text, good: s.good, vaporized: false }; });
         set(boardRef, boardState);
@@ -401,7 +423,6 @@
         }, 1000);
     };
 
-    // State Listener for Phase Transitions
     onValue(stateRef, (snap) => {
         const state = snap.val() || {};
         if(state.phase === 'scraping' && currentPhase !== 'scraping') {
@@ -410,17 +431,16 @@
             if(!isHost && !isObserver) setupLaserInteraction();
         }
         if(state.phase === 'scraping' || state.phase === 'scraping_end') {
+            currentActiveTeam = state.turn; // Update local state
             updatePhase1UI(state);
         }
     });
 
-    // Billboard Data Listener (Updates sentences in real time)
     onValue(boardRef, (snap) => {
         if(currentPhase !== 'scraping') return;
         const data = snap.val() || {};
         const container = document.getElementById('billboard-container');
         
-        // Render if empty
         if(container.children.length === 0) {
             Object.entries(data).forEach(([id, s]) => {
                 let span = document.createElement('div');
@@ -430,18 +450,32 @@
             });
         }
         
-        // Update opacity/vaporized state
+        // Update states: Vaporized AND Targeted
         Object.entries(data).forEach(([id, s]) => {
             let el = document.getElementById(`sent-${id}`);
-            if(el && s.vaporized) el.classList.add('vaporized');
+            if(el) {
+                if(s.vaporized) el.classList.add('vaporized');
+                
+                // Remove old targets
+                el.classList.remove('targeted-1', 'targeted-2', 'targeted-3', 'targeted-4');
+                // Apply new spotter target if exists
+                if(s.targetedBy) el.classList.add(`targeted-${s.targetedBy}`);
+            }
         });
     });
 
     function updatePhase1UI(state) {
+        let indicator = document.getElementById('turn-indicator');
+        let subtext = document.getElementById('turn-subtext');
+
         if(state.phase === 'scraping_end') {
-            document.getElementById('turn-indicator').innerText = "PHASE 1 COMPLETE!";
-            document.getElementById('turn-indicator').style.color = "var(--green)";
+            indicator.querySelector('span').innerText = "PHASE 1 COMPLETE!";
+            indicator.style.color = "var(--green)";
+            subtext.innerText = "Processing surviving data for Phase 2...";
             document.getElementById('timer-box').innerText = "0";
+            document.body.style.cursor = 'default';
+            document.getElementById('laser-cursor').style.display = 'none';
+            document.getElementById('scanner-cursor').style.display = 'none';
             return;
         }
 
@@ -450,25 +484,25 @@
         
         document.getElementById('timer-box').innerText = state.time;
         
-        let indicator = document.getElementById('turn-indicator');
-        if(state.turn === myTeam) {
-            indicator.innerHTML = `🔥 YOUR TURN! VAPORIZE JUNK!`;
+        if(state.turn === myTeam && !isHost && !isObserver) {
+            indicator.querySelector('span').innerText = `🔥 YOUR TURN! VAPORIZE JUNK!`;
             indicator.style.color = `var(${colors[state.turn]})`;
-        } else {
-            indicator.innerHTML = `Current Turn: <span style="color:var(${colors[state.turn]})">${names[state.turn]}</span>`;
-            indicator.style.color = "white";
-        }
-
-        // Hide cursor for non-active players
-        if(!isHost && !isObserver && state.turn === myTeam) {
+            subtext.innerText = "Use your drifting mouse to destroy bad information!";
             document.body.style.cursor = 'none';
         } else {
-            document.body.style.cursor = 'default';
-            document.getElementById('laser-cursor').style.display = 'none';
+            indicator.querySelector('span').innerHTML = `Current Turn: <span style="color:var(${colors[state.turn]})">${names[state.turn]}</span>`;
+            indicator.style.color = "white";
+            
+            if(!isHost && !isObserver) {
+                subtext.innerText = "SPOTTER ROLE: Click on junk text to target it for the active team!";
+                document.body.style.cursor = 'none'; // Replaced by custom scanner
+            } else {
+                subtext.innerText = "Observing Scraping Operations...";
+            }
         }
     }
 
-    // --- CUSTOM ZERO-G LASER LOGIC ---
+    // --- CUSTOM CURSORS (LASERS AND SCANNERS) ---
     let mouseX = window.innerWidth/2, mouseY = window.innerHeight/2;
     let isLasering = false;
 
@@ -476,54 +510,72 @@
         document.addEventListener('mousemove', e => { mouseX = e.clientX; mouseY = e.clientY; });
         document.addEventListener('mousedown', () => isLasering = true);
         document.addEventListener('mouseup', () => isLasering = false);
-        requestAnimationFrame(laserLoop);
+        
+        // Handling the "Spotter" click uniquely so it doesn't spam the DB
+        document.addEventListener('mousedown', () => {
+            if(currentPhase === 'scraping' && currentActiveTeam !== myTeam && !isHost && !isObserver) {
+                // Temporarily hide scanner to find the element beneath
+                document.getElementById('scanner-cursor').style.display = 'none';
+                let hitEl = document.elementFromPoint(mouseX, mouseY);
+                document.getElementById('scanner-cursor').style.display = 'block';
+
+                if(hitEl && hitEl.classList.contains('sentence') && !hitEl.classList.contains('vaporized')) {
+                    let sid = hitEl.getAttribute('data-id');
+                    update(ref(db, `space_agency/billboard/${sid}`), { targetedBy: myTeam });
+                }
+            }
+        });
+
+        requestAnimationFrame(cursorLoop);
     }
 
-    function laserLoop() {
+    function cursorLoop() {
         if(currentPhase === 'scraping' && !isHost && !isObserver) {
-            get(stateRef).then(snap => {
-                let state = snap.val();
-                if(state && state.turn === myTeam) {
-                    const laser = document.getElementById('laser-cursor');
+            const laser = document.getElementById('laser-cursor');
+            const scanner = document.getElementById('scanner-cursor');
+
+            if(currentActiveTeam === myTeam) {
+                // --- LASER ROLE (Drifting) ---
+                laser.style.display = 'block';
+                scanner.style.display = 'none';
+
+                let timeSec = Date.now() / 600;
+                let driftX = Math.sin(timeSec) * 50; 
+                let driftY = Math.cos(timeSec * 1.3) * 50;
+                let targetX = mouseX + driftX;
+                let targetY = mouseY + driftY;
+                
+                laser.style.left = targetX + 'px';
+                laser.style.top = targetY + 'px';
+
+                if(isLasering) {
+                    laser.style.display = 'none'; 
+                    let hitEl = document.elementFromPoint(targetX, targetY);
                     laser.style.display = 'block';
 
-                    // Calculate Drift (Wobble)
-                    let timeSec = Date.now() / 600;
-                    let driftX = Math.sin(timeSec) * 50; 
-                    let driftY = Math.cos(timeSec * 1.3) * 50;
-                    
-                    let targetX = mouseX + driftX;
-                    let targetY = mouseY + driftY;
-                    
-                    laser.style.left = targetX + 'px';
-                    laser.style.top = targetY + 'px';
-
-                    // Vaporize Logic
-                    if(isLasering) {
-                        laser.style.display = 'none'; // hide temporarily to find element beneath
-                        let hitEl = document.elementFromPoint(targetX, targetY);
-                        laser.style.display = 'block';
-
-                        if(hitEl && hitEl.classList.contains('sentence') && !hitEl.classList.contains('vaporized')) {
-                            let isGood = hitEl.getAttribute('data-good') === 'true';
-                            let sid = hitEl.getAttribute('data-id');
-                            
-                            if(!isGood) {
-                                // Destroy Junk!
-                                update(ref(db, `space_agency/billboard/${sid}`), { vaporized: true });
-                            } else {
-                                // Hit good info! Penalty shake!
-                                if(!hitEl.classList.contains('error-shake')) {
-                                    hitEl.classList.add('error-shake');
-                                    setTimeout(() => hitEl.classList.remove('error-shake'), 400);
-                                }
+                    if(hitEl && hitEl.classList.contains('sentence') && !hitEl.classList.contains('vaporized')) {
+                        let isGood = hitEl.getAttribute('data-good') === 'true';
+                        let sid = hitEl.getAttribute('data-id');
+                        
+                        if(!isGood) {
+                            update(ref(db, `space_agency/billboard/${sid}`), { vaporized: true });
+                        } else {
+                            if(!hitEl.classList.contains('error-shake')) {
+                                hitEl.classList.add('error-shake');
+                                setTimeout(() => hitEl.classList.remove('error-shake'), 400);
                             }
                         }
                     }
                 }
-            });
+            } else {
+                // --- SPOTTER ROLE (Precise) ---
+                laser.style.display = 'none';
+                scanner.style.display = 'block';
+                scanner.style.left = mouseX + 'px';
+                scanner.style.top = mouseY + 'px';
+            }
         }
-        if(currentPhase === 'scraping') requestAnimationFrame(laserLoop);
+        if(currentPhase === 'scraping') requestAnimationFrame(cursorLoop);
     }
 
     function switchScreen(id) {
