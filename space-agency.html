@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Space Ad Agency - Poster Project</title>
+    <style>
+        :root {
+            --bg: #0b1426; --panel: #1a2233; --border: #3b82f6;
+            --red: #ef4444; --blue: #3b82f6; --green: #10b981; --yellow: #f59e0b;
+        }
+        body { margin: 0; padding: 0; background: var(--bg); color: white; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; flex-direction: column; align-items: center; height: 100vh; overflow: hidden; }
+        .header { width: 100%; background: #000; padding: 15px 0; text-align: center; border-bottom: 3px solid var(--border); position: relative; }
+        
+        .secret-login { position: absolute; top: 15px; right: 20px; cursor: pointer; opacity: 0.3; transition: 0.3s; font-size: 1.5rem; }
+        .secret-login:hover { opacity: 1; }
+
+        .container { display: flex; flex-direction: column; width: 100%; max-width: 1000px; padding: 20px; box-sizing: border-box; flex-grow: 1; overflow-y: auto; }
+        .screen { display: none; width: 100%; flex-direction: column; align-items: center; }
+        .active-screen { display: flex; }
+
+        .card { background: var(--panel); border: 2px solid #475569; border-radius: 15px; padding: 25px; width: 100%; max-width: 500px; box-sizing: border-box; text-align: center; margin-bottom: 20px; box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
+        
+        input[type="text"] { padding: 12px; font-size: 1.1em; border-radius: 8px; border: 2px solid #334155; width: 80%; background: #0f172a; color: white; text-align: center; margin-bottom: 15px; }
+        .btn { padding: 12px 25px; font-size: 1.1em; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; transition: 0.2s; color: white; margin: 5px; width: 80%; }
+        .btn:hover { transform: scale(1.05); }
+        .btn-main { background: var(--border); }
+        .btn-solo { background: transparent; border: 2px solid #64748b; color: #94a3b8; }
+        .btn-danger { background: var(--red); }
+        .btn-green { background: var(--green); }
+
+        .emoji-grid { display: flex; justify-content: center; gap: 15px; margin-bottom: 20px; font-size: 2.5rem; cursor: pointer; }
+        .emoji-option { padding: 10px; border-radius: 15px; border: 3px solid transparent; transition: 0.2s; }
+        .emoji-option.selected { background: rgba(255,255,255,0.1); border-color: var(--border); transform: scale(1.1); }
+
+        /* ZERO-G HUB */
+        .hub-layout { display: flex; gap: 20px; width: 100%; height: 60vh; max-width: 1000px; }
+        .zero-g-box { flex: 2; background: #000; border: 3px solid #334155; border-radius: 15px; position: relative; overflow: hidden; background-image: radial-gradient(white, rgba(255,255,255,.2) 2px, transparent 40px); background-size: 90px 90px; cursor: crosshair; }
+        .avatar-entity { position: absolute; font-size: 2.5rem; transform: translate(-50%, -50%); transition: left 2s ease-out, top 2s ease-out; z-index: 10; display: flex; flex-direction: column; align-items: center; pointer-events: none; }
+        .avatar-name { font-size: 0.7rem; background: rgba(0,0,0,0.7); padding: 2px 6px; border-radius: 5px; font-weight: bold; margin-bottom: 5px; white-space: nowrap; }
+        
+        /* CHAT BOX */
+        .chat-container { flex: 1; background: var(--panel); border: 2px solid #334155; border-radius: 15px; display: flex; flex-direction: column; overflow: hidden; }
+        .chat-messages { flex-grow: 1; padding: 10px; overflow-y: auto; font-size: 0.9rem; display: flex; flex-direction: column; gap: 8px; }
+        .chat-msg { background: #334155; padding: 8px; border-radius: 8px; align-self: flex-start; max-width: 90%; word-wrap: break-word; }
+        .chat-msg.me { background: var(--border); align-self: flex-end; }
+        .chat-input-area { display: flex; padding: 10px; background: #0f172a; border-top: 1px solid #334155; }
+        .chat-input-area input { margin: 0; width: 100%; border-radius: 5px 0 0 5px; border: none; font-size: 0.9rem; }
+        .chat-input-area button { margin: 0; width: auto; border-radius: 0 5px 5px 0; padding: 10px; font-size: 0.9rem; }
+
+        /* HOST PANEL */
+        .host-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; width: 100%; }
+        .team-roster { background: #0f172a; padding: 15px; border-radius: 10px; border-top: 4px solid; min-height: 150px; }
+        .team-roster.t1 { border-color: var(--red); }
+        .team-roster.t2 { border-color: var(--blue); }
+        .team-roster.t3 { border-color: var(--green); }
+        .team-roster.t4 { border-color: var(--yellow); }
+        .player-tag { display: flex; justify-content: space-between; align-items: center; background: #334155; padding: 5px 10px; margin-bottom: 5px; border-radius: 5px; font-size: 0.9rem; }
+        .kick-btn { background: var(--red); color: white; border: none; border-radius: 3px; cursor: pointer; padding: 2px 6px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h2 style="margin: 0;">🪐 Intergalactic Ad Agency</h2>
+        <div class="secret-login" onclick="hostLogin()">🔒</div>
+    </div>
+
+    <div class="container">
+        
+        <div id="screen-login" class="screen active-screen">
+            <div class="card">
+                <h2>Recruit Registration</h2>
+                <input type="text" id="playerName" placeholder="Enter your name..." maxlength="15">
+                <p style="color: #94a3b8; font-size: 0.9rem;">Select your spacesuit:</p>
+                <div class="emoji-grid">
+                    <div class="emoji-option selected" onclick="selectEmoji(this, '👩‍🚀')">👩‍🚀</div>
+                    <div class="emoji-option" onclick="selectEmoji(this, '👨‍🚀')">👨‍🚀</div>
+                    <div class="emoji-option" onclick="selectEmoji(this, '👽')">👽</div>
+                    <div class="emoji-option" onclick="selectEmoji(this, '🤖')">🤖</div>
+                </div>
+                <button class="btn btn-main" onclick="joinStation()">Deploy to Station</button>
+                <button class="btn btn-solo" onclick="startSolo()">Play Solo Practice</button>
+            </div>
+        </div>
+
+        <div id="screen-hub" class="screen">
+            <h3 id="team-banner" style="margin-top: 0; padding: 10px; border-radius: 8px; width: 100%; text-align: center; max-width: 1000px;">
+                Awaiting Commander's Orders...
+            </h3>
+            
+            <div class="hub-layout">
+                <div class="zero-g-box" id="zero-g-box" onclick="thrustAvatar(event)">
+                    </div>
+                
+                <div class="chat-container">
+                    <div style="background: #0f172a; padding: 10px; text-align: center; font-weight: bold; border-bottom: 1px solid #334155;">
+                        📻 Station Comms
+                    </div>
+                    <div class="chat-messages" id="chat-messages">
+                        </div>
+                    <div class="chat-input-area">
+                        <input type="text" id="chat-input" placeholder="Text only..." onkeypress="handleChatEnter(event)">
+                        <button class="btn btn-main" onclick="sendChat()">Send</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="screen-host" class="screen">
+            <div class="card" style="max-width: 800px; width: 100%; border-color: var(--yellow);">
+                <h2 style="color: var(--yellow); margin-top: 0;" id="host-title">👑 Command Deck</h2>
+                
+                <div style="display: flex; gap: 10px; justify-content: center; margin-bottom: 20px;">
+                    <button class="btn btn-green" style="width: auto;" onclick="initiateGame()" id="btn-start">🚀 INITIATE PHASE 1: LASER SCRAPING</button>
+                    <button class="btn btn-danger" style="width: auto;" onclick="clearChat()">🗑️ Clear Comms</button>
+                    <button class="btn btn-solo" style="width: auto;" onclick="resetLobby()">🛑 Reset Station</button>
+                </div>
+
+                <div class="host-grid">
+                    <div class="team-roster t1"><b style="color: var(--red);">Team Red</b><div id="roster-1"></div></div>
+                    <div class="team-roster t2"><b style="color: var(--blue);">Team Blue</b><div id="roster-2"></div></div>
+                    <div class="team-roster t3"><b style="color: var(--green);">Team Green</b><div id="roster-3"></div></div>
+                    <div class="team-roster t4"><b style="color: var(--yellow);">Team Yellow</b><div id="roster-4"></div></div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
+    import { getDatabase, ref, set, onValue, update, remove, push } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-database.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyBpf5wi0wShnatqUhcmPhSOdnd0NdBL65A",
+        authDomain: "symmetry-and-nets.firebaseapp.com",
+        databaseURL: "https://symmetry-and-nets-default-rtdb.europe-west1.firebasedatabase.app",
+        projectId: "symmetry-and-nets",
+        storageBucket: "symmetry-and-nets.firebasestorage.app",
+        messagingSenderId: "250211420064",
+        appId: "1:250211420064:web:fe4a064715042bedf546c5"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    
+    // Database References
+    const stateRef = ref(db, 'space_agency/state');
+    const usersRef = ref(db, 'space_agency/users');
+    const chatRef = ref(db, 'space_agency/chat');
+
+    // Configuration
+    const TEACHER_PIN = "73556"; // CHANGE THIS PIN IF YOU WANT!
+    
+    // User State
+    let myUID = sessionStorage.getItem('spaceUid');
+    if (!myUID) {
+        myUID = 'agent_' + Math.random().toString(36).substr(2, 9);
+        sessionStorage.setItem('spaceUid', myUID);
+    }
+    
+    let myName = "";
+    let myAvatar = "👩‍🚀";
+    let myTeam = 1;
+    let isHost = false;
+    let isObserver = false;
+    let isSolo = false;
+
+    // --- GLOBALS EXPOSED FOR HTML ONCLICK ---
+    window.selectEmoji = (element, emoji) => {
+        document.querySelectorAll('.emoji-option').forEach(el => el.classList.remove('selected'));
+        element.classList.add('selected');
+        myAvatar = emoji;
+    };
+
+    window.hostLogin = () => {
+        const pin = prompt("Enter Commander PIN:");
+        if (pin === TEACHER_PIN) {
+            onValue(stateRef, (snap) => {
+                const state = snap.val() || {};
+                if (state.hostExists && !isHost) {
+                    alert("Commander already present. Logging you in as Observer.");
+                    isObserver = true;
+                    document.getElementById('host-title').innerText = "👁️ Observer Deck";
+                    document.getElementById('btn-start').style.display = "none";
+                } else {
+                    isHost = true;
+                    update(stateRef, { hostExists: true, phase: 'lobby' });
+                }
+                switchScreen('screen-host');
+            }, { onlyOnce: true });
+        } else if (pin !== null) {
+            alert("Access Denied.");
+        }
+    };
+
+    window.joinStation = () => {
+        const input = document.getElementById('playerName').value.trim();
+        if (!input) return alert("Enter your name, Recruit!");
+        myName = input;
+        
+        // Auto-balance teams
+        onValue(usersRef, (snap) => {
+            const users = snap.val() || {};
+            const counts = {1:0, 2:0, 3:0, 4:0};
+            Object.values(users).forEach(u => { if(u.team) counts[u.team]++; });
+            
+            let minTeam = 1;
+            for(let i=2; i<=4; i++) {
+                if(counts[i] < counts[minTeam]) minTeam = i;
+            }
+            myTeam = minTeam;
+
+            // Set user in DB with a random starting position
+            set(ref(db, `space_agency/users/${myUID}`), {
+                name: myName,
+                avatar: myAvatar,
+                team: myTeam,
+                targetX: Math.floor(Math.random() * 80) + 10,
+                targetY: Math.floor(Math.random() * 80) + 10
+            });
+
+            setupTeamBanner();
+            switchScreen('screen-hub');
+        }, { onlyOnce: true });
+    };
+
+    window.startSolo = () => {
+        alert("Solo mode will be activated in Phase 2!");
+    };
+
+    // --- ZERO-G MOVEMENT ---
+    window.thrustAvatar = (e) => {
+        if (isHost || isObserver || isSolo) return;
+        const box = document.getElementById('zero-g-box');
+        const rect = box.getBoundingClientRect();
+        
+        // Calculate percentage inside the box
+        const xPercent = ((e.clientX - rect.left) / rect.width) * 100;
+        const yPercent = ((e.clientY - rect.top) / rect.height) * 100;
+        
+        update(ref(db, `space_agency/users/${myUID}`), {
+            targetX: xPercent,
+            targetY: yPercent
+        });
+    };
+
+    // --- EMOJI-FREE CHAT ---
+    function stripEmojis(text) {
+        // Simple regex to remove non-standard text characters (emojis)
+        return text.replace(/([\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF])/g, '').trim();
+    }
+
+    window.handleChatEnter = (e) => {
+        if (e.key === 'Enter') window.sendChat();
+    };
+
+    window.sendChat = () => {
+        const input = document.getElementById('chat-input');
+        const cleanText = stripEmojis(input.value);
+        
+        if (cleanText.length > 0) {
+            push(chatRef, {
+                sender: myName,
+                text: cleanText,
+                uid: myUID
+            });
+            input.value = "";
+        } else if (input.value.length > 0) {
+            alert("Comms restricted to text only. No emojis allowed!");
+            input.value = "";
+        }
+    };
+
+    window.clearChat = () => {
+        if (isHost) remove(chatRef);
+    };
+
+    // --- HOST CONTROLS ---
+    window.kickUser = (uid) => {
+        if (isHost) remove(ref(db, `space_agency/users/${uid}`));
+    };
+
+    window.resetLobby = () => {
+        if(confirm("Are you sure? This kicks everyone and resets the station.")) {
+            remove(ref(db, 'space_agency'));
+            location.reload();
+        }
+    };
+
+    window.initiateGame = () => {
+        if (isHost) {
+            alert("Phase 1 Laser Scraping is ready to be built!");
+            // update(stateRef, { phase: 'scraping' });
+        }
+    };
+
+    // --- REALTIME DATABASE LISTENERS ---
+    
+    // Listen for User Changes (Draw Avatars & Rosters)
+    onValue(usersRef, (snap) => {
+        const users = snap.val() || {};
+        
+        // Check if I was kicked
+        if (!isHost && !isObserver && !isSolo && myName !== "" && !users[myUID]) {
+            alert("You have been disconnected from the station.");
+            location.reload();
+        }
+
+        const box = document.getElementById('zero-g-box');
+        if (!isHost && !isObserver) {
+            // Draw floating avatars
+            const existingIds = [];
+            Object.entries(users).forEach(([uid, u]) => {
+                existingIds.push(uid);
+                let el = document.getElementById(`avatar-${uid}`);
+                if (!el) {
+                    el = document.createElement('div');
+                    el.id = `avatar-${uid}`;
+                    el.className = 'avatar-entity';
+                    
+                    // Add team color glow
+                    let color = "#ef4444";
+                    if(u.team === 2) color = "#3b82f6";
+                    if(u.team === 3) color = "#10b981";
+                    if(u.team === 4) color = "#f59e0b";
+                    
+                    el.innerHTML = `<div class="avatar-name" style="border-bottom: 2px solid ${color};">${u.name}</div>${u.avatar}`;
+                    box.appendChild(el);
+                }
+                // Move them
+                el.style.left = `${u.targetX}%`;
+                el.style.top = `${u.targetY}%`;
+            });
+
+            // Remove disconnected users
+            Array.from(box.children).forEach(child => {
+                const childUid = child.id.replace('avatar-', '');
+                if (!existingIds.includes(childUid)) child.remove();
+            });
+        }
+
+        // Update Host Rosters
+        if (isHost || isObserver) {
+            let t1="", t2="", t3="", t4="";
+            Object.entries(users).forEach(([uid, u]) => {
+                const kickBtn = isHost ? `<button class="kick-btn" onclick="kickUser('${uid}')">X</button>` : "";
+                const tag = `<div class="player-tag"><span>${u.avatar} ${u.name}</span> ${kickBtn}</div>`;
+                if(u.team === 1) t1 += tag;
+                if(u.team === 2) t2 += tag;
+                if(u.team === 3) t3 += tag;
+                if(u.team === 4) t4 += tag;
+            });
+            document.getElementById('roster-1').innerHTML = t1 || "<i style='color:#64748b;'>Empty</i>";
+            document.getElementById('roster-2').innerHTML = t2 || "<i style='color:#64748b;'>Empty</i>";
+            document.getElementById('roster-3').innerHTML = t3 || "<i style='color:#64748b;'>Empty</i>";
+            document.getElementById('roster-4').innerHTML = t4 || "<i style='color:#64748b;'>Empty</i>";
+        }
+    });
+
+    // Listen for Chat Messages
+    onValue(chatRef, (snap) => {
+        const messages = snap.val() || {};
+        const chatBox = document.getElementById('chat-messages');
+        chatBox.innerHTML = "";
+        
+        Object.values(messages).forEach(m => {
+            const div = document.createElement('div');
+            div.className = `chat-msg ${m.uid === myUID ? 'me' : ''}`;
+            div.innerHTML = `<b style="color:#94a3b8; font-size:0.8rem;">${m.sender}</b><br>${m.text}`;
+            chatBox.appendChild(div);
+        });
+        
+        // Auto-scroll to bottom
+        chatBox.scrollTop = chatBox.scrollHeight;
+    });
+
+    // Listen for Game State
+    onValue(stateRef, (snap) => {
+        const state = snap.val() || {};
+        // Future implementation: if state.phase === 'scraping', switch to Game screen!
+    });
+
+    // --- HELPER FUNCTIONS ---
+    function switchScreen(id) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active-screen'));
+        document.getElementById(id).classList.add('active-screen');
+    }
+
+    function setupTeamBanner() {
+        const banner = document.getElementById('team-banner');
+        if (myTeam === 1) { banner.style.background = 'rgba(239, 68, 68, 0.2)'; banner.innerHTML = '🔴 You are on the <b style="color:var(--red);">RED CREW</b>'; }
+        if (myTeam === 2) { banner.style.background = 'rgba(59, 130, 246, 0.2)'; banner.innerHTML = '🔵 You are on the <b style="color:var(--blue);">BLUE CREW</b>'; }
+        if (myTeam === 3) { banner.style.background = 'rgba(16, 185, 129, 0.2)'; banner.innerHTML = '🟢 You are on the <b style="color:var(--green);">GREEN CREW</b>'; }
+        if (myTeam === 4) { banner.style.background = 'rgba(245, 158, 11, 0.2)'; banner.innerHTML = '🟡 You are on the <b style="color:var(--yellow);">YELLOW CREW</b>'; }
+    }
+
+</script>
+</body>
+</html>
