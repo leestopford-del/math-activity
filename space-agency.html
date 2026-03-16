@@ -437,10 +437,17 @@
     });
 
     onValue(boardRef, (snap) => {
-        if(currentPhase !== 'scraping') return;
+        // The bug was here: We removed the "if(currentPhase !== 'scraping') return;" line!
         const data = snap.val() || {};
         const container = document.getElementById('billboard-container');
         
+        // If the database is empty (e.g. Host clicked Reset Station), clear the board
+        if (Object.keys(data).length === 0) {
+            container.innerHTML = "";
+            return;
+        }
+
+        // Render the sentences if the board is currently empty
         if(container.children.length === 0) {
             Object.entries(data).forEach(([id, s]) => {
                 let span = document.createElement('div');
