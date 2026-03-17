@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Space Fact Scavenger</title>
+    <style>
+        body {
+            margin: 0;
+            background-color: #0b0c10;
+            color: #c5c6c7;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        #game-container {
+            flex: 1;
+            position: relative;
+            background: radial-gradient(circle at center, #1f2833 0%, #0b0c10 100%);
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        #ui-panel {
+            width: 350px;
+            background-color: #1f2833;
+            border-left: 4px solid #66fcf1;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: -5px 0 15px rgba(0,0,0,0.5);
+            z-index: 10;
+        }
+
+        h1 { color: #66fcf1; margin-top: 0; font-size: 1.5rem; text-align: center; }
+        h2 { color: #45a29e; font-size: 1.1rem; border-bottom: 1px solid #45a29e; padding-bottom: 5px; }
+        
+        #inventory {
+            background: #0b0c10;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px dashed #c5c6c7;
+            margin-bottom: 20px;
+            min-height: 60px;
+        }
+
+        .fact-category { flex: 1; overflow-y: auto; margin-bottom: 10px; }
+        .fact-category ul { padding-left: 20px; margin: 0; font-size: 0.9rem; }
+        .fact-category li { margin-bottom: 8px; line-height: 1.3; }
+
+        #overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(11, 12, 16, 0.85);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 20;
+        }
+
+        button {
+            background-color: #66fcf1;
+            color: #0b0c10;
+            border: none;
+            padding: 15px 30px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: 0.2s;
+        }
+        button:hover { transform: scale(1.05); background-color: #45a29e; }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <canvas id="gameCanvas"></canvas>
+        <div id="overlay">
+            <h1 style="font-size: 3rem; margin-bottom: 10px;">SPACE FACT SCAVENGER</h1>
+            <p style="font-size: 1.2rem; max-width: 600px; text-align: center; line-height: 1.5;">
+                Use <b>Arrow Keys</b> or <b>WASD</b> to move your Astronaut (👨‍🚀).<br><br>
+                Collect Data Drives (💾) and read the fact. Deliver it to the correct Satellite Dish (📡) to build your Fact Sheet.<br><br>
+                Avoid the Opinion Aliens (👽) or they will scramble your data! Watch out for Fluff Dust (☄️) which will slow you down.
+            </p>
+            <button onclick="startGame()">START MISSION</button>
+        </div>
+    </div>
+
+    <div id="ui-panel">
+        <h1>MISSION LOG</h1>
+        
+        <div id="inventory">
+            <span style="color: #45a29e; font-weight: bold; font-size: 0.8rem;">CURRENT DATA HOLD:</span>
+            <div id="current-fact" style="margin-top: 10px; font-style: italic;">Empty</div>
+        </div>
+
+        <div class="fact-category">
+            <h2>📡 Planetary Profiles</h2>
+            <ul id="list-planets"></ul>
+        </div>
+        <div class="fact-category">
+            <h2>📡 Moons & Satellites</h2>
+            <ul id="list-moons"></ul>
+        </div>
+        <div class="fact-category">
+            <h2>📡 The Central Star</h2>
+            <ul id="list-star"></ul>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // --- GAME DATA (Easy to edit!) ---
+        const rawFacts = [
+            { text: "Jupiter has a mass 318 times that of Earth.", category: "planets" },
+            { text: "Venus has a thick atmosphere of carbon dioxide.", category: "planets" },
+            { text: "Earth's moon heavily influences the ocean tides.", category: "moons" },
+            { text: "Ganymede is the largest moon in the Solar System.", category: "moons" },
+            { text: "The Sun contains 99.8% of the system's mass.", category: "star" },
+            { text: "The Sun's core temperature is 15 million degrees Celsius.", category: "star" }
+        ];
+
+        let gameLoop;
+        let isPlaying = false;
+        let heldFact = null;
+        let factPool = [...rawFacts];
+
+        // --- ENTITIES ---
+        const player = { x: 100, y: 100, size: 30, speed: 5, normalSpeed: 5, emoji: '👨‍🚀' };
+        
+        const dropZones = [
+            { id: "planets", x: 150, y: 100, size: 50, emoji: '📡', label: "Planets" },
+            { id: "moons", x: 150, y: 350, size: 50, emoji: '📡', label: "Moons" },
+            { id: "star", x: 150, y: 600, size: 50, emoji: '📡', label: "Star" }
+        ];
+
+        let dataDrives = [];
+        let aliens = [];
+        let fluffDust = [];
+
+        // --- CONTROLS ---
+        const keys = { ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false, w: false, a: false, s: false, d: false };
+        window.addEventListener('keydown', e => { if(keys.hasOwnProperty(e.key)) keys[e.key] = true; });
+        window.addEventListener('keyup', e => { if(keys.hasOwnProperty(e.key)) keys[e.key] = false; });
+
+        function resizeCanvas() {
+            canvas.width = document.getElementById('game-container').clientWidth;
+            canvas.height = document.getElementById('game-container').clientHeight;
+            // Reposition drop zones based on height
+            dropZones[0].y = canvas.height * 0.2;
+            dropZones[1].y = canvas.height * 0.5;
+            dropZones[2].y = canvas.height * 0.8;
+            dropZones.forEach(z => z.x = canvas.width - 100); 
+        }
+        window.addEventListener('resize', resizeCanvas);
+
+        function spawnEntities() {
+            // Spawn one data drive at a time
+            if (dataDrives.length === 0 && factPool.length > 0 && !heldFact) {
+                let randomFact = factPool.splice(Math.floor(Math.random() * factPool.length), 1)[0];
+                dataDrives.push({
+                    x: Math.random() * (canvas.width - 300) + 50, 
+                    y: Math.random() * (canvas.height - 100) + 50, 
+                    size: 30, emoji: '💾', factData: randomFact
+                });
+            }
+
+            // Spawn bouncy Aliens (Opinions)
+            while(aliens.length < 4) {
+                aliens.push({
+                    x: Math.random() * (canvas.width - 200), y: Math.random() * canvas.height,
+                    size: 30, emoji: '👽',
+                    vx: (Math.random() > 0.5 ? 1 : -1) * (Math.random() * 2 + 1),
+                    vy: (Math.random() > 0.5 ? 1 : -1) * (Math.random() * 2 + 1)
+                });
+            }
+
+            // Spawn slow Fluff
+            while(fluffDust.length < 3) {
+                fluffDust.push({
+                    x: Math.random() * (canvas.width - 200), y: Math.random() * canvas.height,
+                    size: 40, emoji: '☄️',
+                    vx: (Math.random() > 0.5 ? 1 : -1) * 0.5,
+                    vy: (Math.random() > 0.5 ? 1 : -1) * 0.5
+                });
+            }
+        }
+
+        function checkCollision(obj1, obj2) {
+            const dx = obj1.x - obj2.x;
+            const dy = obj1.y - obj2.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            return distance < (obj1.size/2 + obj2.size/2);
+        }
+
+        function update() {
+            if (!isPlaying) return;
+
+            // Player Movement
+            if ((keys.ArrowUp || keys.w) && player.y > player.size) player.y -= player.speed;
+            if ((keys.ArrowDown || keys.s) && player.y < canvas.height - player.size) player.y += player.speed;
+            if ((keys.ArrowLeft || keys.a) && player.x > player.size) player.x -= player.speed;
+            if ((keys.ArrowRight || keys.d) && player.x < canvas.width - player.size) player.x += player.speed;
+
+            // Move Aliens
+            aliens.forEach(alien => {
+                alien.x += alien.vx; alien.y += alien.vy;
+                if (alien.x < 0 || alien.x > canvas.width) alien.vx *= -1;
+                if (alien.y < 0 || alien.y > canvas.height) alien.vy *= -1;
+
+                if (checkCollision(player, alien)) {
+                    // Alien stole the fact!
+                    if (heldFact) {
+                        factPool.push(heldFact); // Put it back in the pool
+                        heldFact = null;
+                        document.getElementById('current-fact').innerText = "Data Scrambled by Opinion!";
+                        document.getElementById('current-fact').style.color = "#ff4444";
+                        setTimeout(() => { if(!heldFact) document.getElementById('current-fact').innerText = "Empty"; document.getElementById('current-fact').style.color = "#c5c6c7"; }, 2000);
+                        player.x -= alien.vx * 20; // Knockback
+                        player.y -= alien.vy * 20;
+                    }
+                }
+            });
+
+            // Move Fluff
+            fluffDust.forEach(fluff => {
+                fluff.x += fluff.vx; fluff.y += fluff.vy;
+                if (fluff.x < 0 || fluff.x > canvas.width) fluff.vx *= -1;
+                if (fluff.y < 0 || fluff.y > canvas.height) fluff.vy *= -1;
+
+                if (checkCollision(player, fluff)) {
+                    player.speed = player.normalSpeed / 3; // Slow down
+                    document.getElementById('current-fact').innerText = "Caught in Fluff Words! Speed Reduced.";
+                    setTimeout(() => { player.speed = player.normalSpeed; if(!heldFact) document.getElementById('current-fact').innerText = "Empty"; }, 1500);
+                }
+            });
+
+            // Pickup Data Drive
+            dataDrives.forEach((drive, index) => {
+                if (checkCollision(player, drive)) {
+                    heldFact = drive.factData;
+                    document.getElementById('current-fact').innerText = heldFact.text;
+                    document.getElementById('current-fact').style.color = "#66fcf1";
+                    dataDrives.splice(index, 1);
+                }
+            });
+
+            // Drop off at Zones
+            dropZones.forEach(zone => {
+                if (heldFact && checkCollision(player, zone)) {
+                    if (heldFact.category === zone.id) {
+                        // Correct category!
+                        const li = document.createElement('li');
+                        li.innerText = heldFact.text;
+                        document.getElementById(`list-${zone.id}`).appendChild(li);
+                        heldFact = null;
+                        document.getElementById('current-fact').innerText = "Data Uploaded Successfully!";
+                        document.getElementById('current-fact').style.color = "#45a29e";
+                        
+                        // Check Win Condition
+                        if (factPool.length === 0 && dataDrives.length === 0 && !heldFact) {
+                            setTimeout(() => {
+                                isPlaying = false;
+                                document.getElementById('overlay').style.display = 'flex';
+                                document.getElementById('overlay').innerHTML = `
+                                    <h1 style="font-size: 3rem;">FACT SHEET COMPLETE!</h1>
+                                    <p>You successfully filtered out the opinions and organized the facts.</p>
+                                    <button onclick="location.reload()">PLAY AGAIN</button>
+                                `;
+                            }, 500);
+                        }
+
+                    } else {
+                        // Wrong category hint
+                        document.getElementById('current-fact').innerText = `Error: Does not belong in ${zone.label}!`;
+                        document.getElementById('current-fact').style.color = "#ff4444";
+                        player.x -= 20; // slight bounce back
+                    }
+                }
+            });
+
+            spawnEntities();
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+
+            // Draw Drop Zones
+            dropZones.forEach(zone => {
+                ctx.fillStyle = "rgba(102, 252, 241, 0.1)";
+                ctx.beginPath(); ctx.arc(zone.x, zone.y, zone.size, 0, Math.PI * 2); ctx.fill();
+                ctx.font = "30px Arial"; ctx.fillText(zone.emoji, zone.x, zone.y - 10);
+                ctx.fillStyle = "#66fcf1"; ctx.font = "14px Arial"; ctx.fillText(zone.label, zone.x, zone.y + 25);
+            });
+
+            // Draw Entities
+            dataDrives.forEach(d => { ctx.font = `${d.size}px Arial`; ctx.fillText(d.emoji, d.x, d.y); });
+            aliens.forEach(a => { ctx.font = `${a.size}px Arial`; ctx.fillText(a.emoji, a.x, a.y); });
+            fluffDust.forEach(f => { ctx.font = `${f.size}px Arial`; ctx.fillText(f.emoji, f.x, f.y); });
+
+            // Draw Player
+            ctx.font = `${player.size}px Arial`;
+            ctx.fillText(player.emoji, player.x, player.y);
+
+            // Draw target line if holding fact
+            if (heldFact) {
+                const targetZone = dropZones.find(z => z.id === heldFact.category);
+                if (targetZone) {
+                    ctx.beginPath();
+                    ctx.moveTo(player.x, player.y);
+                    ctx.lineTo(targetZone.x, targetZone.y);
+                    ctx.strokeStyle = "rgba(102, 252, 241, 0.2)";
+                    ctx.setLineDash([5, 10]);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                }
+            }
+        }
+
+        function loop() {
+            update();
+            draw();
+            if (isPlaying) requestAnimationFrame(loop);
+        }
+
+        function startGame() {
+            document.getElementById('overlay').style.display = 'none';
+            resizeCanvas();
+            isPlaying = true;
+            spawnEntities();
+            loop();
+        }
+
+        resizeCanvas(); // Initial setup
+    </script>
+</body>
+</html>
