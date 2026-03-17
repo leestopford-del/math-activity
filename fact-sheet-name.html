@@ -50,9 +50,9 @@
             min-height: 60px;
         }
 
-        .fact-category { flex: 1; overflow-y: auto; margin-bottom: 10px; }
-        .fact-category ul { padding-left: 20px; margin: 0; font-size: 0.9rem; }
-        .fact-category li { margin-bottom: 8px; line-height: 1.3; }
+        .fact-category { flex: 1; overflow-y: auto; margin-bottom: 5px; }
+        .fact-category ul { padding-left: 20px; margin: 0; font-size: 0.85rem; }
+        .fact-category li { margin-bottom: 6px; line-height: 1.3; }
 
         #overlay {
             position: absolute;
@@ -88,8 +88,8 @@
             <h1 style="font-size: 3rem; margin-bottom: 10px;">SPACE FACT SCAVENGER</h1>
             <p style="font-size: 1.2rem; max-width: 600px; text-align: center; line-height: 1.5;">
                 Use <b>Arrow Keys</b> or <b>WASD</b> to move your Astronaut (👨‍🚀).<br><br>
-                Collect Data Drives (💾) and read the fact. Deliver it to the correct Satellite Dish (📡) to build your Fact Sheet.<br><br>
-                Avoid the Opinion Aliens (👽) or they will scramble your data! Watch out for Fluff Dust (☄️) which will slow you down.
+                Collect Data Drives (💾) and deliver them to the correct Satellite Dish (📡).<br><br>
+                Avoid the Opinion Aliens (👽) tracking you! Collect bullet points (•) and press <b>SPACEBAR</b> to blast them away. Watch out for Fluff Dust (☄️)!
             </p>
             <button onclick="startGame()">START MISSION</button>
         </div>
@@ -115,9 +115,14 @@
             <h2>📡 The Central Star</h2>
             <ul id="list-star"></ul>
         </div>
+        <div class="fact-category">
+            <h2>🚀 Space Exploration</h2>
+            <ul id="list-exploration"></ul>
+        </div>
     </div>
 
-    const canvas = document.getElementById('gameCanvas');
+    <script>
+        const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
 
         // --- EXPANDED GAME DATA ---
@@ -137,7 +142,7 @@
             { text: "The Sun's core temperature is 15 million degrees Celsius.", category: "star" },
             { text: "It takes 8 minutes and 20 seconds for sunlight to reach Earth.", category: "star" },
             { text: "The Sun is primarily composed of hydrogen and helium.", category: "star" },
-            // Exploration (NEW CATEGORY)
+            // Exploration
             { text: "Voyager 1 became the first human-made object to enter interstellar space.", category: "exploration" },
             { text: "The Apollo 11 mission landed humans on the Moon in 1969.", category: "exploration" },
             { text: "The Mars Perseverance rover carries a small helicopter named Ingenuity.", category: "exploration" },
@@ -152,21 +157,22 @@
         // --- ENTITIES ---
         const player = { x: 100, y: 100, size: 30, speed: 5, normalSpeed: 5, emoji: '👨‍🚀', ammo: 0 };
         
-        // Added the 4th Drop Zone
         const dropZones = [
             { id: "planets", x: 150, y: 0, size: 50, emoji: '📡', label: "Planets" },
             { id: "moons", x: 150, y: 0, size: 50, emoji: '📡', label: "Moons" },
             { id: "star", x: 150, y: 0, size: 50, emoji: '📡', label: "Star" },
-            { id: "exploration", x: 150, y: 0, size: 50, emoji: '🚀', label: "Exploration" } // NEW
+            { id: "exploration", x: 150, y: 0, size: 50, emoji: '🚀', label: "Exploration" }
         ];
 
         let dataDrives = [];
         let aliens = [];
+        let fluffDust = [];
         let ammoPickups = [];
         let blasts = [];
 
         // --- CONTROLS ---
         const keys = { ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false, w: false, a: false, s: false, d: false, ' ': false };
+        
         window.addEventListener('keydown', e => { 
             if(keys.hasOwnProperty(e.key)) keys[e.key] = true; 
             // FIRE BLAST ON SPACEBAR
@@ -174,7 +180,7 @@
                 player.ammo--;
                 blasts.push({ x: player.x, y: player.y, radius: 10, maxRadius: 150, active: true });
                 document.getElementById('current-fact').innerText = "Bullet Point Blast Fired!";
-                setTimeout(() => { if(!heldFact) document.getElementById('current-fact').innerText = "Empty"; }, 1000);
+                setTimeout(() => { if(!heldFact) document.getElementById('current-fact').innerText = "Empty"; else document.getElementById('current-fact').innerText = heldFact.text; }, 1000);
             }
         });
         window.addEventListener('keyup', e => { if(keys.hasOwnProperty(e.key)) keys[e.key] = false; });
@@ -202,7 +208,7 @@
                 });
             }
 
-            // Spawn aggressive Aliens (Opinions) - Now there are 5!
+            // Spawn aggressive Aliens (Opinions)
             while(aliens.length < 5) {
                 aliens.push({
                     x: Math.random() * (canvas.width - 200), y: Math.random() * canvas.height,
@@ -210,8 +216,18 @@
                 });
             }
 
+            // Spawn bouncy Fluff Dust
+            while(fluffDust.length < 3) {
+                fluffDust.push({
+                    x: Math.random() * (canvas.width - 200), y: Math.random() * canvas.height,
+                    size: 40, emoji: '☄️',
+                    vx: (Math.random() > 0.5 ? 1 : -1) * 0.5,
+                    vy: (Math.random() > 0.5 ? 1 : -1) * 0.5
+                });
+            }
+
             // Occasionally spawn Bullet Point Ammo
-            if(ammoPickups.length < 1 && Math.random() < 0.005) {
+            if(ammoPickups.length < 2 && Math.random() < 0.005) {
                 ammoPickups.push({
                     x: Math.random() * (canvas.width - 300) + 50,
                     y: Math.random() * (canvas.height - 100) + 50,
@@ -274,7 +290,7 @@
 
                 if(destroyed) {
                     aliens.splice(i, 1);
-                    continue; // Skip the rest of this alien's loop
+                    continue; 
                 }
 
                 // Did alien hit player?
@@ -290,6 +306,19 @@
                     }
                 }
             }
+
+            // Move Fluff Dust
+            fluffDust.forEach(fluff => {
+                fluff.x += fluff.vx; fluff.y += fluff.vy;
+                if (fluff.x < 0 || fluff.x > canvas.width) fluff.vx *= -1;
+                if (fluff.y < 0 || fluff.y > canvas.height) fluff.vy *= -1;
+
+                if (checkCollision(player, fluff)) {
+                    player.speed = player.normalSpeed / 3; // Slow down
+                    if(!heldFact) document.getElementById('current-fact').innerText = "Caught in Fluff Words! Speed Reduced.";
+                    setTimeout(() => { player.speed = player.normalSpeed; if(!heldFact) document.getElementById('current-fact').innerText = "Empty"; }, 1500);
+                }
+            });
 
             // Pickup Ammo
             ammoPickups.forEach((ammo, index) => {
@@ -376,6 +405,7 @@
             ammoPickups.forEach(a => { ctx.font = `${a.size}px Arial`; ctx.fillStyle="#fff"; ctx.fillText(a.emoji, a.x, a.y); });
             dataDrives.forEach(d => { ctx.font = `${d.size}px Arial`; ctx.fillText(d.emoji, d.x, d.y); });
             aliens.forEach(a => { ctx.font = `${a.size}px Arial`; ctx.fillText(a.emoji, a.x, a.y); });
+            fluffDust.forEach(f => { ctx.font = `${f.size}px Arial`; ctx.fillText(f.emoji, f.x, f.y); });
 
             // Draw Player
             ctx.font = `${player.size}px Arial`;
@@ -403,14 +433,6 @@
         }
 
         function startGame() {
-            // Also add the new category to the UI panel HTML dynamically on start
-            if(!document.getElementById('list-exploration')) {
-                const newCat = document.createElement('div');
-                newCat.className = 'fact-category';
-                newCat.innerHTML = `<h2>🚀 Space Exploration</h2><ul id="list-exploration"></ul>`;
-                document.getElementById('ui-panel').appendChild(newCat);
-            }
-
             document.getElementById('overlay').style.display = 'none';
             resizeCanvas();
             isPlaying = true;
@@ -419,5 +441,6 @@
         }
 
         resizeCanvas();
+    </script>
 </body>
 </html>
