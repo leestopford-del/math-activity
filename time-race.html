@@ -14,18 +14,11 @@
             display: flex; flex-direction: column; height: 100vh; overflow: hidden;
         }
 
-        /* SCREEN MANAGEMENT */
-        .screen { display: none; width: 100%; height: 100%; flex-direction: column; align-items: center; position: absolute; top: 0; left: 0; background: #020617; overflow-y: auto; padding-top: 50px; }
+        .screen { display: none; width: 100%; height: 100%; flex-direction: column; align-items: center; position: absolute; top: 0; left: 0; background: #020617; overflow-y: auto; padding-top: 20px; }
         .active-screen { display: flex; }
 
         h1 { color: #10B981; text-transform: uppercase; letter-spacing: 2px; text-align: center; font-family: 'Sora', sans-serif;}
-        h2 { color: #94A3B8; border-bottom: 2px solid #1E293B; padding-bottom: 5px; }
-
-        /* INPUTS & BUTTONS */
-        input[type="text"] {
-            padding: 15px; font-size: 1.2rem; text-align: center; border-radius: 8px;
-            border: 2px solid #10B981; background: #0F172A; color: white; margin-bottom: 20px; outline: none; width: 250px;
-        }
+        
         button {
             background: linear-gradient(90deg, #10B981, #059669); color: white; border: none; padding: 15px 30px;
             font-size: 1.2rem; font-weight: bold; border-radius: 8px; cursor: pointer;
@@ -33,24 +26,23 @@
         }
         button:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(16, 185, 129, 0.5); }
         .btn-danger { background: linear-gradient(90deg, #EF4444, #B91C1C); box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3); }
-        .btn-help { background: linear-gradient(90deg, #F59E0B, #D97706); box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3); }
 
         /* MENU & LEADERBOARDS */
-        #menu-container { display: flex; flex-wrap: wrap; justify-content: center; width: 90%; max-width: 1200px; gap: 20px; margin-top: 20px; }
+        #menu-container { display: flex; flex-wrap: wrap; justify-content: center; width: 90%; max-width: 1200px; gap: 20px; margin-top: 20px; padding-bottom: 50px;}
         .round-card { background: #0F172A; border: 1px solid #1E293B; border-radius: 12px; padding: 20px; width: 300px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
         .leaderboard-list { list-style: none; padding: 0; margin: 15px 0; text-align: left; font-size: 0.95rem; }
         .leaderboard-list li { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px dashed #1E293B; }
         .leaderboard-list li span.time { color: #10B981; font-family: monospace; font-size: 1.1rem; }
 
         /* ROUND PLAY AREA */
-        #game-area { text-align: center; width: 100%; max-width: 600px; background: #0F172A; padding: 40px; border-radius: 12px; border-top: 5px solid #10B981; position: relative; }
-        .timer-display { font-size: 3rem; font-family: monospace; color: #f8fafc; margin-bottom: 20px; }
-        .question-text { font-size: 1.3rem; margin-bottom: 30px; line-height: 1.5; color: #94A3B8;}
+        #game-area { display: flex; flex-direction: column; align-items: center; width: 100%; height: 100%; position: relative; }
+        .top-bar { display: flex; justify-content: space-between; align-items: center; width: 90%; max-width: 1000px; background: #0F172A; padding: 10px 30px; border-radius: 12px; border-bottom: 3px solid #10B981; margin-bottom: 10px; }
+        .timer-display { font-size: 2.5rem; font-family: monospace; color: #10B981; font-weight: bold;}
+        
+        #sim-frame { width: 100%; max-width: 1050px; height: 800px; border: none; border-radius: 12px; background: transparent; }
 
-        /* PRE-ROUND & EXPLANATION OVERLAYS */
-        .overlay-box { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(2, 6, 23, 0.95); display: flex; flex-direction: column; justify-content: center; align-items: center; border-radius: 12px; z-index: 10; padding: 20px; box-sizing: border-box; text-align: center;}
-        .explanation-text { font-size: 1.2rem; color: #F59E0B; background: rgba(0,0,0,0.5); padding: 20px; border-radius: 8px; border-left: 4px solid #F59E0B; margin-bottom: 20px; text-align: left;}
-
+        .overlay-box { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(2, 6, 23, 0.95); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 10; text-align: center;}
+        
         /* HOST DASHBOARD */
         #live-tracking { display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; width: 90%; margin-top: 20px; }
         .player-status-card { background: #0F172A; padding: 15px; border-radius: 8px; border-left: 4px solid #10B981; width: 250px; text-align: left; }
@@ -58,14 +50,14 @@
 </head>
 <body>
 
-    <div id="screen-login" class="screen active-screen">
+    <div id="screen-login" class="screen active-screen" style="justify-content: center;">
         <h1 style="font-size: 3rem; margin-bottom: 10px;">CYBER LABYRINTH</h1>
-        <p style="font-size: 1.2rem; margin-bottom: 30px; color: #94A3B8;">Stage 6 Transformation Speedrun</p>
-        <input type="text" id="student-name" placeholder="Enter Callsign..." autocomplete="off">
+        <p style="font-size: 1.2rem; margin-bottom: 30px; color: #94A3B8;">Stage 6 Visual Speedrun</p>
+        <input type="text" id="student-name" placeholder="Enter Callsign..." autocomplete="off" style="padding: 15px; font-size: 1.2rem; text-align: center; border-radius: 8px; border: 2px solid #10B981; background: #0F172A; color: white; margin-bottom: 20px; outline: none; width: 250px;">
         <button onclick="joinLobby()">JOIN SERVER</button>
     </div>
 
-    <div id="screen-waiting" class="screen">
+    <div id="screen-waiting" class="screen" style="justify-content: center;">
         <h1 style="font-size: 2.5rem; color: #F59E0B;">⏳ AWAITING HOST ⏳</h1>
         <p style="font-size: 1.2rem; color: #94A3B8;">The instructor is preparing the simulation. Stand by...</p>
     </div>
@@ -75,52 +67,47 @@
         <div style="display: flex; gap: 20px; margin-bottom: 20px;">
             <button onclick="setGlobalState('unlocked')">🔓 UNLOCK ALL ROUNDS</button>
             <button class="btn-danger" onclick="setGlobalState('lobby')">🔒 LOCK / RETURN TO LOBBY</button>
-            <button class="btn-danger" onclick="clearAllData()">🗑️ CLEAR ALL MEMORY & LEADERBOARDS</button>
+            <button class="btn-danger" onclick="clearAllData()">🗑️ CLEAR ALL MEMORY</button>
         </div>
-        
-        <h2>LIVE STUDENT TRACKING</h2>
         <div id="live-tracking"></div>
     </div>
 
     <div id="screen-menu" class="screen">
         <h1>CHOOSE YOUR SIMULATION</h1>
         <button onclick="returnToLobby()" style="background: #1E293B; box-shadow: none; font-size: 1rem; padding: 10px 20px;">Disconnect</button>
-        
         <div id="menu-container"></div>
     </div>
 
-    <div id="screen-game" class="screen" style="justify-content: center;">
+    <div id="screen-game" class="screen">
         <div id="game-area">
-            <h2 id="round-title" style="border: none; margin-top: 0; color: #10B981;">Round Title</h2>
-            <div class="timer-display" id="timer">00:00.00</div>
             
-            <div class="question-text" id="question">Question goes here?</div>
-            <input type="text" id="answer-input" placeholder="(x, y)">
-            <br>
-            <button onclick="checkAnswer()">SUBMIT VECTOR</button>
-            <button class="btn-help" onclick="useFreeMove()">🆘 AUTOPILOT (SOLVE & EXPLAIN)</button>
-            
-            <br><br>
-            <button onclick="exitRound()" style="background: #1E293B; box-shadow: none; font-size: 1rem; padding: 10px 20px;">Abort Simulation</button>
+            <div class="top-bar">
+                <h2 id="round-title" style="border: none; margin: 0; color: #f8fafc;">Phase X</h2>
+                <div class="timer-display" id="timer">00:00.00</div>
+                <button onclick="exitRound()" style="background: #1E293B; box-shadow: none; font-size: 1rem; padding: 10px 20px; margin:0;">Abort</button>
+            </div>
+
+            <iframe id="sim-frame" src=""></iframe>
 
             <div id="pre-round-overlay" class="overlay-box">
                 <h1 id="overlay-title">Ready?</h1>
-                <p id="overlay-instructions" style="font-size: 1.2rem; line-height: 1.5; color: #94A3B8; margin-bottom: 30px;">Read the instructions here carefully.</p>
+                <p style="font-size: 1.2rem; color: #94A3B8; margin-bottom: 30px;">The simulation interface will load beneath this.<br>Start the timer when you are ready to manipulate the packet.</p>
                 <button onclick="startTimerAndPlay()" style="font-size: 1.5rem; padding: 20px 50px;">INITIALIZE TIMER</button>
-            </div>
-
-            <div id="explanation-overlay" class="overlay-box" style="display: none;">
-                <h1 style="color: #F59E0B;">💡 AUTOPILOT LOGIC 💡</h1>
-                <div id="explanation-box" class="explanation-text">Explanation goes here.</div>
-                <p style="color: #f8fafc; font-weight: bold;">(Because you used Autopilot, this run will not be recorded on the leaderboard).</p>
-                <button onclick="exitRound()">I UNDERSTAND (RETURN TO MENU)</button>
             </div>
             
             <div id="win-overlay" class="overlay-box" style="display: none;">
-                <h1 style="color: #10B981;">✅ VECTOR ACCEPTED ✅</h1>
+                <h1 style="color: #10B981; font-size: 3rem;">✅ SEQUENCE COMPLETE ✅</h1>
                 <p style="font-size: 1.5rem;">Time Recorded: <span id="final-time" style="color: #10B981; font-weight: bold;"></span></p>
-                <button onclick="exitRound()">BACK TO MENU</button>
+                <button onclick="exitRound()" style="font-size: 1.5rem; padding: 20px 50px;">BACK TO MENU</button>
             </div>
+
+             <div id="dq-overlay" class="overlay-box" style="display: none;">
+                <h1 style="color: #F59E0B; font-size: 3rem;">⚠️ AUTOPILOT ENGAGED ⚠️</h1>
+                <p style="font-size: 1.5rem;">You used the built-in system hints.</p>
+                <p style="font-size: 1.2rem; color: #94A3B8;">This is great for learning, but this run will not be recorded on the leaderboard.</p>
+                <button onclick="exitRound()" style="font-size: 1.5rem; padding: 20px 50px;">BACK TO MENU</button>
+            </div>
+
         </div>
     </div>
 
@@ -137,56 +124,24 @@
         };
         if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
         const db = firebase.database();
-        const stateRef = db.ref('maths_transformation_race/global_state');
-        const playersRef = db.ref('maths_transformation_race/players');
-        const boardsRef = db.ref('maths_transformation_race/leaderboards');
+        const stateRef = db.ref('maths_visual_race/global_state');
+        const playersRef = db.ref('maths_visual_race/players');
+        const boardsRef = db.ref('maths_visual_race/leaderboards');
 
-        // --- GAME DATA: THE 5 CYBER ROUNDS ---
+        // --- GAME DATA: Linking to your HTML files ---
         const rounds = [
-            {
-                id: 1, title: "Phase 1: X-Axis Reflection",
-                instructions: "Calculate the new coordinates after reflecting the data packet over the X-Axis. Format your answer exactly like this: (x, y)",
-                question: "The data packet is currently at coordinates (4, 7). What are its new coordinates after a reflection over the X-Axis?",
-                correctAnswer: "(4, -7)",
-                explanation: "When reflecting over the X-Axis, the x-coordinate stays the same, but the y-coordinate flips to its opposite.<br>Therefore, (4, 7) becomes (4, -7)."
-            },
-            {
-                id: 2, title: "Phase 2: Standard Translation",
-                instructions: "Determine the translation vector required to move the packet from the origin to the target. Format your answer as: (x, y)",
-                question: "The packet is at (0, 0) and the Exit Node is at (-5, 3). What translation vector must be applied?",
-                correctAnswer: "(-5, 3)",
-                explanation: "To find the vector from (0,0) to any point, the vector is simply the coordinates of the destination.<br>Movement is 5 units Left (-5) and 3 units Up (+3)."
-            },
-            {
-                id: 3, title: "Phase 3: Double Reflection",
-                instructions: "Calculate the final coordinates after reflecting over BOTH axes. Format your answer as: (x, y)",
-                question: "The packet starts at (8, -2). It is reflected over the X-Axis, and then immediately reflected over the Y-Axis. What is the final coordinate?",
-                correctAnswer: "(-8, 2)",
-                explanation: "Reflecting over the X-Axis flips the Y value: (8, -2) → (8, 2).<br>Reflecting over the Y-Axis flips the X value: (8, 2) → (-8, 2).<br>This creates a 180-degree transformation!"
-            },
-            {
-                id: 4, title: "Phase 4: Horizontal Vector Navigation",
-                instructions: "Calculate the exact vector required to slide the packet to the target. Format your answer as: (x, y)",
-                question: "Your packet is currently stuck at (-6, -6). The exit node is directly to your right at (6, -6). What vector do you enter?",
-                correctAnswer: "(12, 0)",
-                explanation: "The Y-coordinates are the same (-6 and -6), so the Y movement is 0.<br>To get from X:-6 to X:6, you must move right by 12 spaces.<br>Therefore, the vector is (12, 0)."
-            },
-            {
-                id: 5, title: "Phase 5: Advanced Target Recalculation",
-                instructions: "Calculate the X and Y distances to find the correct translation vector. Format your answer as: (x, y)",
-                question: "You are currently at X: 6, Y: -6. The target node is at X: 8, Y: -4. What is the translation vector?",
-                correctAnswer: "(2, 2)",
-                explanation: "To calculate the vector, subtract your current position from the target position:<br>X: 8 - 6 = 2 (Right 2)<br>Y: -4 - (-6) = 2 (Up 2)<br>The required vector is (2, 2)."
-            }
+            { id: 1, title: "Phase 1: X-Axis Reflection", file: "p1.html" },
+            { id: 2, title: "Phase 2: Standard Translation", file: "p2.html" },
+            { id: 3, title: "Phase 3: Double Reflection", file: "p3.html" },
+            { id: 4, title: "Phase 4: Horizontal Vector Navigation", file: "p4.html" },
+            { id: 5, title: "Phase 5: Advanced Target Recalculation", file: "p5.html" }
         ];
 
-        // --- GLOBAL VARIABLES ---
         let myId = ''; let myName = '';
         let currentRound = null; let startTime = 0; let timerInterval = null;
         let isTeacher = window.location.search.includes('host=true');
         let usedHelp = false;
 
-        // --- INITIALIZATION ---
         function init() {
             if (isTeacher) { switchScreen('screen-host'); listenToPlayers(); }
             
@@ -218,10 +173,8 @@
             if (!name) return;
             myName = name;
             myId = 'Courier_' + Math.random().toString(36).substr(2, 6);
-            
             playersRef.child(myId).set({ name: myName, status: "In Lobby awaiting unlock" });
             playersRef.child(myId).onDisconnect().remove();
-
             switchScreen('screen-waiting');
             
             stateRef.on('value', snap => {
@@ -235,23 +188,17 @@
         }
 
         function returnToLobby() {
-            playersRef.child(myId).remove(); myId = ''; myName = '';
-            switchScreen('screen-login');
+            playersRef.child(myId).remove(); myId = ''; myName = ''; switchScreen('screen-login');
         }
 
         function setGlobalState(state) { stateRef.set(state); }
         function clearAllData() {
-            if(confirm("Are you sure? This will delete ALL times and kick players to login!")) {
-                db.ref('maths_transformation_race').remove();
-            }
+            if(confirm("Are you sure? This will delete ALL times!")) { db.ref('maths_visual_race').remove(); }
         }
         function listenToPlayers() {
             playersRef.on('value', snap => {
-                const players = snap.val() || {};
-                let html = '';
-                Object.values(players).forEach(p => {
-                    html += `<div class="player-status-card"><b>${p.name}</b><br><small style="color:#94A3B8;">${p.status}</small></div>`;
-                });
+                const players = snap.val() || {}; let html = '';
+                Object.values(players).forEach(p => { html += `<div class="player-status-card"><b>${p.name}</b><br><small style="color:#94A3B8;">${p.status}</small></div>`; });
                 document.getElementById('live-tracking').innerHTML = html || "<p style='color:#94A3B8;'>No couriers connected yet.</p>";
             });
         }
@@ -261,24 +208,21 @@
             usedHelp = false;
             
             document.getElementById('round-title').innerText = currentRound.title;
-            document.getElementById('question').innerText = currentRound.question;
-            document.getElementById('answer-input').value = "";
             document.getElementById('timer').innerText = "00:00.00";
+            document.getElementById('sim-frame').src = currentRound.file; // Loads your visual HTML!
             
             document.getElementById('overlay-title').innerText = currentRound.title;
-            document.getElementById('overlay-instructions').innerText = currentRound.instructions;
             document.getElementById('pre-round-overlay').style.display = 'flex';
-            document.getElementById('explanation-overlay').style.display = 'none';
             document.getElementById('win-overlay').style.display = 'none';
+            document.getElementById('dq-overlay').style.display = 'none';
 
             switchScreen('screen-game');
-            updatePlayerStatus(`Reading instructions for Phase ${id}`);
+            updatePlayerStatus(`Preparing Phase ${id}`);
         }
 
         function startTimerAndPlay() {
             document.getElementById('pre-round-overlay').style.display = 'none';
             updatePlayerStatus(`PLAYING Phase ${currentRound.id}!`);
-            document.getElementById('answer-input').focus();
             
             startTime = Date.now();
             timerInterval = setInterval(() => {
@@ -287,36 +231,9 @@
             }, 10);
         }
 
-        function checkAnswer() {
-            // Remove extra spaces from user input to make it forgiving
-            const userAns = document.getElementById('answer-input').value.replace(/\s+/g, '').toLowerCase();
-            const correctAns = currentRound.correctAnswer.replace(/\s+/g, '').toLowerCase();
-            
-            if (userAns === correctAns) {
-                clearInterval(timerInterval);
-                const finalTimeMs = Date.now() - startTime;
-                document.getElementById('final-time').innerText = formatTime(finalTimeMs);
-                document.getElementById('win-overlay').style.display = 'flex';
-                updatePlayerStatus(`Completed Phase ${currentRound.id}`);
-
-                if(!usedHelp) { saveBestTime(currentRound.id, finalTimeMs); }
-            } else {
-                const input = document.getElementById('answer-input');
-                input.style.borderColor = "#EF4444";
-                setTimeout(() => input.style.borderColor = "#10B981", 500);
-            }
-        }
-
-        function useFreeMove() {
-            clearInterval(timerInterval);
-            usedHelp = true;
-            updatePlayerStatus(`Reading Autopilot Log for Phase ${currentRound.id}`);
-            document.getElementById('explanation-box').innerHTML = currentRound.explanation;
-            document.getElementById('explanation-overlay').style.display = 'flex';
-        }
-
         function exitRound() {
             clearInterval(timerInterval);
+            document.getElementById('sim-frame').src = ""; // Clear iframe memory
             switchScreen('screen-menu');
             updatePlayerStatus("Browsing Menu");
         }
@@ -343,7 +260,6 @@
                 boardsRef.child(`round${i}`).orderByChild('timeMs').on('value', snap => {
                     const listEl = document.getElementById(`lb-list-${i}`);
                     if (!listEl) return;
-                    
                     let html = '';
                     snap.forEach(child => {
                         const data = child.val();
@@ -353,6 +269,27 @@
                 });
             }
         }
+
+        // --- COMMUNICATION WITH YOUR VISUAL FILES ---
+        window.addEventListener('message', function(event) {
+            if (event.data === 'USED_AUTOPILOT') {
+                usedHelp = true;
+            }
+
+            if (event.data === 'SIMULATION_COMPLETE') {
+                clearInterval(timerInterval);
+                const finalTimeMs = Date.now() - startTime;
+                updatePlayerStatus(`Completed Phase ${currentRound.id}`);
+
+                if(usedHelp) {
+                    document.getElementById('dq-overlay').style.display = 'flex';
+                } else {
+                    document.getElementById('final-time').innerText = formatTime(finalTimeMs);
+                    document.getElementById('win-overlay').style.display = 'flex';
+                    saveBestTime(currentRound.id, finalTimeMs);
+                }
+            }
+        });
 
         init();
     </script>
