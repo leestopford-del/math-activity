@@ -1,4 +1,123 @@
-const canvas = document.getElementById('gameCanvas');
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Space Fact Scavenger</title>
+    <style>
+        body {
+            margin: 0;
+            background-color: #0b0c10;
+            color: #c5c6c7;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        #game-container {
+            flex: 1;
+            position: relative;
+            background: radial-gradient(circle at center, #1f2833 0%, #0b0c10 100%);
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        #ui-panel {
+            width: 350px;
+            background-color: #1f2833;
+            border-left: 4px solid #66fcf1;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: -5px 0 15px rgba(0,0,0,0.5);
+            z-index: 10;
+        }
+
+        h1 { color: #66fcf1; margin-top: 0; font-size: 1.5rem; text-align: center; }
+        h2 { color: #45a29e; font-size: 1.1rem; border-bottom: 1px solid #45a29e; padding-bottom: 5px; }
+        
+        #inventory {
+            background: #0b0c10;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px dashed #c5c6c7;
+            margin-bottom: 20px;
+            min-height: 60px;
+        }
+
+        .fact-category { flex: 1; overflow-y: auto; margin-bottom: 10px; }
+        .fact-category ul { padding-left: 20px; margin: 0; font-size: 0.9rem; }
+        .fact-category li { margin-bottom: 8px; line-height: 1.3; }
+
+        #overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(11, 12, 16, 0.85);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 20;
+        }
+
+        button {
+            background-color: #66fcf1;
+            color: #0b0c10;
+            border: none;
+            padding: 15px 30px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: 0.2s;
+        }
+        button:hover { transform: scale(1.05); background-color: #45a29e; }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <canvas id="gameCanvas"></canvas>
+        <div id="overlay">
+            <h1 style="font-size: 3rem; margin-bottom: 10px;">SPACE FACT SCAVENGER</h1>
+            <p style="font-size: 1.2rem; max-width: 600px; text-align: center; line-height: 1.5;">
+                Use <b>Arrow Keys</b> or <b>WASD</b> to move your Astronaut (👨‍🚀).<br><br>
+                Collect Data Drives (💾) and read the fact. Deliver it to the correct Satellite Dish (📡) to build your Fact Sheet.<br><br>
+                Avoid the Opinion Aliens (👽) or they will scramble your data! Watch out for Fluff Dust (☄️) which will slow you down.
+            </p>
+            <button onclick="startGame()">START MISSION</button>
+        </div>
+    </div>
+
+    <div id="ui-panel">
+        <h1>MISSION LOG</h1>
+        
+        <div id="inventory">
+            <span style="color: #45a29e; font-weight: bold; font-size: 0.8rem;">CURRENT DATA HOLD:</span>
+            <div id="current-fact" style="margin-top: 10px; font-style: italic;">Empty</div>
+        </div>
+
+        <div class="fact-category">
+            <h2>📡 Planetary Profiles</h2>
+            <ul id="list-planets"></ul>
+        </div>
+        <div class="fact-category">
+            <h2>📡 Moons & Satellites</h2>
+            <ul id="list-moons"></ul>
+        </div>
+        <div class="fact-category">
+            <h2>📡 The Central Star</h2>
+            <ul id="list-star"></ul>
+        </div>
+    </div>
+
+    const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
 
         // --- EXPANDED GAME DATA ---
@@ -300,3 +419,5 @@ const canvas = document.getElementById('gameCanvas');
         }
 
         resizeCanvas();
+</body>
+</html>
