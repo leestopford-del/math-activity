@@ -1,134 +1,28 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Space Fact Scavenger</title>
-    <style>
-        body {
-            margin: 0;
-            background-color: #0b0c10;
-            color: #c5c6c7;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            display: flex;
-            height: 100vh;
-            overflow: hidden;
-        }
-
-        #game-container {
-            flex: 1;
-            position: relative;
-            background: radial-gradient(circle at center, #1f2833 0%, #0b0c10 100%);
-        }
-
-        canvas {
-            display: block;
-            width: 100%;
-            height: 100%;
-        }
-
-        #ui-panel {
-            width: 350px;
-            background-color: #1f2833;
-            border-left: 4px solid #66fcf1;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            box-shadow: -5px 0 15px rgba(0,0,0,0.5);
-            z-index: 10;
-        }
-
-        h1 { color: #66fcf1; margin-top: 0; font-size: 1.5rem; text-align: center; }
-        h2 { color: #45a29e; font-size: 1.1rem; border-bottom: 1px solid #45a29e; padding-bottom: 5px; }
-        
-        #inventory {
-            background: #0b0c10;
-            padding: 15px;
-            border-radius: 8px;
-            border: 1px dashed #c5c6c7;
-            margin-bottom: 20px;
-            min-height: 60px;
-        }
-
-        .fact-category { flex: 1; overflow-y: auto; margin-bottom: 10px; }
-        .fact-category ul { padding-left: 20px; margin: 0; font-size: 0.9rem; }
-        .fact-category li { margin-bottom: 8px; line-height: 1.3; }
-
-        #overlay {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(11, 12, 16, 0.85);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 20;
-        }
-
-        button {
-            background-color: #66fcf1;
-            color: #0b0c10;
-            border: none;
-            padding: 15px 30px;
-            font-size: 1.2rem;
-            font-weight: bold;
-            border-radius: 5px;
-            cursor: pointer;
-            margin-top: 20px;
-            transition: 0.2s;
-        }
-        button:hover { transform: scale(1.05); background-color: #45a29e; }
-    </style>
-</head>
-<body>
-
-    <div id="game-container">
-        <canvas id="gameCanvas"></canvas>
-        <div id="overlay">
-            <h1 style="font-size: 3rem; margin-bottom: 10px;">SPACE FACT SCAVENGER</h1>
-            <p style="font-size: 1.2rem; max-width: 600px; text-align: center; line-height: 1.5;">
-                Use <b>Arrow Keys</b> or <b>WASD</b> to move your Astronaut (👨‍🚀).<br><br>
-                Collect Data Drives (💾) and read the fact. Deliver it to the correct Satellite Dish (📡) to build your Fact Sheet.<br><br>
-                Avoid the Opinion Aliens (👽) or they will scramble your data! Watch out for Fluff Dust (☄️) which will slow you down.
-            </p>
-            <button onclick="startGame()">START MISSION</button>
-        </div>
-    </div>
-
-    <div id="ui-panel">
-        <h1>MISSION LOG</h1>
-        
-        <div id="inventory">
-            <span style="color: #45a29e; font-weight: bold; font-size: 0.8rem;">CURRENT DATA HOLD:</span>
-            <div id="current-fact" style="margin-top: 10px; font-style: italic;">Empty</div>
-        </div>
-
-        <div class="fact-category">
-            <h2>📡 Planetary Profiles</h2>
-            <ul id="list-planets"></ul>
-        </div>
-        <div class="fact-category">
-            <h2>📡 Moons & Satellites</h2>
-            <ul id="list-moons"></ul>
-        </div>
-        <div class="fact-category">
-            <h2>📡 The Central Star</h2>
-            <ul id="list-star"></ul>
-        </div>
-    </div>
-
-    <script>
-        const canvas = document.getElementById('gameCanvas');
+const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
 
-        // --- GAME DATA (Easy to edit!) ---
+        // --- EXPANDED GAME DATA ---
         const rawFacts = [
+            // Planets
             { text: "Jupiter has a mass 318 times that of Earth.", category: "planets" },
             { text: "Venus has a thick atmosphere of carbon dioxide.", category: "planets" },
+            { text: "Mars has the largest volcano in the solar system, Olympus Mons.", category: "planets" },
+            { text: "A day on Venus is longer than a year on Venus.", category: "planets" },
+            // Moons
             { text: "Earth's moon heavily influences the ocean tides.", category: "moons" },
             { text: "Ganymede is the largest moon in the Solar System.", category: "moons" },
+            { text: "Saturn's moon Titan has liquid methane lakes.", category: "moons" },
+            { text: "Jupiter's moon Io is the most volcanically active body in the system.", category: "moons" },
+            // Star
             { text: "The Sun contains 99.8% of the system's mass.", category: "star" },
-            { text: "The Sun's core temperature is 15 million degrees Celsius.", category: "star" }
+            { text: "The Sun's core temperature is 15 million degrees Celsius.", category: "star" },
+            { text: "It takes 8 minutes and 20 seconds for sunlight to reach Earth.", category: "star" },
+            { text: "The Sun is primarily composed of hydrogen and helium.", category: "star" },
+            // Exploration (NEW CATEGORY)
+            { text: "Voyager 1 became the first human-made object to enter interstellar space.", category: "exploration" },
+            { text: "The Apollo 11 mission landed humans on the Moon in 1969.", category: "exploration" },
+            { text: "The Mars Perseverance rover carries a small helicopter named Ingenuity.", category: "exploration" },
+            { text: "The International Space Station orbits Earth every 90 minutes.", category: "exploration" }
         ];
 
         let gameLoop;
@@ -137,37 +31,50 @@
         let factPool = [...rawFacts];
 
         // --- ENTITIES ---
-        const player = { x: 100, y: 100, size: 30, speed: 5, normalSpeed: 5, emoji: '👨‍🚀' };
+        const player = { x: 100, y: 100, size: 30, speed: 5, normalSpeed: 5, emoji: '👨‍🚀', ammo: 0 };
         
+        // Added the 4th Drop Zone
         const dropZones = [
-            { id: "planets", x: 150, y: 100, size: 50, emoji: '📡', label: "Planets" },
-            { id: "moons", x: 150, y: 350, size: 50, emoji: '📡', label: "Moons" },
-            { id: "star", x: 150, y: 600, size: 50, emoji: '📡', label: "Star" }
+            { id: "planets", x: 150, y: 0, size: 50, emoji: '📡', label: "Planets" },
+            { id: "moons", x: 150, y: 0, size: 50, emoji: '📡', label: "Moons" },
+            { id: "star", x: 150, y: 0, size: 50, emoji: '📡', label: "Star" },
+            { id: "exploration", x: 150, y: 0, size: 50, emoji: '🚀', label: "Exploration" } // NEW
         ];
 
         let dataDrives = [];
         let aliens = [];
-        let fluffDust = [];
+        let ammoPickups = [];
+        let blasts = [];
 
         // --- CONTROLS ---
-        const keys = { ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false, w: false, a: false, s: false, d: false };
-        window.addEventListener('keydown', e => { if(keys.hasOwnProperty(e.key)) keys[e.key] = true; });
+        const keys = { ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false, w: false, a: false, s: false, d: false, ' ': false };
+        window.addEventListener('keydown', e => { 
+            if(keys.hasOwnProperty(e.key)) keys[e.key] = true; 
+            // FIRE BLAST ON SPACEBAR
+            if(e.key === ' ' && player.ammo > 0 && isPlaying) {
+                player.ammo--;
+                blasts.push({ x: player.x, y: player.y, radius: 10, maxRadius: 150, active: true });
+                document.getElementById('current-fact').innerText = "Bullet Point Blast Fired!";
+                setTimeout(() => { if(!heldFact) document.getElementById('current-fact').innerText = "Empty"; }, 1000);
+            }
+        });
         window.addEventListener('keyup', e => { if(keys.hasOwnProperty(e.key)) keys[e.key] = false; });
 
         function resizeCanvas() {
             canvas.width = document.getElementById('game-container').clientWidth;
             canvas.height = document.getElementById('game-container').clientHeight;
-            // Reposition drop zones based on height
-            dropZones[0].y = canvas.height * 0.2;
-            dropZones[1].y = canvas.height * 0.5;
-            dropZones[2].y = canvas.height * 0.8;
+            // Space out the 4 zones evenly
+            dropZones[0].y = canvas.height * 0.20;
+            dropZones[1].y = canvas.height * 0.40;
+            dropZones[2].y = canvas.height * 0.60;
+            dropZones[3].y = canvas.height * 0.80;
             dropZones.forEach(z => z.x = canvas.width - 100); 
         }
         window.addEventListener('resize', resizeCanvas);
 
         function spawnEntities() {
-            // Spawn one data drive at a time
-            if (dataDrives.length === 0 && factPool.length > 0 && !heldFact) {
+            // Keep up to 2 data drives on screen
+            while (dataDrives.length < 2 && factPool.length > 0) {
                 let randomFact = factPool.splice(Math.floor(Math.random() * factPool.length), 1)[0];
                 dataDrives.push({
                     x: Math.random() * (canvas.width - 300) + 50, 
@@ -176,23 +83,20 @@
                 });
             }
 
-            // Spawn bouncy Aliens (Opinions)
-            while(aliens.length < 4) {
+            // Spawn aggressive Aliens (Opinions) - Now there are 5!
+            while(aliens.length < 5) {
                 aliens.push({
                     x: Math.random() * (canvas.width - 200), y: Math.random() * canvas.height,
-                    size: 30, emoji: '👽',
-                    vx: (Math.random() > 0.5 ? 1 : -1) * (Math.random() * 2 + 1),
-                    vy: (Math.random() > 0.5 ? 1 : -1) * (Math.random() * 2 + 1)
+                    size: 30, emoji: '👽'
                 });
             }
 
-            // Spawn slow Fluff
-            while(fluffDust.length < 3) {
-                fluffDust.push({
-                    x: Math.random() * (canvas.width - 200), y: Math.random() * canvas.height,
-                    size: 40, emoji: '☄️',
-                    vx: (Math.random() > 0.5 ? 1 : -1) * 0.5,
-                    vy: (Math.random() > 0.5 ? 1 : -1) * 0.5
+            // Occasionally spawn Bullet Point Ammo
+            if(ammoPickups.length < 1 && Math.random() < 0.005) {
+                ammoPickups.push({
+                    x: Math.random() * (canvas.width - 300) + 50,
+                    y: Math.random() * (canvas.height - 100) + 50,
+                    size: 25, emoji: '•'
                 });
             }
         }
@@ -213,42 +117,72 @@
             if ((keys.ArrowLeft || keys.a) && player.x > player.size) player.x -= player.speed;
             if ((keys.ArrowRight || keys.d) && player.x < canvas.width - player.size) player.x += player.speed;
 
-            // Move Aliens
-            aliens.forEach(alien => {
-                alien.x += alien.vx; alien.y += alien.vy;
-                if (alien.x < 0 || alien.x > canvas.width) alien.vx *= -1;
-                if (alien.y < 0 || alien.y > canvas.height) alien.vy *= -1;
+            // Update Blasts (Explosions)
+            blasts.forEach(blast => {
+                if(blast.active) {
+                    blast.radius += 8;
+                    if(blast.radius >= blast.maxRadius) blast.active = false;
+                }
+            });
+            blasts = blasts.filter(b => b.active);
 
+            // Move & Track Aliens
+            for (let i = aliens.length - 1; i >= 0; i--) {
+                let alien = aliens[i];
+                
+                // Track player
+                const dx = player.x - alien.x;
+                const dy = player.y - alien.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+
+                const alienSpeed = 2.0; 
+                if (distance > 0) {
+                    alien.x += (dx / distance) * alienSpeed;
+                    alien.y += (dy / distance) * alienSpeed;
+                    alien.x += (Math.random() - 0.5); 
+                    alien.y += (Math.random() - 0.5);
+                }
+
+                // Did a blast hit the alien?
+                let destroyed = false;
+                blasts.forEach(blast => {
+                    const bDx = blast.x - alien.x;
+                    const bDy = blast.y - alien.y;
+                    if(Math.sqrt(bDx*bDx + bDy*bDy) < blast.radius) {
+                        destroyed = true;
+                    }
+                });
+
+                if(destroyed) {
+                    aliens.splice(i, 1);
+                    continue; // Skip the rest of this alien's loop
+                }
+
+                // Did alien hit player?
                 if (checkCollision(player, alien)) {
-                    // Alien stole the fact!
                     if (heldFact) {
-                        factPool.push(heldFact); // Put it back in the pool
+                        factPool.push(heldFact); 
                         heldFact = null;
                         document.getElementById('current-fact').innerText = "Data Scrambled by Opinion!";
                         document.getElementById('current-fact').style.color = "#ff4444";
                         setTimeout(() => { if(!heldFact) document.getElementById('current-fact').innerText = "Empty"; document.getElementById('current-fact').style.color = "#c5c6c7"; }, 2000);
-                        player.x -= alien.vx * 20; // Knockback
-                        player.y -= alien.vy * 20;
+                        player.x -= (dx / distance) * 50; 
+                        player.y -= (dy / distance) * 50;
                     }
                 }
-            });
+            }
 
-            // Move Fluff
-            fluffDust.forEach(fluff => {
-                fluff.x += fluff.vx; fluff.y += fluff.vy;
-                if (fluff.x < 0 || fluff.x > canvas.width) fluff.vx *= -1;
-                if (fluff.y < 0 || fluff.y > canvas.height) fluff.vy *= -1;
-
-                if (checkCollision(player, fluff)) {
-                    player.speed = player.normalSpeed / 3; // Slow down
-                    document.getElementById('current-fact').innerText = "Caught in Fluff Words! Speed Reduced.";
-                    setTimeout(() => { player.speed = player.normalSpeed; if(!heldFact) document.getElementById('current-fact').innerText = "Empty"; }, 1500);
+            // Pickup Ammo
+            ammoPickups.forEach((ammo, index) => {
+                if (checkCollision(player, ammo)) {
+                    player.ammo++;
+                    ammoPickups.splice(index, 1);
                 }
             });
 
             // Pickup Data Drive
             dataDrives.forEach((drive, index) => {
-                if (checkCollision(player, drive)) {
+                if (checkCollision(player, drive) && !heldFact) {
                     heldFact = drive.factData;
                     document.getElementById('current-fact').innerText = heldFact.text;
                     document.getElementById('current-fact').style.color = "#66fcf1";
@@ -260,12 +194,11 @@
             dropZones.forEach(zone => {
                 if (heldFact && checkCollision(player, zone)) {
                     if (heldFact.category === zone.id) {
-                        // Correct category!
                         const li = document.createElement('li');
                         li.innerText = heldFact.text;
                         document.getElementById(`list-${zone.id}`).appendChild(li);
                         heldFact = null;
-                        document.getElementById('current-fact').innerText = "Data Uploaded Successfully!";
+                        document.getElementById('current-fact').innerText = "Data Uploaded!";
                         document.getElementById('current-fact').style.color = "#45a29e";
                         
                         // Check Win Condition
@@ -275,17 +208,15 @@
                                 document.getElementById('overlay').style.display = 'flex';
                                 document.getElementById('overlay').innerHTML = `
                                     <h1 style="font-size: 3rem;">FACT SHEET COMPLETE!</h1>
-                                    <p>You successfully filtered out the opinions and organized the facts.</p>
+                                    <p>You successfully filtered out the opinions and organized all ${rawFacts.length} facts.</p>
                                     <button onclick="location.reload()">PLAY AGAIN</button>
                                 `;
                             }, 500);
                         }
-
                     } else {
-                        // Wrong category hint
                         document.getElementById('current-fact').innerText = `Error: Does not belong in ${zone.label}!`;
                         document.getElementById('current-fact').style.color = "#ff4444";
-                        player.x -= 20; // slight bounce back
+                        player.x -= 20; 
                     }
                 }
             });
@@ -306,10 +237,26 @@
                 ctx.fillStyle = "#66fcf1"; ctx.font = "14px Arial"; ctx.fillText(zone.label, zone.x, zone.y + 25);
             });
 
+            // Draw Blasts
+            blasts.forEach(blast => {
+                ctx.beginPath();
+                ctx.arc(blast.x, blast.y, blast.radius, 0, Math.PI * 2);
+                ctx.strokeStyle = `rgba(102, 252, 241, ${1 - (blast.radius / blast.maxRadius)})`;
+                ctx.lineWidth = 4;
+                ctx.stroke();
+            });
+
+            // Draw Ammo & UI Text
+            ctx.fillStyle = "#fff";
+            ctx.font = "20px Arial";
+            ctx.textAlign = "left";
+            ctx.fillText(`Blaster Charges: ${player.ammo} (Press Space)`, 20, 30);
+            ctx.textAlign = "center";
+
             // Draw Entities
+            ammoPickups.forEach(a => { ctx.font = `${a.size}px Arial`; ctx.fillStyle="#fff"; ctx.fillText(a.emoji, a.x, a.y); });
             dataDrives.forEach(d => { ctx.font = `${d.size}px Arial`; ctx.fillText(d.emoji, d.x, d.y); });
             aliens.forEach(a => { ctx.font = `${a.size}px Arial`; ctx.fillText(a.emoji, a.x, a.y); });
-            fluffDust.forEach(f => { ctx.font = `${f.size}px Arial`; ctx.fillText(f.emoji, f.x, f.y); });
 
             // Draw Player
             ctx.font = `${player.size}px Arial`;
@@ -337,6 +284,14 @@
         }
 
         function startGame() {
+            // Also add the new category to the UI panel HTML dynamically on start
+            if(!document.getElementById('list-exploration')) {
+                const newCat = document.createElement('div');
+                newCat.className = 'fact-category';
+                newCat.innerHTML = `<h2>🚀 Space Exploration</h2><ul id="list-exploration"></ul>`;
+                document.getElementById('ui-panel').appendChild(newCat);
+            }
+
             document.getElementById('overlay').style.display = 'none';
             resizeCanvas();
             isPlaying = true;
@@ -344,7 +299,4 @@
             loop();
         }
 
-        resizeCanvas(); // Initial setup
-    </script>
-</body>
-</html>
+        resizeCanvas();
