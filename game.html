@@ -9,12 +9,14 @@
         #game-container { position: relative; margin-top: 20px; width: 720px; max-width: 100%; border: 4px solid #78350f; border-radius: 8px; overflow: hidden; background: #000; box-shadow: 0 0 15px rgba(0,0,0,0.5); }
         canvas { display: block; width: 100%; height: auto; }
         
+        /* START SCREEN */
         #start-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; text-align: center; }
         #start-screen h1 { color: #fbbf24; margin-bottom: 20px; }
-        #player-name-input { padding: 10px; font-size: 16px; border-radius: 4px; border: none; margin-bottom: 20px; width: 200px; text-align: center; }
+        #player-name-input { padding: 12px; font-size: 18px; border-radius: 4px; border: none; margin-bottom: 20px; width: 250px; text-align: center; background: white; color: black; }
         .char-select-btn { background: #3b82f6; color: white; border: 2px solid #60a5fa; padding: 15px 30px; font-size: 18px; font-weight: bold; border-radius: 8px; cursor: pointer; margin: 10px; transition: 0.2s; }
         .char-select-btn:hover { background: #2563eb; transform: scale(1.05); }
 
+        /* DIALOGUE BOX */
         #dialogue-box { position: absolute; bottom: 0; left: 0; width: 100%; background: #1e293b; border-top: 4px solid #f8fafc; padding: 20px; box-sizing: border-box; display: none; z-index: 50; }
         #speaker-name { color: #fbbf24; font-weight: bold; font-size: 18px; margin-top: 0; margin-bottom: 10px; }
         #dialogue-text { font-size: 16px; margin-bottom: 15px; line-height: 1.5; }
@@ -31,21 +33,21 @@
 
         <div id="start-screen">
             <h1>The Royal Printing Press</h1>
-            <input type="text" id="player-name-input" placeholder="Enter your name..." maxlength="12">
+            <input type="text" id="player-name-input" placeholder="Type your name here..." maxlength="12">
             <div>
-                <button class="char-select-btn" onclick="startGame(0)">Select Purple Hair</button>
-                <button class="char-select-btn" onclick="startGame(2)" style="background: #ec4899; border-color: #f472b6;">Select Pink Hair</button>
+                <button id="btn-purple" class="char-select-btn">Select Purple Hair</button>
+                <button id="btn-pink" class="char-select-btn" style="background: #ec4899; border-color: #f472b6;">Select Pink Hair</button>
             </div>
         </div>
 
         <div id="dialogue-box">
             <h3 id="speaker-name">Name</h3>
             <p id="dialogue-text">Text goes here...</p>
-            <button id="continue-btn" onclick="closeDialogue()">Continue</button>
+            <button id="continue-btn">Continue</button>
             <div id="quiz-options">
-                <button class="quiz-btn" onclick="checkAnswer(false)">A) The forest covers over 10,000 acres.</button>
-                <button class="quiz-btn" onclick="checkAnswer(true)">B) Are you ready to step into a world of ultimate adventure?</button>
-                <button class="quiz-btn" onclick="checkAnswer(false)">C) You should visit the gift shop.</button>
+                <button id="opt-a" class="quiz-btn">A) The forest covers over 10,000 acres.</button>
+                <button id="opt-b" class="quiz-btn">B) Are you ready to step into a world of ultimate adventure?</button>
+                <button id="opt-c" class="quiz-btn">C) You should visit the gift shop.</button>
             </div>
         </div>
     </div>
@@ -54,7 +56,6 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
         import { getDatabase, ref, set, onValue, onDisconnect, update, remove } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-database.js";
 
-        // Your Firebase config
         const firebaseConfig = {
             apiKey: "AIzaSyBpf5wi0wShnatqUhcmPhSOdnd0NdBL65A",
             authDomain: "symmetry-and-nets.firebaseapp.com",
@@ -68,7 +69,7 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        // --- GAME ENGINE ---
+        // --- ENGINE ASSETS ---
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
 
@@ -79,35 +80,40 @@
         let gameActive = false;
         let isDialogueOpen = false;
         let canRoam = false; 
-
-        // Multiplayer Variables
-        const playerId = 'player_' + Math.floor(Math.random() * 1000000); // Unique ID for this browser tab
+        const playerId = 'player_' + Math.floor(Math.random() * 1000000);
         let otherPlayers = {}; 
         let lastFirebaseUpdate = 0;
 
         let player = { 
-            x: 100, y: 100, width: 48, height: 48, speed: 4, 
+            x: 100, y: 150, width: 48, height: 48, speed: 4, 
             spriteW: 16, spriteH: 16, frameX: 0, frameY: 0,
             direction: 'down', isMoving: false, walkFrame: 0, animTimer: 0,
             name: "Student"
         };
         
-        let npc = { x: 150, y: 50, width: 48, height: 48, spriteW: 16, spriteH: 16, frameX: 0, frameY: 1 };
+        let npc = { x: 150, y: 80, width: 48, height: 48, spriteW: 16, spriteH: 16, frameX: 0, frameY: 1 };
 
         let animals = [
-            { type: 'Bear', x: 300, y: 150, startX: 300, range: 60, speed: 0.5, dir: 1, frameY: 5, spriteW: 32, spriteH: 32 },
-            { type: 'Sheep', x: 250, y: 200, startX: 250, range: 40, speed: 0.3, dir: 1, frameY: 6, spriteW: 32, spriteH: 32 },
-            { type: 'Sheep', x: 350, y: 220, startX: 350, range: 40, speed: 0.4, dir: -1, frameY: 6, spriteW: 32, spriteH: 32 },
-            { type: 'Dog', x: 150, y: 350, startX: 150, range: 80, speed: 1, dir: 1, frameY: 8, spriteW: 32, spriteH: 32 },
-            { type: 'Snake', x: 500, y: 100, startX: 500, range: 30, speed: 0.2, dir: -1, frameY: 0, spriteW: 32, spriteH: 32 },
-            { type: 'Seagull', x: 500, y: 350, startX: 500, range: 100, speed: 1.5, dir: 1, frameY: 4, spriteW: 32, spriteH: 32 },
-            { type: 'Seagull', x: 600, y: 400, startX: 600, range: 80, speed: 1.2, dir: -1, frameY: 4, spriteW: 32, spriteH: 32 }
+            { x: 300, y: 150, startX: 300, range: 60, speed: 0.5, dir: 1, frameY: 5, spriteW: 32, spriteH: 32 },
+            { x: 250, y: 200, startX: 250, range: 40, speed: 0.3, dir: 1, frameY: 6, spriteW: 32, spriteH: 32 },
+            { x: 350, y: 220, startX: 350, range: 40, speed: 0.4, dir: -1, frameY: 6, spriteW: 32, spriteH: 32 },
+            { x: 150, y: 350, startX: 150, range: 80, speed: 1, dir: 1, frameY: 8, spriteW: 32, spriteH: 32 },
+            { x: 500, y: 100, startX: 500, range: 30, speed: 0.2, dir: -1, frameY: 0, spriteW: 32, spriteH: 32 },
+            { x: 500, y: 350, startX: 500, range: 100, speed: 1.5, dir: 1, frameY: 4, spriteW: 32, spriteH: 32 },
+            { x: 600, y: 400, startX: 600, range: 80, speed: 1.2, dir: -1, frameY: 4, spriteW: 32, spriteH: 32 }
         ];
 
         let keys = { ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false, w: false, a: false, s: false, d: false };
 
-        // --- GLOBAL FUNCTIONS (So HTML buttons can click them) ---
-        window.startGame = function(selectedRow) {
+        // --- BUTTON LOGIC (Inside Module) ---
+        document.getElementById('btn-purple').addEventListener('click', () => startGame(0));
+        document.getElementById('btn-pink').addEventListener('click', () => startGame(2));
+        document.getElementById('continue-btn').addEventListener('click', closeDialogue);
+        document.getElementById('opt-a').addEventListener('click', () => checkAnswer(false));
+        document.getElementById('opt-b').addEventListener('click', () => checkAnswer(true));
+        document.getElementById('opt-c').addEventListener('click', () => checkAnswer(false));
+
+        function startGame(selectedRow) {
             let nameInput = document.getElementById('player-name-input').value;
             if (nameInput.trim() !== "") player.name = nameInput;
 
@@ -115,18 +121,13 @@
             document.getElementById('start-screen').style.display = 'none';
             gameActive = true;
             
-            // 1. JOIN MULTIPLAYER
             const playerRef = ref(db, `players/${playerId}`);
             set(playerRef, { x: player.x, y: player.y, name: player.name, frameX: player.frameX, frameY: player.frameY, direction: player.direction });
-            
-            // Delete player from DB if they close the tab
             onDisconnect(playerRef).remove();
 
-            // 2. LISTEN FOR OTHER PLAYERS
-            const allPlayersRef = ref(db, 'players');
-            onValue(allPlayersRef, (snapshot) => {
+            onValue(ref(db, 'players'), (snapshot) => {
                 otherPlayers = snapshot.val() || {};
-                delete otherPlayers[playerId]; // Don't draw ourselves as a ghost!
+                delete otherPlayers[playerId];
             });
 
             setTimeout(() => {
@@ -134,10 +135,11 @@
             }, 500); 
 
             gameLoop(); 
-        };
+        }
 
-        window.openDialogue = function(speaker, text, type) {
-            isDialogueOpen = true; player.isMoving = false; 
+        function openDialogue(speaker, text, type) {
+            isDialogueOpen = true; 
+            player.isMoving = false; 
             document.getElementById('speaker-name').innerHTML = speaker;
             document.getElementById('dialogue-text').innerHTML = text;
             document.getElementById('dialogue-box').style.display = 'block';
@@ -149,32 +151,40 @@
                 document.getElementById('quiz-options').style.display = 'none';
                 document.getElementById('continue-btn').style.display = 'block';
             }
-        };
+        }
 
-        window.closeDialogue = function() {
+        function closeDialogue() {
             document.getElementById('dialogue-box').style.display = 'none';
             setTimeout(() => { isDialogueOpen = false; }, 200); 
-        };
+        }
 
-        window.checkAnswer = function(isCorrect) {
+        function checkAnswer(isCorrect) {
             if (isCorrect) {
                 canRoam = true; 
-                window.openDialogue("Master Editor", "<strong>Correct!</strong> A rhetorical question makes the reader think! The path is now open. Go gather facts for your brochure!", 'story');
+                openDialogue("Master Editor", "<strong>Correct!</strong> The path is now open. Go gather facts for your brochure!", 'story');
             } else {
-                window.openDialogue("Master Editor", "Incorrect! Remember, a rhetorical question hooks the reader with a question mark. Try again!", 'quiz');
+                openDialogue("Master Editor", "Incorrect! A rhetorical question hooks the reader with a question mark. Try again!", 'quiz');
             }
-        };
+        }
 
-        window.addEventListener('keydown', (e) => { keys[e.key] = true; });
-        window.addEventListener('keyup', (e) => { keys[e.key] = false; });
+        // --- KEYBOARD LISTENER (Safe for typing) ---
         window.addEventListener('keydown', (e) => { 
+            if (document.activeElement.tagName === 'INPUT') return;
+            keys[e.key] = true; 
+        });
+        window.addEventListener('keyup', (e) => { 
+            if (document.activeElement.tagName === 'INPUT') return;
+            keys[e.key] = false; 
+        });
+        window.addEventListener('keydown', (e) => { 
+            if (document.activeElement.tagName === 'INPUT') return;
             if ((e.key === ' ' || e.key === 'Enter') && gameActive && !isDialogueOpen) {
                 let dist = Math.hypot(player.x - npc.x, player.y - npc.y);
-                if (dist < 60) window.openDialogue("Master Editor", "Which sentence uses a <strong>rhetorical question</strong>?", 'quiz');
+                if (dist < 60) openDialogue("Master Editor", "Which sentence uses a <strong>rhetorical question</strong>?", 'quiz');
             }
         });
 
-        // --- UPDATE LOOP ---
+        // --- UPDATE & DRAW ---
         function update() {
             if (!gameActive || isDialogueOpen) return; 
 
@@ -189,31 +199,20 @@
                 if (player.y > 200) player.y = 200;
             }
 
-            if(player.x < 0) player.x = 0;
-            if(player.y < 0) player.y = 0;
-            if(player.x + player.width > canvas.width) player.x = canvas.width - player.width;
-            if(player.y + player.height > canvas.height) player.y = canvas.height - player.height;
-
             if (player.isMoving) {
                 player.animTimer++;
                 if (player.animTimer >= 12) { player.walkFrame = player.walkFrame === 0 ? 1 : 0; player.animTimer = 0; }
-            } else { player.walkFrame = 0; }
-
-            let previousFrameX = player.frameX;
-            if (player.direction === 'down') player.frameX = player.isMoving ? (player.walkFrame === 0 ? 3 : 6) : 0;
-            else if (player.direction === 'up') player.frameX = player.isMoving ? (player.walkFrame === 0 ? 5 : 8) : 2;
-            else if (player.direction === 'left' || player.direction === 'right') player.frameX = player.isMoving ? (player.walkFrame === 0 ? 4 : 7) : 1;
-
-            // PUSH TO FIREBASE (If moved or animation changed)
-            if (player.isMoving || player.frameX !== previousFrameX) {
+                
                 const now = Date.now();
-                if (now - lastFirebaseUpdate > 30) { // Limit updates so we don't spam the server
-                    update(ref(db, `players/${playerId}`), {
-                        x: player.x, y: player.y, frameX: player.frameX, direction: player.direction
-                    });
+                if (now - lastFirebaseUpdate > 50) {
+                    update(ref(db, `players/${playerId}`), { x: player.x, y: player.y, frameX: player.frameX, direction: player.direction });
                     lastFirebaseUpdate = now;
                 }
             }
+
+            if (player.direction === 'down') player.frameX = player.isMoving ? (player.walkFrame === 0 ? 3 : 6) : 0;
+            else if (player.direction === 'up') player.frameX = player.isMoving ? (player.walkFrame === 0 ? 5 : 8) : 2;
+            else if (player.direction === 'left' || player.direction === 'right') player.frameX = player.isMoving ? (player.walkFrame === 0 ? 4 : 7) : 1;
 
             animals.forEach(a => {
                 a.x += a.speed * a.dir;
@@ -221,71 +220,38 @@
             });
         }
 
-        // --- DRAW LOOP ---
         function draw() {
-            if(!gameActive) return;
+            ctx.clearRect(0,0, canvas.width, canvas.height);
+            if(imgMap.complete) ctx.drawImage(imgMap, 0, 0, canvas.width, canvas.height);
 
-            if(imgMap.complete && imgMap.naturalWidth !== 0) ctx.drawImage(imgMap, 0, 0, canvas.width, canvas.height);
-
-            if(imgAnimals.complete && imgAnimals.naturalWidth !== 0) {
+            if(imgAnimals.complete) {
                 animals.forEach(a => {
                     ctx.save();
-                    if (a.dir === -1) {
-                        ctx.scale(-1, 1);
-                        ctx.drawImage(imgAnimals, 0, a.frameY * a.spriteH, a.spriteW, a.spriteH, -a.x - 32, a.y, 32, 32);
-                    } else {
-                        ctx.drawImage(imgAnimals, 0, a.frameY * a.spriteH, a.spriteW, a.spriteH, a.x, a.y, 32, 32);
-                    }
+                    if (a.dir === -1) { ctx.scale(-1, 1); ctx.drawImage(imgAnimals, 0, a.frameY * a.spriteH, a.spriteW, a.spriteH, -a.x - 32, a.y, 32, 32); }
+                    else { ctx.drawImage(imgAnimals, 0, a.frameY * a.spriteH, a.spriteW, a.spriteH, a.x, a.y, 32, 32); }
                     ctx.restore();
                 });
             }
 
-            if(imgSprites.complete) ctx.drawImage(imgSprites, npc.frameX * npc.spriteW, npc.frameY * npc.spriteH, npc.spriteW, npc.spriteH, npc.x, npc.y, npc.width, npc.height);
+            ctx.drawImage(imgSprites, npc.frameX * npc.spriteW, npc.frameY * npc.spriteH, npc.spriteW, npc.spriteH, npc.x, npc.y, npc.width, npc.height);
 
-            // DRAW OTHER PLAYERS FROM FIREBASE
-            if (imgSprites.complete) {
-                for (let id in otherPlayers) {
-                    let p = otherPlayers[id];
-                    ctx.save(); 
-                    if (p.direction === 'right') {
-                        ctx.scale(-1, 1);
-                        ctx.drawImage(imgSprites, p.frameX * player.spriteW, p.frameY * player.spriteH, player.spriteW, player.spriteH, -p.x - player.width, p.y, player.width, player.height);
-                    } else {
-                        ctx.drawImage(imgSprites, p.frameX * player.spriteW, p.frameY * player.spriteH, player.spriteW, player.spriteH, p.x, p.y, player.width, player.height);
-                    }
-                    ctx.restore(); 
-
-                    // OTHER PLAYER NAME TAGS
-                    ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
-                    ctx.fillRect(p.x - 10, p.y - 20, player.width + 20, 18);
-                    ctx.fillStyle = "#fbbf24"; // Gold text for other players
-                    ctx.font = "12px Arial";
-                    ctx.textAlign = "center";
-                    ctx.fillText(p.name, p.x + (player.width / 2), p.y - 7);
-                }
+            for (let id in otherPlayers) {
+                let p = otherPlayers[id];
+                ctx.save();
+                if (p.direction === 'right') { ctx.scale(-1,1); ctx.drawImage(imgSprites, p.frameX*16, p.frameY*16, 16, 16, -p.x-48, p.y, 48, 48); }
+                else { ctx.drawImage(imgSprites, p.frameX*16, p.frameY*16, 16, 16, p.x, p.y, 48, 48); }
+                ctx.restore();
+                ctx.fillStyle = "white"; ctx.fillText(p.name, p.x + 24, p.y - 5);
             }
 
-            // DRAW LOCAL PLAYER
-            if(imgSprites.complete) {
-                ctx.save(); 
-                if (player.direction === 'right') {
-                    ctx.scale(-1, 1);
-                    ctx.drawImage(imgSprites, player.frameX * player.spriteW, player.frameY * player.spriteH, player.spriteW, player.spriteH, -player.x - player.width, player.y, player.width, player.height);
-                } else {
-                    ctx.drawImage(imgSprites, player.frameX * player.spriteW, player.frameY * player.spriteH, player.spriteW, player.spriteH, player.x, player.y, player.width, player.height);
-                }
-                ctx.restore(); 
-
-                ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
-                ctx.fillRect(player.x - 10, player.y - 20, player.width + 20, 18);
-                ctx.fillStyle = "white";
-                ctx.font = "12px Arial";
-                ctx.textAlign = "center";
-                ctx.fillText(player.name, player.x + (player.width / 2), player.y - 7);
-            }
+            ctx.save(); 
+            if (player.direction === 'right') { ctx.scale(-1, 1); ctx.drawImage(imgSprites, player.frameX * 16, player.frameY * 16, 16, 16, -player.x - 48, player.y, 48, 48); }
+            else { ctx.drawImage(imgSprites, player.frameX * 16, player.frameY * 16, 16, 16, player.x, player.y, 48, 48); }
+            ctx.restore(); 
+            ctx.fillStyle = "white"; ctx.textAlign = "center"; ctx.fillText(player.name, player.x + 24, player.y - 5);
         }
 
-        function gameLoop() { update(); draw(); if(gameActive) requestAnimationFrame(gameLoop); }
+        function gameLoop() { update(); draw(); requestAnimationFrame(gameLoop); }
     </script>
 </body>
 </html>
