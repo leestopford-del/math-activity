@@ -10,10 +10,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
     <style>
-        /* Base Styles & Prevent mobile zooming/scrolling */
-        body { margin: 0; background-color: #0F172A; color: #F8FAFC; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; overflow: hidden; touch-action: none; }
-        
-        /* Screens */
+        body { margin: 0; background-color: #0F172A; color: #F8FAFC; font-family: 'Segoe UI', Tahoma, sans-serif; overflow: hidden; touch-action: none; }
         .screen { display: none; width: 100vw; height: 100vh; flex-direction: column; align-items: center; justify-content: flex-start; position: absolute; top: 0; left: 0; background: #0F172A; z-index: 10; overflow-y: auto; padding-top: 20px;}
         .active-screen { display: flex; }
         
@@ -27,16 +24,13 @@
         button.primary-btn:active { transform: scale(0.95); }
         .btn-danger { background: linear-gradient(90deg, #EF4444, #B91C1C) !important; }
 
-        /* Selection Grids */
         .grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-bottom: 20px; }
         .card { background: #0F172A; border: 2px solid #334155; padding: 15px 10px; border-radius: 8px; cursor: pointer; width: 130px; transition: 0.2s; display: flex; flex-direction: column; justify-content: center; user-select: none;}
         .card.selected { border-color: #38BDF8; background: rgba(56, 189, 248, 0.2); box-shadow: 0 0 15px rgba(56, 189, 248, 0.4);}
         .card-title { font-size: 1rem; font-weight: bold; margin-bottom: 5px; color: #F8FAFC;}
         .card-type { font-size: 0.75rem; color: #94A3B8; text-transform: uppercase; letter-spacing: 1px;}
 
-        /* Game UI */
         #game-container { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 5; display: none; }
-        
         #hud { position: absolute; top: 10px; left: 10px; z-index: 20; background: rgba(0,0,0,0.8); padding: 15px; border-radius: 8px; border-left: 4px solid #38BDF8; pointer-events: none; }
         #hud h3 { margin:0 0 5px 0; color: #38BDF8; font-size: 1.2rem; }
         #hud p { margin: 0; color: #94A3B8; font-size: 0.9rem; }
@@ -48,13 +42,9 @@
         .status-lobby { color: #F59E0B; }
 
         /* ON-SCREEN MOBILE CONTROLS */
-        #mobile-controls {
-            display: none; position: absolute; bottom: 20px; left: 0; width: 100vw; justify-content: space-between; padding: 0 20px; box-sizing: border-box; z-index: 30; pointer-events: none;
-        }
+        #mobile-controls { display: none; position: absolute; bottom: 20px; left: 0; width: 100vw; justify-content: space-between; padding: 0 20px; box-sizing: border-box; z-index: 30; pointer-events: none; }
         .control-cluster { display: flex; gap: 10px; pointer-events: auto; }
-        .touch-btn {
-            background: rgba(56, 189, 248, 0.4); border: 2px solid #38BDF8; color: white; font-size: 1.5rem; font-weight: bold; border-radius: 50%; width: 70px; height: 70px; display: flex; justify-content: center; align-items: center; user-select: none; touch-action: none; box-shadow: 0 4px 10px rgba(0,0,0,0.5);
-        }
+        .touch-btn { background: rgba(56, 189, 248, 0.4); border: 2px solid #38BDF8; color: white; font-size: 1.5rem; font-weight: bold; border-radius: 50%; width: 70px; height: 70px; display: flex; justify-content: center; align-items: center; user-select: none; touch-action: none; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
         .touch-btn:active { background: rgba(56, 189, 248, 0.8); transform: scale(0.95); }
         .btn-brake { background: rgba(239, 68, 68, 0.4); border-color: #EF4444; width: 80px; height: 80px; font-size: 1rem;}
         .btn-brake:active { background: rgba(239, 68, 68, 0.8); }
@@ -69,9 +59,7 @@
         }
 
         /* Detect PC/Mouse users and hide touch controls entirely */
-        @media (pointer: fine) {
-            #mobile-controls { display: none !important; }
-        }
+        @media (pointer: fine) { #mobile-controls { display: none !important; } }
     </style>
 </head>
 <body>
@@ -127,7 +115,6 @@
     <div id="game-container"></div>
 
     <script>
-        // --- FIREBASE SETUP ---
         const firebaseConfig = {
             apiKey: "AIzaSyBpf5wi0wShnatqUhcmPhSOdnd0NdBL65A",
             authDomain: "symmetry-and-nets.firebaseapp.com",
@@ -143,7 +130,6 @@
         const playersRef = raceRef.child('players');
         const stateRef = raceRef.child('global_state');
 
-        // --- GAME DATA ---
         const characters = [
             { id: 'dolphin', name: 'Dolphin', type: 'Natural', speed: 600, drag: 50, color: 0x38BDF8, shape: 'streamlined' },
             { id: 'shark', name: 'Shark', type: 'Natural', speed: 600, drag: 50, color: 0x94A3B8, shape: 'streamlined' },
@@ -161,21 +147,15 @@
             { id: 'pebble', name: 'Streamlined Pebble', brakeDrag: 0 }
         ];
 
-        let myId = '';
-        let myName = '';
-        let selectedChar = characters[0];
-        let selectedBrake = brakes[0];
+        let myId = '', myName = '', selectedChar = characters[0], selectedBrake = brakes[0];
         let isHost = window.location.search.includes('host=true');
         let gameInstance = null;
-
-        // --- TOUCH CONTROL STATE ---
         let touchInput = { left: false, right: false, gas: false, brake: false };
 
         function bindTouchButton(elementId, actionName) {
             const el = document.getElementById(elementId);
             const press = (e) => { e.preventDefault(); touchInput[actionName] = true; };
             const release = (e) => { e.preventDefault(); touchInput[actionName] = false; };
-            
             el.addEventListener('touchstart', press, {passive: false});
             el.addEventListener('touchend', release, {passive: false});
             el.addEventListener('mousedown', press);
@@ -183,17 +163,13 @@
             el.addEventListener('mouseleave', release);
         }
 
-        bindTouchButton('t-left', 'left');
-        bindTouchButton('t-right', 'right');
-        bindTouchButton('t-gas', 'gas');
-        bindTouchButton('t-brake', 'brake');
+        bindTouchButton('t-left', 'left'); bindTouchButton('t-right', 'right');
+        bindTouchButton('t-gas', 'gas'); bindTouchButton('t-brake', 'brake');
 
-        // PC Detection for UI instructions
         if (window.matchMedia("(pointer: fine)").matches) {
             document.querySelector('.pc-controls').style.display = 'block';
         }
 
-        // --- UI LOGIC ---
         function initUI() {
             const charGrid = document.getElementById('char-grid');
             characters.forEach(c => {
@@ -237,7 +213,7 @@
                         document.getElementById('game-container').innerHTML = '';
                         document.getElementById('game-container').style.display = 'none';
                         document.getElementById('hud').style.display = 'none';
-                        document.getElementById('mobile-controls').style.display = 'none'; // Reset to hidden
+                        document.getElementById('mobile-controls').style.display = 'none';
                     }
                     if (myId) { 
                         switchScreen('screen-lobby'); 
@@ -251,9 +227,7 @@
                 pList.innerHTML = '';
                 const players = snap.val() || {};
                 Object.values(players).forEach(p => {
-                    let statusClass = 'status-lobby';
-                    if(p.status === 'CRASHED') statusClass = 'status-crashed';
-                    if(p.status === 'Racing') statusClass = 'status-racing';
+                    let statusClass = p.status === 'CRASHED' ? 'status-crashed' : (p.status === 'Racing' ? 'status-racing' : 'status-lobby');
                     pList.innerHTML += `<li><span><b>${p.name}</b> <span style="color:#94A3B8; font-size:0.85rem;">[${p.charName}]</span></span> <span class="${statusClass}">${p.status || 'Joining...'}</span></li>`;
                 });
             });
@@ -273,7 +247,6 @@
                 id: myId, name: myName, charId: selectedChar.id, charName: selectedChar.name, 
                 color: selectedChar.color, shape: selectedChar.shape, x: 0, y: 0, angle: 0, status: 'In Lobby'
             });
-            
             playersRef.child(myId).onDisconnect().remove();
             switchScreen('screen-lobby');
         }
@@ -283,17 +256,12 @@
 
         initUI();
 
-        // ==========================================
-        // PHASER 3 GAME ENGINE
-        // ==========================================
+        // --- PHASER 3 GAME ENGINE ---
         function launchPhaserGame() {
             switchScreen(''); 
             document.getElementById('game-container').style.display = 'block';
             document.getElementById('hud').style.display = 'block';
-            
-            // Only set to flex if CSS media query doesn't override it to 'none'
             document.getElementById('mobile-controls').style.display = 'flex'; 
-            
             document.getElementById('drag-status').innerText = "Brakes: OFF";
             document.getElementById('drag-status').style.color = "#94A3B8";
 
@@ -313,13 +281,10 @@
 
             function createGame() {
                 const scene = this;
-                
-                // Land Background
                 scene.cameras.main.setBackgroundColor('#1E293B'); 
 
                 walls = scene.physics.add.staticGroup();
                 const trackGraphics = scene.add.graphics();
-
                 const path = new Phaser.Curves.Path(0, 3000); 
                 path.lineTo(0, 2000);
                 path.ellipseTo(500, 500, 180, 0, false, 0); 
@@ -327,34 +292,24 @@
                 path.ellipseTo(500, 500, 180, 0, false, 1); 
                 path.lineTo(2000, -1000);
 
-                // FIX 1: Stamp circles to build the track instead of using a thick WebGL line stroke
                 const points = path.getPoints(250); 
-                trackGraphics.fillStyle(0x0284C7, 1); // Water Color
-                points.forEach(p => {
-                    trackGraphics.fillCircle(p.x, p.y, 180);
-                });
+                trackGraphics.fillStyle(0x0284C7, 1);
+                points.forEach(p => trackGraphics.fillCircle(p.x, p.y, 180));
 
-                // Draw starting line
                 scene.add.rectangle(0, 2800, 350, 20, 0xffffff);
 
-                // Invisible Collision Walls
                 for (let i = 1; i < points.length; i++) {
                     let p1 = points[i-1], p2 = points[i];
                     let angle = Phaser.Math.Angle.Between(p1.x, p1.y, p2.x, p2.y);
-                    let normX = Math.sin(angle);
-                    let normY = -Math.cos(angle);
-                    let trackWidth = 180; 
-                    
+                    let normX = Math.sin(angle), normY = -Math.cos(angle), trackWidth = 180; 
                     walls.add(scene.add.rectangle(p2.x + normX * trackWidth, p2.y + normY * trackWidth, 40, 40, 0xEF4444).setVisible(false));
                     walls.add(scene.add.rectangle(p2.x - normX * trackWidth, p2.y - normY * trackWidth, 40, 40, 0xEF4444).setVisible(false));
                 }
 
-                // FIX 2: Create local player sprite with a generated texture key to prevent rendering crash
                 localPlayer = createPlayerSprite(scene, selectedChar.shape, selectedChar.color, myId);
                 scene.physics.add.existing(localPlayer);
                 localPlayer.body.setMaxVelocity(selectedChar.speed);
                 localPlayer.body.setDrag(selectedChar.drag);
-                
                 localPlayer.x = (Math.random() - 0.5) * 200;
                 localPlayer.y = 2900 + (Math.random() * 100);
                 localPlayer.angle = -90; 
@@ -365,7 +320,6 @@
                 cursors = scene.input.keyboard.createCursorKeys();
                 spaceKey = scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
 
-                // Collision Logic
                 scene.physics.add.overlap(localPlayer, walls, () => {
                     const speed = localPlayer.body.speed;
                     if (speed > 150 && localPlayer.active) { 
@@ -375,21 +329,17 @@
                         playersRef.child(myId).update({ status: 'CRASHED' });
                         document.getElementById('drag-status').innerText = "CRASHED INTO BANK!";
                         document.getElementById('drag-status').style.color = "#EF4444";
-                        
                         touchInput.left = touchInput.right = touchInput.gas = touchInput.brake = false;
                     } else if (speed > 0) {
                         localPlayer.body.setVelocity(localPlayer.body.velocity.x * 0.5, localPlayer.body.velocity.y * 0.5);
                     }
                 });
 
-                // Sync Network Players
                 playersRef.on('value', snap => {
                     const players = snap.val() || {};
                     Object.keys(remotePlayers).forEach(id => {
                         if (!players[id]) {
-                            remotePlayers[id].sprite.destroy();
-                            remotePlayers[id].text.destroy();
-                            delete remotePlayers[id];
+                            remotePlayers[id].sprite.destroy(); remotePlayers[id].text.destroy(); delete remotePlayers[id];
                         }
                     });
 
@@ -400,15 +350,10 @@
                             const text = scene.add.text(0, 0, pData.name, { fontSize: '24px', fill: '#FFF', fontStyle: 'bold', stroke: '#000', strokeThickness: 4 }).setOrigin(0.5);
                             remotePlayers[pData.id] = { sprite, text };
                         }
-                        
                         const rp = remotePlayers[pData.id];
-                        rp.sprite.x = pData.x;
-                        rp.sprite.y = pData.y;
-                        rp.sprite.angle = pData.angle;
-                        if(pData.status === 'CRASHED') rp.sprite.setTint(0xEF4444);
-                        else rp.sprite.clearTint();
-                        rp.text.x = pData.x;
-                        rp.text.y = pData.y - 50;
+                        rp.sprite.x = pData.x; rp.sprite.y = pData.y; rp.sprite.angle = pData.angle;
+                        if(pData.status === 'CRASHED') rp.sprite.setTint(0xEF4444); else rp.sprite.clearTint();
+                        rp.text.x = pData.x; rp.text.y = pData.y - 50;
                     });
                 });
             }
@@ -416,7 +361,6 @@
             function updateGame() {
                 if (!localPlayer || !localPlayer.active) return;
 
-                // Support BOTH keyboard and touch controls simultaneously
                 if (cursors.left.isDown || touchInput.left) localPlayer.setAngularVelocity(-200);
                 else if (cursors.right.isDown || touchInput.right) localPlayer.setAngularVelocity(200);
                 else localPlayer.setAngularVelocity(0);
@@ -427,12 +371,10 @@
                 const hudDrag = document.getElementById('drag-status');
                 if (spaceKey.isDown || touchInput.brake) {
                     localPlayer.body.setDrag(selectedChar.drag + selectedBrake.brakeDrag);
-                    hudDrag.innerText = "BRAKING: DEPLOYED";
-                    hudDrag.style.color = "#EF4444";
+                    hudDrag.innerText = "BRAKING: DEPLOYED"; hudDrag.style.color = "#EF4444";
                 } else {
                     localPlayer.body.setDrag(selectedChar.drag);
-                    hudDrag.innerText = "Brakes: OFF";
-                    hudDrag.style.color = "#94A3B8";
+                    hudDrag.innerText = "Brakes: OFF"; hudDrag.style.color = "#94A3B8";
                 }
 
                 if (!localPlayer.oldPos || Math.abs(localPlayer.x - localPlayer.oldPos.x) > 1 || Math.abs(localPlayer.y - localPlayer.oldPos.y) > 1 || Math.abs(localPlayer.angle - localPlayer.oldPos.angle) > 1) {
@@ -443,24 +385,17 @@
 
             function createPlayerSprite(scene, shapeType, colorHex, id) {
                 const textureKey = 'player_tex_' + id;
-                
-                // If the texture hasn't been generated yet, build it using Graphics and save to Texture Manager
                 if (!scene.textures.exists(textureKey)) {
                     const g = scene.add.graphics();
                     g.fillStyle(colorHex, 1);
                     g.lineStyle(2, 0xffffff, 1);
-                    
                     if (shapeType === 'streamlined') {
-                        g.fillTriangle(60, 30, 0, 10, 0, 50);
-                        g.strokeTriangle(60, 30, 0, 10, 0, 50);
+                        g.fillTriangle(60, 30, 0, 10, 0, 50); g.strokeTriangle(60, 30, 0, 10, 0, 50);
                     } else {
-                        g.fillRect(10, 10, 40, 40);
-                        g.strokeRect(10, 10, 40, 40);
+                        g.fillRect(10, 10, 40, 40); g.strokeRect(10, 10, 40, 40);
                     }
-                    g.generateTexture(textureKey, 60, 60);
-                    g.destroy();
+                    g.generateTexture(textureKey, 60, 60); g.destroy();
                 }
-                
                 return scene.add.sprite(0, 0, textureKey);
             }
         }
