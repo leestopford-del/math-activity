@@ -10,7 +10,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
     <style>
-        /* Base Styles & Prevent mobile zooming/scrolling during gameplay */
+        /* Base Styles & Prevent mobile zooming/scrolling */
         body { margin: 0; background-color: #0F172A; color: #F8FAFC; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; overflow: hidden; touch-action: none; }
         
         /* Screens */
@@ -39,6 +39,7 @@
         
         #hud { position: absolute; top: 10px; left: 10px; z-index: 20; background: rgba(0,0,0,0.8); padding: 15px; border-radius: 8px; border-left: 4px solid #38BDF8; pointer-events: none; }
         #hud h3 { margin:0 0 5px 0; color: #38BDF8; font-size: 1.2rem; }
+        #hud p { margin: 0; color: #94A3B8; font-size: 0.9rem; }
         
         .player-list { list-style: none; padding: 0; text-align: left; max-height: 250px; overflow-y: auto;}
         .player-list li { padding: 10px; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; gap: 10px; font-size: 1rem;}
@@ -66,12 +67,18 @@
             .touch-btn { width: 60px; height: 60px; }
             .btn-brake, .btn-gas { width: 70px; height: 70px; }
         }
+
+        /* Detect PC/Mouse users and hide touch controls entirely */
+        @media (pointer: fine) {
+            #mobile-controls { display: none !important; }
+        }
     </style>
 </head>
 <body>
 
     <div id="hud" style="display: none;">
         <h3>Vessel Telemetry</h3>
+        <p class="pc-controls" style="display: none; margin-bottom: 5px;">Controls: Arrow Keys to Drive, SPACE to Brake</p>
         <div id="drag-status" style="color: #94A3B8; font-size: 1rem; font-weight: bold;">Brakes: OFF</div>
     </div>
 
@@ -136,7 +143,7 @@
         const playersRef = raceRef.child('players');
         const stateRef = raceRef.child('global_state');
 
-        // --- GAME DATA (Internal Stats hidden from UI) ---
+        // --- GAME DATA ---
         const characters = [
             { id: 'dolphin', name: 'Dolphin', type: 'Natural', speed: 600, drag: 50, color: 0x38BDF8, shape: 'streamlined' },
             { id: 'shark', name: 'Shark', type: 'Natural', speed: 600, drag: 50, color: 0x94A3B8, shape: 'streamlined' },
@@ -151,7 +158,7 @@
         const brakes = [
             { id: 'drogue', name: 'Submarine Drogue', brakeDrag: 1500 },
             { id: 'anchor', name: 'Ship Anchor', brakeDrag: 700 },
-            { id: 'pebble', name: 'Streamlined Pebble', brakeDrag: 0 } // Useless!
+            { id: 'pebble', name: 'Streamlined Pebble', brakeDrag: 0 }
         ];
 
         let myId = '';
@@ -180,6 +187,11 @@
         bindTouchButton('t-right', 'right');
         bindTouchButton('t-gas', 'gas');
         bindTouchButton('t-brake', 'brake');
+
+        // PC Detection for UI instructions
+        if (window.matchMedia("(pointer: fine)").matches) {
+            document.querySelector('.pc-controls').style.display = 'block';
+        }
 
         // --- UI LOGIC ---
         function initUI() {
@@ -214,7 +226,6 @@
                 stateRef.once('value', snap => { if(!snap.exists()) stateRef.set('lobby'); });
             }
 
-            // Sync Logic
             stateRef.on('value', snap => {
                 const state = snap.val();
                 if (state === 'racing' && myId && !gameInstance) {
@@ -226,7 +237,7 @@
                         document.getElementById('game-container').innerHTML = '';
                         document.getElementById('game-container').style.display = 'none';
                         document.getElementById('hud').style.display = 'none';
-                        document.getElementById('mobile-controls').style.display = 'none';
+                        document.getElementById('mobile-controls').style.display = 'none'; // Reset to hidden
                     }
                     if (myId) { 
                         switchScreen('screen-lobby'); 
@@ -279,7 +290,9 @@
             switchScreen(''); 
             document.getElementById('game-container').style.display = 'block';
             document.getElementById('hud').style.display = 'block';
-            document.getElementById('mobile-controls').style.display = 'flex'; // Show touch controls!
+            
+            // Only set to flex if CSS media query doesn't override it to 'none'
+            document.getElementById('mobile-controls').style.display = 'flex'; 
             
             document.getElementById('drag-status').innerText = "Brakes: OFF";
             document.getElementById('drag-status').style.color = "#94A3B8";
@@ -289,7 +302,7 @@
             const config = {
                 type: Phaser.AUTO,
                 parent: 'game-container',
-                scale: { mode: Phaser.Scale.RESIZE, width: '100%', height: '100%' }, // Responsive
+                scale: { mode: Phaser.Scale.RESIZE, width: '100%', height: '100%' },
                 physics: { default: 'arcade', arcade: { debug: false } },
                 scene: { create: createGame, update: updateGame }
             };
@@ -300,11 +313,12 @@
 
             function createGame() {
                 const scene = this;
-                scene.cameras.main.setBackgroundColor('#004261'); 
+                
+                // Land Background
+                scene.cameras.main.setBackgroundColor('#1E293B'); 
 
                 walls = scene.physics.add.staticGroup();
                 const trackGraphics = scene.add.graphics();
-                trackGraphics.lineStyle(350, 0x0284C7, 1); 
 
                 const path = new Phaser.Curves.Path(0, 3000); 
                 path.lineTo(0, 2000);
@@ -312,20 +326,18 @@
                 path.lineTo(1000, 500);
                 path.ellipseTo(500, 500, 180, 0, false, 1); 
                 path.lineTo(2000, -1000);
-                path.draw(trackGraphics);
 
-                trackGraphics.lineStyle(4, 0xffffff, 0.4);
-                for(let i = -1; i <= 1; i++) {
-                    const lanePath = new Phaser.Curves.Path(i * 80, 3000);
-                    lanePath.lineTo(i * 80, 2000);
-                    lanePath.ellipseTo(500 + (i*80), 500 + (i*80), 180, 0, false, 0);
-                    lanePath.lineTo(1000 + (i*80), 500);
-                    lanePath.ellipseTo(500 - (i*80), 500 - (i*80), 180, 0, false, 1);
-                    lanePath.lineTo(2000 + (i*80), -1000);
-                    lanePath.draw(trackGraphics);
-                }
+                // FIX 1: Stamp circles to build the track instead of using a thick WebGL line stroke
+                const points = path.getPoints(250); 
+                trackGraphics.fillStyle(0x0284C7, 1); // Water Color
+                points.forEach(p => {
+                    trackGraphics.fillCircle(p.x, p.y, 180);
+                });
 
-                const points = path.getPoints(150);
+                // Draw starting line
+                scene.add.rectangle(0, 2800, 350, 20, 0xffffff);
+
+                // Invisible Collision Walls
                 for (let i = 1; i < points.length; i++) {
                     let p1 = points[i-1], p2 = points[i];
                     let angle = Phaser.Math.Angle.Between(p1.x, p1.y, p2.x, p2.y);
@@ -333,13 +345,12 @@
                     let normY = -Math.cos(angle);
                     let trackWidth = 180; 
                     
-                    walls.add(scene.add.rectangle(p2.x + normX * trackWidth, p2.y + normY * trackWidth, 40, 40, 0xEF4444));
-                    walls.add(scene.add.rectangle(p2.x - normX * trackWidth, p2.y - normY * trackWidth, 40, 40, 0xEF4444));
+                    walls.add(scene.add.rectangle(p2.x + normX * trackWidth, p2.y + normY * trackWidth, 40, 40, 0xEF4444).setVisible(false));
+                    walls.add(scene.add.rectangle(p2.x - normX * trackWidth, p2.y - normY * trackWidth, 40, 40, 0xEF4444).setVisible(false));
                 }
 
-                scene.add.rectangle(0, 2800, 350, 20, 0xffffff);
-
-                localPlayer = createPlayerSprite(scene, selectedChar.shape, selectedChar.color);
+                // FIX 2: Create local player sprite with a generated texture key to prevent rendering crash
+                localPlayer = createPlayerSprite(scene, selectedChar.shape, selectedChar.color, myId);
                 scene.physics.add.existing(localPlayer);
                 localPlayer.body.setMaxVelocity(selectedChar.speed);
                 localPlayer.body.setDrag(selectedChar.drag);
@@ -354,6 +365,7 @@
                 cursors = scene.input.keyboard.createCursorKeys();
                 spaceKey = scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
 
+                // Collision Logic
                 scene.physics.add.overlap(localPlayer, walls, () => {
                     const speed = localPlayer.body.speed;
                     if (speed > 150 && localPlayer.active) { 
@@ -364,13 +376,13 @@
                         document.getElementById('drag-status').innerText = "CRASHED INTO BANK!";
                         document.getElementById('drag-status').style.color = "#EF4444";
                         
-                        // Disable controls on crash
                         touchInput.left = touchInput.right = touchInput.gas = touchInput.brake = false;
                     } else if (speed > 0) {
                         localPlayer.body.setVelocity(localPlayer.body.velocity.x * 0.5, localPlayer.body.velocity.y * 0.5);
                     }
                 });
 
+                // Sync Network Players
                 playersRef.on('value', snap => {
                     const players = snap.val() || {};
                     Object.keys(remotePlayers).forEach(id => {
@@ -384,7 +396,7 @@
                     Object.values(players).forEach(pData => {
                         if (pData.id === myId) return;
                         if (!remotePlayers[pData.id]) {
-                            const sprite = createPlayerSprite(scene, pData.shape, pData.color);
+                            const sprite = createPlayerSprite(scene, pData.shape, pData.color, pData.id);
                             const text = scene.add.text(0, 0, pData.name, { fontSize: '24px', fill: '#FFF', fontStyle: 'bold', stroke: '#000', strokeThickness: 4 }).setOrigin(0.5);
                             remotePlayers[pData.id] = { sprite, text };
                         }
@@ -429,23 +441,27 @@
                 }
             }
 
-            function createPlayerSprite(scene, shapeType, colorHex) {
-                const rt = scene.add.renderTexture(0, 0, 60, 60);
-                const g = scene.add.graphics();
-                g.fillStyle(colorHex, 1);
-                g.lineStyle(2, 0xffffff, 1);
+            function createPlayerSprite(scene, shapeType, colorHex, id) {
+                const textureKey = 'player_tex_' + id;
                 
-                if (shapeType === 'streamlined') {
-                    g.fillTriangle(60, 30, 0, 10, 0, 50);
-                    g.strokeTriangle(60, 30, 0, 10, 0, 50);
-                } else {
-                    g.fillRect(10, 10, 40, 40);
-                    g.strokeRect(10, 10, 40, 40);
+                // If the texture hasn't been generated yet, build it using Graphics and save to Texture Manager
+                if (!scene.textures.exists(textureKey)) {
+                    const g = scene.add.graphics();
+                    g.fillStyle(colorHex, 1);
+                    g.lineStyle(2, 0xffffff, 1);
+                    
+                    if (shapeType === 'streamlined') {
+                        g.fillTriangle(60, 30, 0, 10, 0, 50);
+                        g.strokeTriangle(60, 30, 0, 10, 0, 50);
+                    } else {
+                        g.fillRect(10, 10, 40, 40);
+                        g.strokeRect(10, 10, 40, 40);
+                    }
+                    g.generateTexture(textureKey, 60, 60);
+                    g.destroy();
                 }
                 
-                rt.draw(g, 0, 0);
-                g.destroy();
-                return scene.add.sprite(0, 0, rt.texture);
+                return scene.add.sprite(0, 0, textureKey);
             }
         }
     </script>
