@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>The Royal Printing Press - Adventure</title>
+    <style>
+        body { margin: 0; padding: 0; background: #222; display: flex; flex-direction: column; align-items: center; color: white; font-family: sans-serif; }
+        #gameCanvas { background: #000; box-shadow: 0 0 10px rgba(0,0,0,0.5); border: 4px solid #78350f; border-radius: 8px; margin-top: 20px; max-width: 100%; }
+        
+        /* Mobile Controls */
+        #mobile-controls { display: flex; gap: 20px; margin-top: 20px; }
+        .d-pad { display: grid; grid-template-columns: repeat(3, 50px); grid-template-rows: repeat(3, 50px); gap: 5px; }
+        .btn { background: #555; border: 2px solid #777; border-radius: 8px; color: white; font-size: 20px; font-weight: bold; cursor: pointer; user-select: none; }
+        .btn:active { background: #777; }
+        .up { grid-column: 2; grid-row: 1; }
+        .left { grid-column: 1; grid-row: 2; }
+        .right { grid-column: 3; grid-row: 2; }
+        .down { grid-column: 2; grid-row: 3; }
+        
+        #action-btn { width: 80px; height: 80px; border-radius: 50%; background: #ef4444; margin-top: 35px; border: 4px solid #b91c1c; font-size: 16px; }
+        #action-btn:active { background: #dc2626; }
+
+        /* Hide mobile controls on desktop */
+        @media (min-width: 768px) { #mobile-controls { display: none; } }
+    </style>
+</head>
+<body>
+
+    <canvas id="gameCanvas" width="640" height="480"></canvas>
+
+    <div id="mobile-controls">
+        <div class="d-pad">
+            <button class="btn up" id="btn-up">▲</button>
+            <button class="btn left" id="btn-left">◀</button>
+            <button class="btn right" id="btn-right">▶</button>
+            <button class="btn down" id="btn-down">▼</button>
+        </div>
+        <button class="btn" id="action-btn">TALK</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // --- 1. LOAD YOUR ASSETS HERE ---
+        // Change these file names to match the images you downloaded!
+        const imgMap = new Image(); imgMap.src = 'map.png'; 
+        const imgPlayer = new Image(); imgPlayer.src = 'player.png';
+        const imgNPC = new Image(); imgNPC.src = 'npc.png';
+
+        // --- 2. GAME VARIABLES ---
+        let player = { x: 300, y: 200, width: 32, height: 32, speed: 4 };
+        let npc = { x: 400, y: 150, width: 32, height: 32 };
+        let keys = { ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false, w: false, a: false, s: false, d: false };
+
+        // --- 3. CONTROLS ---
+        window.addEventListener('keydown', (e) => { keys[e.key] = true; });
+        window.addEventListener('keyup', (e) => { keys[e.key] = false; });
+
+        // Mobile touch controls wiring
+        const bindTouch = (id, key) => {
+            const el = document.getElementById(id);
+            el.addEventListener('touchstart', (e) => { e.preventDefault(); keys[key] = true; });
+            el.addEventListener('touchend', (e) => { e.preventDefault(); keys[key] = false; });
+        };
+        bindTouch('btn-up', 'ArrowUp'); bindTouch('btn-down', 'ArrowDown');
+        bindTouch('btn-left', 'ArrowLeft'); bindTouch('btn-right', 'ArrowRight');
+
+        // Action button (Talk to NPC)
+        document.getElementById('action-btn').addEventListener('touchstart', checkInteraction);
+        window.addEventListener('keydown', (e) => { if (e.key === ' ' || e.key === 'Enter') checkInteraction(); });
+
+        // --- 4. GAME LOGIC ---
+        function update() {
+            // Move Player
+            if (keys.ArrowUp || keys.w) player.y -= player.speed;
+            if (keys.ArrowDown || keys.s) player.y += player.speed;
+            if (keys.ArrowLeft || keys.a) player.x -= player.speed;
+            if (keys.ArrowRight || keys.d) player.x += player.speed;
+
+            // Simple boundaries (keep player on screen)
+            if(player.x < 0) player.x = 0;
+            if(player.y < 0) player.y = 0;
+            if(player.x + player.width > canvas.width) player.x = canvas.width - player.width;
+            if(player.y + player.height > canvas.height) player.y = canvas.height - player.height;
+        }
+
+        function checkInteraction() {
+            // Check how close the player is to the NPC
+            let dx = player.x - npc.x;
+            let dy = player.y - npc.y;
+            let distance = Math.sqrt(dx * dx + dy * dy);
+
+            if (distance < 50) {
+                // Trigger the Year 6 English Question!
+                alert("Master Editor: 'Halt! Before you use the printing press, tell me... What is a rhetorical question?'");
+                // We will build out a proper dialogue box here next!
+            }
+        }
+
+        // --- 5. DRAW EVERYTHING ---
+        function draw() {
+            // Draw Map
+            if(imgMap.complete) {
+                ctx.drawImage(imgMap, 0, 0, canvas.width, canvas.height);
+            } else {
+                ctx.fillStyle = '#4ade80'; ctx.fillRect(0, 0, canvas.width, canvas.height); // Placeholder grass
+            }
+
+            // Draw NPC
+            if(imgNPC.complete) {
+                ctx.drawImage(imgNPC, npc.x, npc.y, npc.width, npc.height);
+            } else {
+                ctx.fillStyle = 'blue'; ctx.fillRect(npc.x, npc.y, npc.width, npc.height); // Placeholder block
+            }
+
+            // Draw Player
+            if(imgPlayer.complete) {
+                ctx.drawImage(imgPlayer, player.x, player.y, player.width, player.height);
+            } else {
+                ctx.fillStyle = 'red'; ctx.fillRect(player.x, player.y, player.width, player.height); // Placeholder block
+            }
+        }
+
+        // --- 6. THE GAME LOOP ---
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop); // Runs 60 times a second
+        }
+
+        // Start the game!
+        gameLoop();
+    </script>
+</body>
+</html>
