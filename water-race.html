@@ -286,7 +286,7 @@
 
         initUI();
 
-        // ==========================================
+       // ==========================================
         // PHASER 3 GAME ENGINE
         // ==========================================
         function launchPhaserGame() {
@@ -475,52 +475,3 @@
 
             }, 100); 
         }
-
-            function updateGame() {
-                // Host Camera Panning via Keyboard
-                if (isHost) {
-                    const camSpeed = 15;
-                    if (cursors.left.isDown) this.cameras.main.scrollX -= camSpeed;
-                    if (cursors.right.isDown) this.cameras.main.scrollX += camSpeed;
-                    if (cursors.up.isDown) this.cameras.main.scrollY -= camSpeed;
-                    if (cursors.down.isDown) this.cameras.main.scrollY += camSpeed;
-                    return; // Host doesn't process vehicle physics
-                }
-
-                // Player Physics Loop
-                if (!localPlayer || localPlayer.isCrashed) return;
-
-                if (cursors.left.isDown || touchInput.left) localPlayer.setAngularVelocity(-200);
-                else if (cursors.right.isDown || touchInput.right) localPlayer.setAngularVelocity(200);
-                else localPlayer.setAngularVelocity(0);
-
-                if (cursors.up.isDown || touchInput.gas) this.physics.velocityFromRotation(localPlayer.rotation, selectedChar.speed, localPlayer.body.acceleration);
-                else localPlayer.body.setAcceleration(0);
-
-                const hudDrag = document.getElementById('drag-status');
-                if (spaceKey.isDown || touchInput.brake) {
-                    localPlayer.body.setDrag(selectedChar.drag + selectedBrake.brakeDrag);
-                    hudDrag.innerText = "BRAKING: DEPLOYED"; hudDrag.style.color = "#EF4444";
-                } else {
-                    localPlayer.body.setDrag(selectedChar.drag);
-                    hudDrag.innerText = "Brakes: OFF"; hudDrag.style.color = "#94A3B8";
-                }
-
-                if (!localPlayer.oldPos || Math.abs(localPlayer.x - localPlayer.oldPos.x) > 1 || Math.abs(localPlayer.y - localPlayer.oldPos.y) > 1 || Math.abs(localPlayer.angle - localPlayer.oldPos.angle) > 1) {
-                    playersRef.child(myId).update({ x: localPlayer.x, y: localPlayer.y, angle: localPlayer.angle });
-                    localPlayer.oldPos = { x: localPlayer.x, y: localPlayer.y, angle: localPlayer.angle };
-                }
-            }
-
-            function createNativeShape(scene, shapeType, colorHex) {
-                // Streamlined = Long/Thin. Bluff = Wide/Square
-                let width = shapeType === 'streamlined' ? 80 : 50;
-                let height = shapeType === 'streamlined' ? 30 : 50;
-                let shape = scene.add.rectangle(0, 0, width, height, colorHex).setDepth(10);
-                shape.setStrokeStyle(3, 0xffffff);
-                return shape;
-            }
-        }
-    </script>
-</body>
-</html>
