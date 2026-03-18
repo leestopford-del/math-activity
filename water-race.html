@@ -22,7 +22,7 @@
             font-family: 'Inter', sans-serif;
             background-color: var(--bg);
             color: var(--text);
-            overflow: hidden; /* Prevent scrolling during gameplay */
+            overflow: hidden; 
         }
 
         /* --- UI SCREENS --- */
@@ -30,10 +30,11 @@
             display: none;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
-            min-height: 100vh;
+            justify-content: flex-start;
+            height: 100vh;
             padding: 20px;
             box-sizing: border-box;
+            overflow-y: auto;
         }
         .active-screen { display: flex; }
 
@@ -43,49 +44,52 @@
             border-radius: 15px;
             border: 1px solid #334155;
             width: 100%;
-            max-width: 600px;
+            max-width: 800px;
             box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            margin-bottom: 40px;
         }
 
-        h1 { margin-top: 0; font-size: 1.5rem; text-align: center; color: var(--primary); }
-        h2 { font-size: 1.1rem; margin-bottom: 10px; color: var(--text-muted); }
+        h1 { margin-top: 0; font-size: 1.8rem; text-align: center; color: var(--primary); text-transform: uppercase; }
+        h2 { font-size: 1.1rem; margin-bottom: 10px; color: var(--primary); border-bottom: 1px solid #334155; padding-bottom: 5px;}
 
         input[type="text"] {
-            width: 100%; padding: 12px; margin-bottom: 20px;
-            border-radius: 8px; border: 1px solid #475569;
+            width: 100%; padding: 15px; margin-bottom: 25px;
+            border-radius: 8px; border: 2px solid var(--primary);
             background: var(--bg); color: var(--text);
-            font-size: 1rem; box-sizing: border-box;
+            font-size: 1.2rem; text-align: center; box-sizing: border-box; outline: none;
         }
 
         .grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
             gap: 15px;
-            margin-bottom: 25px;
+            margin-bottom: 30px;
         }
 
         .card {
             background: var(--bg);
             border: 2px solid #334155;
             border-radius: 10px;
-            padding: 15px;
+            padding: 15px 10px;
             text-align: center;
             cursor: pointer;
             transition: all 0.2s;
+            user-select: none;
         }
         .card:hover { border-color: var(--primary); }
-        .card.selected { border-color: var(--primary); background: rgba(14, 165, 233, 0.1); }
-        .card-title { display: block; font-weight: 600; margin-bottom: 5px; }
-        .card-desc { font-size: 0.8rem; color: var(--text-muted); }
+        .card.selected { border-color: var(--primary); background: rgba(14, 165, 233, 0.2); box-shadow: 0 0 15px rgba(14, 165, 233, 0.3);}
+        .card-title { display: block; font-weight: 600; margin-bottom: 5px; font-size: 1rem;}
+        .card-desc { font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;}
 
         button {
             width: 100%; padding: 15px;
             background: var(--primary); color: white;
             border: none; border-radius: 8px;
-            font-size: 1.1rem; font-weight: 600;
+            font-size: 1.2rem; font-weight: bold;
             cursor: pointer; transition: 0.2s;
+            margin-bottom: 10px;
         }
-        button:hover { background: #0284C7; }
+        button:hover { background: #0284C7; transform: translateY(-2px);}
         button.danger { background: var(--danger); }
         button.danger:hover { background: #DC2626; }
         button.success { background: var(--success); }
@@ -96,8 +100,8 @@
             max-height: 250px; overflow-y: auto;
         }
         .player-list li {
-            padding: 10px; border-bottom: 1px solid #334155;
-            display: flex; justify-content: space-between;
+            padding: 12px; border-bottom: 1px solid #334155;
+            display: flex; justify-content: space-between; font-size: 1.1rem;
         }
 
         /* --- GAME & HUD --- */
@@ -122,84 +126,87 @@
         }
         .control-group { display: flex; gap: 10px; pointer-events: auto; }
         .btn-touch {
-            width: 60px; height: 60px;
+            width: 65px; height: 65px;
             background: rgba(30, 41, 59, 0.8);
-            border: 2px solid #475569; border-radius: 50%;
+            border: 2px solid var(--primary); border-radius: 50%;
             color: white; font-size: 1.5rem; font-weight: bold;
             display: flex; align-items: center; justify-content: center;
-            user-select: none;
+            user-select: none; box-shadow: 0 4px 10px rgba(0,0,0,0.5);
         }
-        .btn-touch:active { background: rgba(14, 165, 233, 0.5); }
-        .btn-brake { background: rgba(239, 68, 68, 0.5); border-color: var(--danger); width: 80px; border-radius: 15px;}
+        .btn-touch:active { background: rgba(14, 165, 233, 0.8); transform: scale(0.95);}
+        .btn-brake { background: rgba(239, 68, 68, 0.5); border-color: var(--danger); width: 80px; font-size: 1rem;}
+        .btn-brake:active { background: rgba(239, 68, 68, 0.9); }
+        .btn-gas { background: rgba(16, 185, 129, 0.5); border-color: var(--success); width: 80px;}
+        .btn-gas:active { background: rgba(16, 185, 129, 0.9); }
         
-        .status-lobby { color: var(--primary); }
+        .status-lobby { color: var(--text-muted); }
         .status-racing { color: var(--success); }
         .status-crashed { color: var(--danger); font-weight: bold; }
+
+        @media (pointer: fine) { #mobile-controls { display: none !important; } }
     </style>
 </head>
 <body>
 
     <div id="screen-login" class="screen">
         <div class="panel">
-            <h1>Vehicle Configuration</h1>
-            <input type="text" id="player-name" placeholder="Enter your callsign..." autocomplete="off">
+            <h1>Hydro-Race Setup</h1>
+            <p style="text-align: center; color: var(--text-muted); margin-bottom: 25px;">Configure your vessel for the rapids. Choose your shape and intentional drag carefully!</p>
             
-            <h2>Hull Shape (Surface Area)</h2>
+            <input type="text" id="player-name" placeholder="Enter your Callsign..." autocomplete="off">
+            
+            <h2>1. Select Hull Design</h2>
             <div class="grid" id="char-grid"></div>
 
-            <h2>Braking System (Intentional Drag)</h2>
+            <h2>2. Select Braking System</h2>
             <div class="grid" id="brake-grid"></div>
 
-            <button onclick="window.joinLobby()">Initialize Sub & Join Lobby</button>
+            <button onclick="window.joinLobby()">Enter Server</button>
         </div>
     </div>
 
     <div id="screen-lobby" class="screen">
         <div class="panel" style="text-align: center;">
-            <h1>Lobby Setup</h1>
-            <p style="color: var(--text-muted);">Awaiting Instructor to clear the channel...</p>
-            <div style="background: var(--bg); padding: 15px; border-radius: 10px; margin-top: 20px;">
-                <h3 style="margin-top:0;">Connected Pilots</h3>
+            <h1>Race Lobby</h1>
+            <p style="color: var(--text-muted); font-size: 1.1rem;">Awaiting Instructor to clear the channel...</p>
+            <div style="background: var(--bg); padding: 15px; border-radius: 10px; margin-top: 20px; text-align: left;">
                 <ul class="player-list" id="lobby-players"></ul>
             </div>
         </div>
     </div>
 
     <div id="screen-host" class="screen">
-        <div class="panel">
-            <h1>Instructor Command Center</h1>
-            <p style="color: var(--text-muted); text-align:center;">Monitor connections and manage the simulation.</p>
+        <div class="panel" style="max-width: 600px;">
+            <h1 style="color: var(--danger);">Instructor Command</h1>
+            <p style="color: var(--text-muted); text-align:center;">Manage the lobby. You will act as a spectator drone during the race.</p>
             
             <div style="background: var(--bg); padding: 15px; border-radius: 10px; margin-bottom: 20px;">
-                <h3 style="margin-top:0;">Telemetry Uplinks</h3>
                 <ul class="player-list" id="host-players"></ul>
             </div>
 
-            <div style="display: flex; gap: 10px;">
-                <button class="success" onclick="window.startRace()">Launch Simulation</button>
-                <button class="danger" onclick="window.endRace()">Abort / Reset to Lobby</button>
-            </div>
+            <button class="success" onclick="window.startRace()">Launch Simulation</button>
+            <button class="danger" onclick="window.endRace()">Reset Lobby (Clear Track)</button>
         </div>
     </div>
 
     <div id="game-container"></div>
     
     <div id="hud">
-        <h3 id="hud-title" style="margin: 0 0 5px 0; color: var(--primary);">Telemetry</h3>
-        <div id="drag-status" style="color: var(--text-muted); font-weight: 600;">Brakes: OFF</div>
-        <div class="pc-controls" style="margin-top: 10px; font-size: 0.8rem; color: #475569;">
+        <h3 id="hud-title" style="margin: 0 0 5px 0; color: var(--primary);">Vessel Telemetry</h3>
+        <div id="drag-status" style="color: var(--text-muted); font-weight: 600; font-size: 1.1rem;">Brakes: OFF</div>
+        <div class="pc-controls" style="margin-top: 10px; font-size: 0.9rem; color: #94A3B8;">
             Controls: Arrow Keys (Steer/Gas) | SPACE (Brake)
         </div>
     </div>
 
     <div id="mobile-controls">
         <div class="control-group">
-            <div class="btn-touch" id="btn-left">←</div>
-            <div class="btn-touch" id="btn-right">→</div>
+            <div class="btn-touch" id="btn-left">◀</div>
+            <div class="btn-touch" id="btn-right">▶</div>
         </div>
-        <div class="control-group">
-            <div class="btn-touch btn-brake" id="btn-brake">BRK</div>
-            <div class="btn-touch" id="btn-up">↑</div>
+        <div class="control-group" style="align-items: flex-end;">
+            <div class="btn-touch btn-brake" id="btn-brake">BRAKE</div>
+            <div class="btn-touch btn-gas" id="btn-gas">GAS</div>
         </div>
     </div>
 
@@ -229,16 +236,23 @@
         const stateRef = ref(db, 'gameState');
         const playersRef = ref(db, 'players');
 
-        // Physics Configurations
+        // FULL ROSTER OF CHARACTERS (8 items)
         const characters = [
-            { id: 'c1', name: 'Streamlined', type: 'Low Drag', shape: 'streamlined', speed: 400, drag: 100, color: 0x38BDF8 },
-            { id: 'c2', name: 'Standard Hull', type: 'Med Drag', shape: 'standard', speed: 300, drag: 250, color: 0xA78BFA },
-            { id: 'c3', name: 'Bluff Body', type: 'High Drag', shape: 'bluff', speed: 200, drag: 500, color: 0xFBBF24 }
+            { id: 'dolphin', name: 'Dolphin', type: 'Natural', shape: 'streamlined', speed: 600, drag: 50, color: 0x38BDF8 },
+            { id: 'shark', name: 'Shark', type: 'Natural', shape: 'streamlined', speed: 600, drag: 50, color: 0x94A3B8 },
+            { id: 'turtle', name: 'Turtle', type: 'Natural', shape: 'bluff', speed: 300, drag: 600, color: 0x10B981 },
+            { id: 'jellyfish', name: 'Jellyfish', type: 'Natural', shape: 'bluff', speed: 150, drag: 900, color: 0xD946EF },
+            { id: 'submarine', name: 'Submarine', type: 'Engineered', shape: 'streamlined', speed: 600, drag: 50, color: 0xF59E0B },
+            { id: 'torpedo', name: 'Torpedo', type: 'Engineered', shape: 'streamlined', speed: 600, drag: 30, color: 0xEF4444 },
+            { id: 'rowboat', name: 'Rowboat', type: 'Engineered', shape: 'bluff', speed: 300, drag: 600, color: 0x8B5CF6 },
+            { id: 'box', name: 'Floating Box', type: 'Engineered', shape: 'bluff', speed: 100, drag: 1200, color: 0xA8A29E }
         ];
+
+        // FULL ROSTER OF BRAKES (3 items)
         const brakes = [
-            { id: 'b1', name: 'None', brakeDrag: 0 },
-            { id: 'b2', name: 'Standard Flaps', brakeDrag: 300 },
-            { id: 'b3', name: 'Drogue Chute', brakeDrag: 800 }
+            { id: 'drogue', name: 'Submarine Drogue', brakeDrag: 1500 },
+            { id: 'anchor', name: 'Ship Anchor', brakeDrag: 700 },
+            { id: 'pebble', name: 'Streamlined Pebble', brakeDrag: 0 } // Useless!
         ];
 
         let selectedChar = characters[0];
@@ -247,21 +261,23 @@
         // Mobile Controls State
         const touchInput = { left: false, right: false, gas: false, brake: false };
 
+        if (window.matchMedia("(pointer: fine)").matches) {
+            document.querySelector('.pc-controls').style.display = 'block';
+        }
+
         // --- UTILITY FUNCTIONS ---
         function switchScreen(screenId) {
             document.querySelectorAll('.screen').forEach(el => el.classList.remove('active-screen'));
             if (screenId) document.getElementById(screenId).classList.add('active-screen');
         }
 
-        // Expose functions to window so inline HTML onclick handlers work within a module
         window.joinLobby = () => {
             const name = document.getElementById('player-name').value.trim();
             if (!name) return alert("Enter a callsign!");
             
-            myId = 'player_' + Math.random().toString(36).substr(2, 9);
+            myId = 'Pilot_' + Math.random().toString(36).substr(2, 6);
             const myPlayerRef = ref(db, 'players/' + myId);
             
-            // Set up cleanup if player disconnects unexpectedly
             onDisconnect(myPlayerRef).remove();
 
             set(myPlayerRef, {
@@ -276,19 +292,17 @@
         window.startRace = () => set(stateRef, 'racing');
         window.endRace = () => {
             set(stateRef, 'lobby');
-            set(playersRef, null); // Wipe all players so they have to rejoin
+            set(playersRef, null); 
         };
 
         // --- INITIALIZATION ---
         function init() {
             if (isHost) {
                 switchScreen('screen-host');
-                // Force lobby state on host load to prevent the ghost race bug
                 set(stateRef, 'lobby'); 
             } else {
                 switchScreen('screen-login');
                 
-                // Populate UI Selection Grids
                 const charGrid = document.getElementById('char-grid');
                 characters.forEach(c => {
                     const div = document.createElement('div');
@@ -316,17 +330,14 @@
                 });
             }
 
-            // Sync Game State (Lobby vs Racing)
             onValue(stateRef, (snap) => {
                 const state = snap.val();
                 
                 if (state === 'racing' && !gameInstance) {
-                    // Only launch if Host OR if a Player who actually pressed "Join Lobby"
                     if (isHost || myId !== '') {
                         launchPhaserGame();
                     }
                 } else if (state === 'lobby') {
-                    // Tear down game engine safely
                     if (gameInstance) {
                         gameInstance.destroy(true);
                         gameInstance = null;
@@ -339,14 +350,12 @@
                     if (isHost) {
                         switchScreen('screen-host');
                     } else if (myId !== '') {
-                        // Reset player to UI login if host resets server
                         switchScreen('screen-login');
                         myId = ''; 
                     }
                 }
             });
 
-            // Update UI Player Lists
             onValue(playersRef, (snap) => {
                 const players = snap.val() || {};
                 let html = '';
@@ -359,24 +368,24 @@
                 if (document.getElementById('host-players')) document.getElementById('host-players').innerHTML = html || "<span style='color:#94A3B8'>No telemetry signals detected.</span>";
             });
 
-            // Bind Touch Controls
             const bindTouch = (id, key) => {
                 const el = document.getElementById(id);
                 if(!el) return;
-                el.addEventListener('touchstart', (e) => { e.preventDefault(); touchInput[key] = true; });
-                el.addEventListener('touchend', (e) => { e.preventDefault(); touchInput[key] = false; });
+                el.addEventListener('touchstart', (e) => { e.preventDefault(); touchInput[key] = true; }, {passive: false});
+                el.addEventListener('touchend', (e) => { e.preventDefault(); touchInput[key] = false; }, {passive: false});
                 el.addEventListener('mousedown', (e) => { e.preventDefault(); touchInput[key] = true; });
                 el.addEventListener('mouseup', (e) => { e.preventDefault(); touchInput[key] = false; });
+                el.addEventListener('mouseleave', (e) => { e.preventDefault(); touchInput[key] = false; });
             };
             bindTouch('btn-left', 'left'); bindTouch('btn-right', 'right');
-            bindTouch('btn-up', 'gas'); bindTouch('btn-brake', 'brake');
+            bindTouch('btn-gas', 'gas'); bindTouch('btn-brake', 'brake');
         }
 
         // ==========================================
         // PHASER 3 GAME ENGINE
         // ==========================================
         function launchPhaserGame() {
-            switchScreen(''); // Hide UI elements
+            switchScreen(''); 
             const container = document.getElementById('game-container');
             container.style.display = 'block';
             document.getElementById('hud').style.display = 'block';
@@ -391,8 +400,8 @@
                 document.querySelector('.pc-controls').style.display = 'none';
             }
 
-            // FIX: Force browser to recalculate DOM size before booting Phaser
-            void container.offsetWidth;
+            // FORCE browser to calculate DOM size before booting Phaser (Fixes black screen)
+            container.getBoundingClientRect(); 
 
             setTimeout(() => {
                 if (gameInstance) return;
@@ -400,7 +409,11 @@
                 const config = {
                     type: Phaser.AUTO,
                     parent: 'game-container',
-                    scale: { mode: Phaser.Scale.RESIZE, width: '100%', height: '100%' },
+                    scale: { 
+                        mode: Phaser.Scale.RESIZE, 
+                        width: window.innerWidth, 
+                        height: window.innerHeight 
+                    },
                     physics: { default: 'arcade', arcade: { debug: false } },
                     scene: { create: createGame, update: updateGame }
                 };
@@ -496,7 +509,6 @@
                     onValue(playersRef, (snap) => {
                         const players = snap.val() || {};
                         
-                        // Remove disconnected players
                         Object.keys(remotePlayers).forEach(id => {
                             if (!players[id]) {
                                 remotePlayers[id].sprite.destroy(); 
@@ -505,7 +517,6 @@
                             }
                         });
 
-                        // Update/Add current players
                         Object.values(players).forEach(pData => {
                             if (pData.id === myId) return; 
                             if (!remotePlayers[pData.id]) {
@@ -533,16 +544,13 @@
 
                     if (!localPlayer || localPlayer.isCrashed) return;
 
-                    // Steering
                     if (cursors.left.isDown || touchInput.left) localPlayer.setAngularVelocity(-200);
                     else if (cursors.right.isDown || touchInput.right) localPlayer.setAngularVelocity(200);
                     else localPlayer.setAngularVelocity(0);
 
-                    // Acceleration
                     if (cursors.up.isDown || touchInput.gas) this.physics.velocityFromRotation(localPlayer.rotation, selectedChar.speed, localPlayer.body.acceleration);
                     else localPlayer.body.setAcceleration(0);
 
-                    // Braking & Drag Update
                     const hudDrag = document.getElementById('drag-status');
                     if ((spaceKey && spaceKey.isDown) || touchInput.brake) {
                         localPlayer.body.setDrag(selectedChar.drag + selectedBrake.brakeDrag);
@@ -552,7 +560,6 @@
                         hudDrag.innerText = "Brakes: OFF"; hudDrag.style.color = "#94A3B8";
                     }
 
-                    // Network Sync (Only send if moved)
                     if (!localPlayer.oldPos || Math.abs(localPlayer.x - localPlayer.oldPos.x) > 1 || Math.abs(localPlayer.y - localPlayer.oldPos.y) > 1 || Math.abs(localPlayer.angle - localPlayer.oldPos.angle) > 1) {
                         update(ref(db, 'players/' + myId), { x: localPlayer.x, y: localPlayer.y, angle: localPlayer.angle });
                         localPlayer.oldPos = { x: localPlayer.x, y: localPlayer.y, angle: localPlayer.angle };
@@ -567,10 +574,9 @@
                     return shape;
                 }
 
-            }, 100); 
+            }, 50); 
         }
 
-        // Run setup
         init();
     </script>
 </body>
