@@ -2,81 +2,117 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hydrodynamics: Multiplayer Water Race</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Hydro-Race: Streamlining & Drag</title>
     
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
     <style>
-        body { margin: 0; background-color: #0F172A; color: #F8FAFC; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; overflow: hidden; }
-        .screen { display: none; width: 100vw; height: 100vh; flex-direction: column; align-items: center; justify-content: center; position: absolute; top: 0; left: 0; background: #0F172A; z-index: 10; }
-        .active-screen { display: flex; }
-        h1 { color: #38BDF8; font-size: 2.5rem; text-shadow: 0 0 10px rgba(56, 189, 248, 0.5); text-transform: uppercase; margin-bottom: 10px; }
-        h2 { color: #94A3B8; margin-bottom: 30px; font-weight: normal; }
+        /* Base Styles & Prevent mobile zooming/scrolling during gameplay */
+        body { margin: 0; background-color: #0F172A; color: #F8FAFC; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; overflow: hidden; touch-action: none; }
         
-        .container { background: #1E293B; padding: 40px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); text-align: center; max-width: 800px; width: 90%; }
+        /* Screens */
+        .screen { display: none; width: 100vw; height: 100vh; flex-direction: column; align-items: center; justify-content: flex-start; position: absolute; top: 0; left: 0; background: #0F172A; z-index: 10; overflow-y: auto; padding-top: 20px;}
+        .active-screen { display: flex; }
+        
+        h1 { color: #38BDF8; font-size: 2.2rem; text-shadow: 0 0 10px rgba(56, 189, 248, 0.5); text-transform: uppercase; margin-bottom: 10px; text-align: center;}
+        h2 { color: #94A3B8; margin-bottom: 20px; font-weight: normal; text-align: center; font-size: 1.1rem; padding: 0 15px;}
+        
+        .container { background: #1E293B; padding: 30px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); text-align: center; max-width: 800px; width: 90%; margin-bottom: 30px;}
         
         input { padding: 12px; font-size: 1.2rem; border-radius: 8px; border: 2px solid #38BDF8; background: #020617; color: white; margin-bottom: 20px; text-align: center; outline: none; width: 80%; }
-        button { background: linear-gradient(90deg, #38BDF8, #0284C7); color: white; border: none; padding: 12px 25px; font-size: 1.2rem; font-weight: bold; border-radius: 8px; cursor: pointer; margin: 10px; transition: 0.2s; }
-        button:hover { transform: scale(1.05); }
-        .btn-danger { background: linear-gradient(90deg, #EF4444, #B91C1C); }
+        button.primary-btn { background: linear-gradient(90deg, #38BDF8, #0284C7); color: white; border: none; padding: 15px 30px; font-size: 1.2rem; font-weight: bold; border-radius: 8px; cursor: pointer; margin: 10px; transition: 0.2s; width: 80%;}
+        button.primary-btn:active { transform: scale(0.95); }
+        .btn-danger { background: linear-gradient(90deg, #EF4444, #B91C1C) !important; }
 
-        .grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 15px; margin-bottom: 20px; }
-        .card { background: #0F172A; border: 2px solid #334155; padding: 15px; border-radius: 8px; cursor: pointer; width: 160px; transition: 0.2s; }
-        .card:hover { border-color: #38BDF8; }
-        .card.selected { border-color: #38BDF8; background: rgba(56, 189, 248, 0.2); }
-        
-        .stat { font-size: 0.8rem; color: #94A3B8; margin-top: 5px; }
+        /* Selection Grids */
+        .grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-bottom: 20px; }
+        .card { background: #0F172A; border: 2px solid #334155; padding: 15px 10px; border-radius: 8px; cursor: pointer; width: 130px; transition: 0.2s; display: flex; flex-direction: column; justify-content: center; user-select: none;}
+        .card.selected { border-color: #38BDF8; background: rgba(56, 189, 248, 0.2); box-shadow: 0 0 15px rgba(56, 189, 248, 0.4);}
+        .card-title { font-size: 1rem; font-weight: bold; margin-bottom: 5px; color: #F8FAFC;}
+        .card-type { font-size: 0.75rem; color: #94A3B8; text-transform: uppercase; letter-spacing: 1px;}
 
+        /* Game UI */
         #game-container { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 5; display: none; }
         
-        #hud { position: absolute; top: 10px; left: 10px; z-index: 20; background: rgba(0,0,0,0.7); padding: 15px; border-radius: 8px; border-left: 4px solid #38BDF8; pointer-events: none; }
+        #hud { position: absolute; top: 10px; left: 10px; z-index: 20; background: rgba(0,0,0,0.8); padding: 15px; border-radius: 8px; border-left: 4px solid #38BDF8; pointer-events: none; }
+        #hud h3 { margin:0 0 5px 0; color: #38BDF8; font-size: 1.2rem; }
         
-        .player-list { list-style: none; padding: 0; text-align: left; max-height: 200px; overflow-y: auto;}
-        .player-list li { padding: 5px; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; gap: 20px;}
+        .player-list { list-style: none; padding: 0; text-align: left; max-height: 250px; overflow-y: auto;}
+        .player-list li { padding: 10px; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; gap: 10px; font-size: 1rem;}
         .status-crashed { color: #EF4444; font-weight: bold; }
         .status-racing { color: #10B981; }
+        .status-lobby { color: #F59E0B; }
+
+        /* ON-SCREEN MOBILE CONTROLS */
+        #mobile-controls {
+            display: none; position: absolute; bottom: 20px; left: 0; width: 100vw; justify-content: space-between; padding: 0 20px; box-sizing: border-box; z-index: 30; pointer-events: none;
+        }
+        .control-cluster { display: flex; gap: 10px; pointer-events: auto; }
+        .touch-btn {
+            background: rgba(56, 189, 248, 0.4); border: 2px solid #38BDF8; color: white; font-size: 1.5rem; font-weight: bold; border-radius: 50%; width: 70px; height: 70px; display: flex; justify-content: center; align-items: center; user-select: none; touch-action: none; box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        }
+        .touch-btn:active { background: rgba(56, 189, 248, 0.8); transform: scale(0.95); }
+        .btn-brake { background: rgba(239, 68, 68, 0.4); border-color: #EF4444; width: 80px; height: 80px; font-size: 1rem;}
+        .btn-brake:active { background: rgba(239, 68, 68, 0.8); }
+        .btn-gas { width: 80px; height: 80px; font-size: 1.2rem; background: rgba(16, 185, 129, 0.4); border-color: #10B981;}
+        .btn-gas:active { background: rgba(16, 185, 129, 0.8); }
+
+        @media (max-width: 600px) {
+            h1 { font-size: 1.8rem; }
+            .container { padding: 20px 10px; }
+            .touch-btn { width: 60px; height: 60px; }
+            .btn-brake, .btn-gas { width: 70px; height: 70px; }
+        }
     </style>
 </head>
 <body>
 
     <div id="hud" style="display: none;">
-        <h3 style="margin:0 0 10px 0; color: #38BDF8;">Race Telemetry</h3>
-        <div id="speedometer">Speed: 0 kn</div>
-        <div id="drag-status" style="color: #94A3B8;">Drag: Base</div>
-        <hr style="border-color: #334155; margin: 10px 0;">
-        <div><b>Controls:</b><br>UP = Accelerate<br>LEFT/RIGHT = Steer<br>SPACE = Deploy Brake</div>
+        <h3>Vessel Telemetry</h3>
+        <div id="drag-status" style="color: #94A3B8; font-size: 1rem; font-weight: bold;">Brakes: OFF</div>
+    </div>
+
+    <div id="mobile-controls">
+        <div class="control-cluster">
+            <div class="touch-btn" id="t-left">◀</div>
+            <div class="touch-btn" id="t-right">▶</div>
+        </div>
+        <div class="control-cluster" style="align-items: flex-end;">
+            <div class="touch-btn btn-brake" id="t-brake">BRAKE</div>
+            <div class="touch-btn btn-gas" id="t-gas">GAS</div>
+        </div>
     </div>
 
     <div id="screen-login" class="screen active-screen">
         <div class="container">
             <h1>Hydro-Race Setup</h1>
-            <h2>Select your vessel and intentional drag equipment</h2>
+            <h2>Configure your vessel for the rapids. Choose your shape and drag carefully!</h2>
             
-            <input type="text" id="player-name" placeholder="Enter Pilot Name...">
+            <input type="text" id="player-name" placeholder="Enter Callsign..." autocomplete="off">
             
-            <h3 style="text-align: left; color: #38BDF8; margin-bottom: 10px;">1. Select Character (Streamlining vs Bluff)</h3>
+            <h3 style="text-align: left; color: #38BDF8; margin-bottom: 10px; font-size: 1.1rem;">1. Select Hull Design</h3>
             <div class="grid" id="char-grid"></div>
 
-            <h3 style="text-align: left; color: #38BDF8; margin-bottom: 10px;">2. Select Brake Item (Intentional Drag)</h3>
+            <h3 style="text-align: left; color: #38BDF8; margin-top: 20px; margin-bottom: 10px; font-size: 1.1rem;">2. Select Braking System</h3>
             <div class="grid" id="brake-grid"></div>
 
-            <button onclick="joinLobby()" style="width: 80%; padding: 15px; font-size: 1.5rem; margin-top: 20px;">ENTER LOBBY</button>
+            <button class="primary-btn" onclick="joinLobby()">ENTER SERVER</button>
         </div>
     </div>
 
     <div id="screen-lobby" class="screen">
         <div class="container">
             <h1>RACE LOBBY</h1>
-            <p>Waiting for the Host to start the simulation...</p>
+            <p style="font-size: 1.1rem; color: #94A3B8;">Awaiting Instructor to clear the channel...</p>
             <ul class="player-list" id="lobby-players"></ul>
-            <div id="host-controls" style="display: none; margin-top: 20px;">
-                <hr style="border-color: #334155;">
-                <h3 style="color: #EF4444;">Host Controls</h3>
-                <button onclick="startRace()">🏁 START RACE</button>
-                <button class="btn-danger" onclick="resetServer()">🗑️ RESET ALL DATA</button>
+            
+            <div id="host-controls" style="display: none; margin-top: 20px; background: rgba(0,0,0,0.3); padding: 20px; border-radius: 8px;">
+                <h3 style="color: #EF4444; margin-top: 0;">Host Controls</h3>
+                <button class="primary-btn" onclick="startRace()">🏁 START RACE</button>
+                <button class="primary-btn btn-danger" onclick="resetServer()">🔄 RESET TO LOBBY</button>
             </div>
         </div>
     </div>
@@ -100,22 +136,22 @@
         const playersRef = raceRef.child('players');
         const stateRef = raceRef.child('global_state');
 
-        // --- GAME DATA ---
+        // --- GAME DATA (Internal Stats hidden from UI) ---
         const characters = [
-            { id: 'dolphin', name: 'Dolphin', type: 'Natural', speed: 400, drag: 50, color: 0x38BDF8, shape: 'triangle' },
-            { id: 'shark', name: 'Shark', type: 'Natural', speed: 400, drag: 50, color: 0x94A3B8, shape: 'triangle' },
-            { id: 'turtle', name: 'Turtle', type: 'Natural', speed: 250, drag: 400, color: 0x10B981, shape: 'circle' },
-            { id: 'jellyfish', name: 'Jellyfish', type: 'Natural', speed: 150, drag: 800, color: 0xD946EF, shape: 'circle' },
-            { id: 'submarine', name: 'Submarine', type: 'Engineered', speed: 400, drag: 50, color: 0xF59E0B, shape: 'rect' },
-            { id: 'torpedo', name: 'Torpedo', type: 'Engineered', speed: 400, drag: 30, color: 0xEF4444, shape: 'rect' },
-            { id: 'rowboat', name: 'Rowboat', type: 'Engineered', speed: 250, drag: 400, color: 0x8B5CF6, shape: 'rect' },
-            { id: 'box', name: 'Floating Box', type: 'Engineered', speed: 100, drag: 1000, color: 0xA8A29E, shape: 'rect' }
+            { id: 'dolphin', name: 'Dolphin', type: 'Natural', speed: 600, drag: 50, color: 0x38BDF8, shape: 'streamlined' },
+            { id: 'shark', name: 'Shark', type: 'Natural', speed: 600, drag: 50, color: 0x94A3B8, shape: 'streamlined' },
+            { id: 'turtle', name: 'Turtle', type: 'Natural', speed: 300, drag: 600, color: 0x10B981, shape: 'bluff' },
+            { id: 'jellyfish', name: 'Jellyfish', type: 'Natural', speed: 150, drag: 900, color: 0xD946EF, shape: 'bluff' },
+            { id: 'submarine', name: 'Submarine', type: 'Engineered', speed: 600, drag: 50, color: 0xF59E0B, shape: 'streamlined' },
+            { id: 'torpedo', name: 'Torpedo', type: 'Engineered', speed: 600, drag: 30, color: 0xEF4444, shape: 'streamlined' },
+            { id: 'rowboat', name: 'Rowboat', type: 'Engineered', speed: 300, drag: 600, color: 0x8B5CF6, shape: 'bluff' },
+            { id: 'box', name: 'Floating Box', type: 'Engineered', speed: 100, drag: 1200, color: 0xA8A29E, shape: 'bluff' }
         ];
 
         const brakes = [
-            { id: 'drogue', name: 'Submarine Drogue', desc: 'Excellent Brake', brakeDrag: 1200 },
-            { id: 'anchor', name: 'Ship Anchor', desc: 'Good Brake', brakeDrag: 600 },
-            { id: 'pebble', name: 'Streamlined Pebble', desc: 'Useless Brake', brakeDrag: 10 }
+            { id: 'drogue', name: 'Submarine Drogue', brakeDrag: 1500 },
+            { id: 'anchor', name: 'Ship Anchor', brakeDrag: 700 },
+            { id: 'pebble', name: 'Streamlined Pebble', brakeDrag: 0 } // Useless!
         ];
 
         let myId = '';
@@ -125,13 +161,33 @@
         let isHost = window.location.search.includes('host=true');
         let gameInstance = null;
 
+        // --- TOUCH CONTROL STATE ---
+        let touchInput = { left: false, right: false, gas: false, brake: false };
+
+        function bindTouchButton(elementId, actionName) {
+            const el = document.getElementById(elementId);
+            const press = (e) => { e.preventDefault(); touchInput[actionName] = true; };
+            const release = (e) => { e.preventDefault(); touchInput[actionName] = false; };
+            
+            el.addEventListener('touchstart', press, {passive: false});
+            el.addEventListener('touchend', release, {passive: false});
+            el.addEventListener('mousedown', press);
+            el.addEventListener('mouseup', release);
+            el.addEventListener('mouseleave', release);
+        }
+
+        bindTouchButton('t-left', 'left');
+        bindTouchButton('t-right', 'right');
+        bindTouchButton('t-gas', 'gas');
+        bindTouchButton('t-brake', 'brake');
+
         // --- UI LOGIC ---
         function initUI() {
             const charGrid = document.getElementById('char-grid');
             characters.forEach(c => {
                 const div = document.createElement('div');
                 div.className = 'card' + (c.id === selectedChar.id ? ' selected' : '');
-                div.innerHTML = `<b>${c.name}</b><br><span class="stat">${c.type}</span><br><span class="stat">Top Spd: ${c.speed}</span><br><span class="stat">Nat. Drag: ${c.drag}</span>`;
+                div.innerHTML = `<span class="card-title">${c.name}</span><span class="card-type">${c.type}</span>`;
                 div.onclick = () => {
                     selectedChar = c;
                     document.querySelectorAll('#char-grid .card').forEach(el => el.classList.remove('selected'));
@@ -144,7 +200,7 @@
             brakes.forEach(b => {
                 const div = document.createElement('div');
                 div.className = 'card' + (b.id === selectedBrake.id ? ' selected' : '');
-                div.innerHTML = `<b>${b.name}</b><br><span class="stat">${b.desc}</span>`;
+                div.innerHTML = `<span class="card-title">${b.name}</span>`;
                 div.onclick = () => {
                     selectedBrake = b;
                     document.querySelectorAll('#brake-grid .card').forEach(el => el.classList.remove('selected'));
@@ -155,11 +211,10 @@
 
             if (isHost) {
                 document.getElementById('host-controls').style.display = 'block';
-                // As host, ensure state starts clean in lobby if completely empty
                 stateRef.once('value', snap => { if(!snap.exists()) stateRef.set('lobby'); });
             }
 
-            // Listen to global state changes to launch game
+            // Sync Logic
             stateRef.on('value', snap => {
                 const state = snap.val();
                 if (state === 'racing' && myId && !gameInstance) {
@@ -171,167 +226,153 @@
                         document.getElementById('game-container').innerHTML = '';
                         document.getElementById('game-container').style.display = 'none';
                         document.getElementById('hud').style.display = 'none';
+                        document.getElementById('mobile-controls').style.display = 'none';
                     }
-                    if (myId) { switchScreen('screen-lobby'); }
+                    if (myId) { 
+                        switchScreen('screen-lobby'); 
+                        playersRef.child(myId).update({ status: 'In Lobby', x: 0, y: 0 }); 
+                    }
                 }
             });
 
-            // Listen to lobby players
             playersRef.on('value', snap => {
                 const pList = document.getElementById('lobby-players');
                 pList.innerHTML = '';
                 const players = snap.val() || {};
                 Object.values(players).forEach(p => {
-                    let statusClass = p.status === 'CRASHED' ? 'status-crashed' : 'status-racing';
-                    pList.innerHTML += `<li><span><b>${p.name}</b> (${p.charName})</span> <span class="${statusClass}">${p.status || 'Waiting'}</span></li>`;
+                    let statusClass = 'status-lobby';
+                    if(p.status === 'CRASHED') statusClass = 'status-crashed';
+                    if(p.status === 'Racing') statusClass = 'status-racing';
+                    pList.innerHTML += `<li><span><b>${p.name}</b> <span style="color:#94A3B8; font-size:0.85rem;">[${p.charName}]</span></span> <span class="${statusClass}">${p.status || 'Joining...'}</span></li>`;
                 });
             });
         }
 
         function switchScreen(id) {
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active-screen'));
-            document.getElementById(id).classList.add('active-screen');
+            if(id) document.getElementById(id).classList.add('active-screen');
         }
 
         function joinLobby() {
             myName = document.getElementById('player-name').value.trim();
-            if (!myName) return alert('Enter a pilot name!');
+            if (!myName) return alert('Enter a callsign!');
+            myId = 'Pilot_' + Math.random().toString(36).substr(2, 6);
             
-            myId = 'Player_' + Math.random().toString(36).substr(2, 6);
-            
-            // Starting position near start line
-            const startX = 200 + Math.random() * 100;
-            const startY = 1500 + Math.random() * 100;
-
             playersRef.child(myId).set({
-                id: myId, name: myName, 
-                charId: selectedChar.id, charName: selectedChar.name, color: selectedChar.color, shape: selectedChar.shape,
-                x: startX, y: startY, angle: -90, status: 'Lobby'
+                id: myId, name: myName, charId: selectedChar.id, charName: selectedChar.name, 
+                color: selectedChar.color, shape: selectedChar.shape, x: 0, y: 0, angle: 0, status: 'In Lobby'
             });
             
             playersRef.child(myId).onDisconnect().remove();
             switchScreen('screen-lobby');
         }
 
-        // Host Commands
         function startRace() { stateRef.set('racing'); }
-        function resetServer() {
-            raceRef.remove().then(() => {
-                stateRef.set('lobby');
-            });
-        }
+        function resetServer() { stateRef.set('lobby'); }
 
         initUI();
 
         // ==========================================
-        // PHASER 3 GAME ENGINE LOGIC
+        // PHASER 3 GAME ENGINE
         // ==========================================
         function launchPhaserGame() {
-            switchScreen(''); // Hide UI
+            switchScreen(''); 
             document.getElementById('game-container').style.display = 'block';
             document.getElementById('hud').style.display = 'block';
+            document.getElementById('mobile-controls').style.display = 'flex'; // Show touch controls!
+            
+            document.getElementById('drag-status').innerText = "Brakes: OFF";
+            document.getElementById('drag-status').style.color = "#94A3B8";
 
             playersRef.child(myId).update({ status: 'Racing' });
 
             const config = {
                 type: Phaser.AUTO,
                 parent: 'game-container',
-                width: window.innerWidth,
-                height: window.innerHeight,
+                scale: { mode: Phaser.Scale.RESIZE, width: '100%', height: '100%' }, // Responsive
                 physics: { default: 'arcade', arcade: { debug: false } },
                 scene: { create: createGame, update: updateGame }
             };
 
             gameInstance = new Phaser.Game(config);
-            let localPlayer;
-            let cursors;
-            let spaceKey;
+            let localPlayer, cursors, spaceKey, walls;
             let remotePlayers = {};
-            let walls;
 
             function createGame() {
                 const scene = this;
-                
-                // 1. Draw Environment (Water background)
-                scene.cameras.main.setBackgroundColor('#006994');
+                scene.cameras.main.setBackgroundColor('#004261'); 
 
-                // 2. Create the Track (Curvy path)
-                // We'll create a large S-curve. The track is defined by walls on either side.
                 walls = scene.physics.add.staticGroup();
                 const trackGraphics = scene.add.graphics();
-                trackGraphics.lineStyle(250, 0x0284C7, 0.3); // Visible water lane
+                trackGraphics.lineStyle(350, 0x0284C7, 1); 
 
-                const path = new Phaser.Curves.Path(250, 1600);
-                path.lineTo(250, 1000);
-                path.ellipseTo(300, 300, 180, 0, false, 0); // Curve Right
-                path.lineTo(850, 400);
-                path.ellipseTo(300, 300, 180, 0, false, 1); // Curve Left
-                path.lineTo(1450, -400);
-                
+                const path = new Phaser.Curves.Path(0, 3000); 
+                path.lineTo(0, 2000);
+                path.ellipseTo(500, 500, 180, 0, false, 0); 
+                path.lineTo(1000, 500);
+                path.ellipseTo(500, 500, 180, 0, false, 1); 
+                path.lineTo(2000, -1000);
                 path.draw(trackGraphics);
 
-                // Build physical walls along the path edges to act as crash boundaries
-                const points = path.getPoints(100);
-                for (let i = 0; i < points.length; i++) {
-                    // Create left and right wall nodes along the path normal
-                    if(i === 0 || i === points.length - 1) continue;
+                trackGraphics.lineStyle(4, 0xffffff, 0.4);
+                for(let i = -1; i <= 1; i++) {
+                    const lanePath = new Phaser.Curves.Path(i * 80, 3000);
+                    lanePath.lineTo(i * 80, 2000);
+                    lanePath.ellipseTo(500 + (i*80), 500 + (i*80), 180, 0, false, 0);
+                    lanePath.lineTo(1000 + (i*80), 500);
+                    lanePath.ellipseTo(500 - (i*80), 500 - (i*80), 180, 0, false, 1);
+                    lanePath.lineTo(2000 + (i*80), -1000);
+                    lanePath.draw(trackGraphics);
+                }
+
+                const points = path.getPoints(150);
+                for (let i = 1; i < points.length; i++) {
                     let p1 = points[i-1], p2 = points[i];
                     let angle = Phaser.Math.Angle.Between(p1.x, p1.y, p2.x, p2.y);
                     let normX = Math.sin(angle);
                     let normY = -Math.cos(angle);
+                    let trackWidth = 180; 
                     
-                    let trackWidth = 140; // Total width ~280 (can fit about 6-8 players)
-                    
-                    // Left Wall Block
-                    let lw = scene.add.rectangle(p2.x + normX * trackWidth, p2.y + normY * trackWidth, 30, 30, 0x0F172A);
-                    walls.add(lw);
-                    // Right Wall Block
-                    let rw = scene.add.rectangle(p2.x - normX * trackWidth, p2.y - normY * trackWidth, 30, 30, 0x0F172A);
-                    walls.add(rw);
+                    walls.add(scene.add.rectangle(p2.x + normX * trackWidth, p2.y + normY * trackWidth, 40, 40, 0xEF4444));
+                    walls.add(scene.add.rectangle(p2.x - normX * trackWidth, p2.y - normY * trackWidth, 40, 40, 0xEF4444));
                 }
 
-                // 3. Create Local Player
+                scene.add.rectangle(0, 2800, 350, 20, 0xffffff);
+
                 localPlayer = createPlayerSprite(scene, selectedChar.shape, selectedChar.color);
                 scene.physics.add.existing(localPlayer);
-                localPlayer.body.setCollideWorldBounds(false);
                 localPlayer.body.setMaxVelocity(selectedChar.speed);
-                localPlayer.body.setDrag(selectedChar.drag); // Base natural drag
+                localPlayer.body.setDrag(selectedChar.drag);
                 
-                // Get starting pos from Firebase
-                playersRef.child(myId).once('value', snap => {
-                    if(snap.exists()) {
-                        localPlayer.x = snap.val().x;
-                        localPlayer.y = snap.val().y;
-                        localPlayer.angle = snap.val().angle;
-                    }
-                });
+                localPlayer.x = (Math.random() - 0.5) * 200;
+                localPlayer.y = 2900 + (Math.random() * 100);
+                localPlayer.angle = -90; 
 
                 scene.cameras.main.startFollow(localPlayer, true, 0.1, 0.1);
-                scene.cameras.main.setZoom(0.8);
+                scene.cameras.main.setZoom(0.6);
 
-                // Setup controls
                 cursors = scene.input.keyboard.createCursorKeys();
                 spaceKey = scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
 
-                // Collision with walls (Crashing)
                 scene.physics.add.overlap(localPlayer, walls, () => {
                     const speed = localPlayer.body.speed;
-                    // If hitting wall going fast, you crash!
-                    if (speed > 100 && localPlayer.active) {
+                    if (speed > 150 && localPlayer.active) { 
                         localPlayer.active = false;
                         localPlayer.body.setVelocity(0);
-                        localPlayer.setTint(0xEF4444); // Turn red
+                        localPlayer.setTint(0xEF4444);
                         playersRef.child(myId).update({ status: 'CRASHED' });
-                        document.getElementById('drag-status').innerText = "CRASHED INTO WALL!";
+                        document.getElementById('drag-status').innerText = "CRASHED INTO BANK!";
                         document.getElementById('drag-status').style.color = "#EF4444";
+                        
+                        // Disable controls on crash
+                        touchInput.left = touchInput.right = touchInput.gas = touchInput.brake = false;
+                    } else if (speed > 0) {
+                        localPlayer.body.setVelocity(localPlayer.body.velocity.x * 0.5, localPlayer.body.velocity.y * 0.5);
                     }
                 });
 
-                // 4. Sync Remote Players
                 playersRef.on('value', snap => {
                     const players = snap.val() || {};
-                    
-                    // Remove disconnected/removed players
                     Object.keys(remotePlayers).forEach(id => {
                         if (!players[id]) {
                             remotePlayers[id].sprite.destroy();
@@ -340,104 +381,71 @@
                         }
                     });
 
-                    // Update or Add players
                     Object.values(players).forEach(pData => {
-                        if (pData.id === myId) return; // Skip self
-
+                        if (pData.id === myId) return;
                         if (!remotePlayers[pData.id]) {
-                            // Create new remote player
                             const sprite = createPlayerSprite(scene, pData.shape, pData.color);
-                            const text = scene.add.text(0, 0, pData.name, { fontSize: '14px', fill: '#FFF' }).setOrigin(0.5);
+                            const text = scene.add.text(0, 0, pData.name, { fontSize: '24px', fill: '#FFF', fontStyle: 'bold', stroke: '#000', strokeThickness: 4 }).setOrigin(0.5);
                             remotePlayers[pData.id] = { sprite, text };
                         }
                         
-                        // Update position
                         const rp = remotePlayers[pData.id];
-                        // Smooth interpolation could be added here, but direct set is fine for simple sim
                         rp.sprite.x = pData.x;
                         rp.sprite.y = pData.y;
                         rp.sprite.angle = pData.angle;
                         if(pData.status === 'CRASHED') rp.sprite.setTint(0xEF4444);
-                        
+                        else rp.sprite.clearTint();
                         rp.text.x = pData.x;
-                        rp.text.y = pData.y - 30;
+                        rp.text.y = pData.y - 50;
                     });
                 });
             }
 
             function updateGame() {
-                if (!localPlayer || !localPlayer.active) return; // Dead
+                if (!localPlayer || !localPlayer.active) return;
 
-                // Movement Logic (Tank Controls)
-                if (cursors.left.isDown) {
-                    localPlayer.setAngularVelocity(-200);
-                } else if (cursors.right.isDown) {
-                    localPlayer.setAngularVelocity(200);
-                } else {
-                    localPlayer.setAngularVelocity(0);
-                }
+                // Support BOTH keyboard and touch controls simultaneously
+                if (cursors.left.isDown || touchInput.left) localPlayer.setAngularVelocity(-200);
+                else if (cursors.right.isDown || touchInput.right) localPlayer.setAngularVelocity(200);
+                else localPlayer.setAngularVelocity(0);
 
-                // Acceleration
-                if (cursors.up.isDown) {
-                    scene.physics.velocityFromRotation(localPlayer.rotation, selectedChar.speed, localPlayer.body.acceleration);
-                } else {
-                    localPlayer.body.setAcceleration(0);
-                }
+                if (cursors.up.isDown || touchInput.gas) scene.physics.velocityFromRotation(localPlayer.rotation, selectedChar.speed, localPlayer.body.acceleration);
+                else localPlayer.body.setAcceleration(0);
 
-                // Intentional Drag (Braking)
                 const hudDrag = document.getElementById('drag-status');
-                if (spaceKey.isDown) {
-                    // Combine natural drag with equipped brake drag
+                if (spaceKey.isDown || touchInput.brake) {
                     localPlayer.body.setDrag(selectedChar.drag + selectedBrake.brakeDrag);
-                    hudDrag.innerText = `Drag: DEPLOYED [${selectedBrake.name}]`;
+                    hudDrag.innerText = "BRAKING: DEPLOYED";
                     hudDrag.style.color = "#EF4444";
                 } else {
                     localPlayer.body.setDrag(selectedChar.drag);
-                    hudDrag.innerText = `Drag: Base Nat. Drag`;
+                    hudDrag.innerText = "Brakes: OFF";
                     hudDrag.style.color = "#94A3B8";
                 }
 
-                // Update HUD
-                document.getElementById('speedometer').innerText = `Speed: ${Math.round(localPlayer.body.speed)} kn`;
-
-                // Emit to Firebase (throttle slightly if needed, but for small classes requestAnimationFrame rate is usually okay on RTDB. Let's send only if moved).
-                if (!localPlayer.oldPos || 
-                    Math.abs(localPlayer.x - localPlayer.oldPos.x) > 1 || 
-                    Math.abs(localPlayer.y - localPlayer.oldPos.y) > 1 || 
-                    Math.abs(localPlayer.angle - localPlayer.oldPos.angle) > 1) {
-                    
-                    playersRef.child(myId).update({
-                        x: localPlayer.x,
-                        y: localPlayer.y,
-                        angle: localPlayer.angle
-                    });
-                    
+                if (!localPlayer.oldPos || Math.abs(localPlayer.x - localPlayer.oldPos.x) > 1 || Math.abs(localPlayer.y - localPlayer.oldPos.y) > 1 || Math.abs(localPlayer.angle - localPlayer.oldPos.angle) > 1) {
+                    playersRef.child(myId).update({ x: localPlayer.x, y: localPlayer.y, angle: localPlayer.angle });
                     localPlayer.oldPos = { x: localPlayer.x, y: localPlayer.y, angle: localPlayer.angle };
                 }
             }
 
-            // Helper to draw characters without external images
             function createPlayerSprite(scene, shapeType, colorHex) {
-                const rt = scene.add.renderTexture(0, 0, 40, 40);
+                const rt = scene.add.renderTexture(0, 0, 60, 60);
                 const g = scene.add.graphics();
                 g.fillStyle(colorHex, 1);
+                g.lineStyle(2, 0xffffff, 1);
                 
-                if (shapeType === 'triangle') {
-                    // Streamlined shapes
-                    g.fillTriangle(40, 20, 0, 0, 0, 40);
-                } else if (shapeType === 'circle') {
-                    // Blunt natural
-                    g.fillCircle(20, 20, 20);
+                if (shapeType === 'streamlined') {
+                    g.fillTriangle(60, 30, 0, 10, 0, 50);
+                    g.strokeTriangle(60, 30, 0, 10, 0, 50);
                 } else {
-                    // Blunt engineered
-                    g.fillRect(0, 5, 40, 30);
+                    g.fillRect(10, 10, 40, 40);
+                    g.strokeRect(10, 10, 40, 40);
                 }
                 
                 rt.draw(g, 0, 0);
                 g.destroy();
-                
-                const sprite = scene.add.sprite(0, 0, rt.texture);
-                return sprite;
+                return scene.add.sprite(0, 0, rt.texture);
             }
         }
     </script>
