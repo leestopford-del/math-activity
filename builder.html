@@ -16,6 +16,9 @@
         .tool-btn:hover { background: #2563eb; }
         .tool-btn.secondary { background: #475569; }
         .tool-btn.secondary:hover { background: #64748b; }
+        .tool-btn.flip-btn { background: #d946ef; font-size: 16px; margin-bottom: 20px; box-shadow: 0 4px 0 #a21caf; }
+        .tool-btn.flip-btn:hover { background: #c026d3; }
+        .tool-btn.flip-btn:active { transform: translateY(4px); box-shadow: none; }
         
         /* Sticker Grid */
         .sticker-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 20px; }
@@ -27,15 +30,18 @@
         .shape-alert-box { width: 40px; height: 20px; background: rgba(239, 68, 68, 0.2); border: 2px dashed #ef4444; }
 
         /* Workspace Area - Scrollable for mobile */
-        #workspace-container { flex-grow: 1; padding: 20px; overflow: auto; display: flex; align-items: flex-start; justify-content: flex-start; position: relative; }
+        #workspace-container { flex-grow: 1; padding: 20px; overflow: auto; display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-start; position: relative; }
         
         /* The Brochure Canvas (Fixed ratio to preserve layout for printing) */
-        #canvas { min-width: 840px; min-height: 594px; background: white; box-shadow: 0 10px 30px rgba(0,0,0,0.15); position: relative; overflow: hidden; display: flex; transform-origin: top left; }
+        .canvas { min-width: 840px; min-height: 594px; background: white; box-shadow: 0 10px 30px rgba(0,0,0,0.15); position: relative; overflow: hidden; display: flex; transform-origin: top left; margin-bottom: 20px; }
         
-        /* The 3 Brochure Panels */
-        .panel { flex: 1; border-right: 2px dashed #e2e8f0; height: 100%; position: relative; pointer-events: none; }
+        /* Visual Folds (Simulating trifold paper creases) */
+        .panel { flex: 1; height: 100%; position: relative; pointer-events: none; border-right: 1px solid #e2e8f0; box-shadow: inset -5px 0 15px rgba(0,0,0,0.03), inset 5px 0 15px rgba(0,0,0,0.03); }
         .panel:last-child { border-right: none; }
         
+        /* Labels to help students understand the panels */
+        .panel-label { position: absolute; bottom: 10px; left: 0; width: 100%; text-align: center; font-size: 12px; color: #cbd5e1; font-weight: bold; pointer-events: none; }
+
         /* Draggable Items */
         .draggable { position: absolute; cursor: grab; padding: 5px; z-index: 10; touch-action: none; }
         .draggable:active { cursor: grabbing; z-index: 99; outline: 2px dashed #3b82f6; }
@@ -46,22 +52,25 @@
         
         /* --- MOBILE RESPONSIVENESS --- */
         @media (max-width: 768px) {
-            body { flex-direction: column; } /* Stack toolbar on top */
-            #toolbar { width: 100%; height: 260px; padding: 15px; box-sizing: border-box; display: flex; flex-direction: column; }
+            body { flex-direction: column; } 
+            #toolbar { width: 100%; height: auto; max-height: 300px; padding: 15px; box-sizing: border-box; display: flex; flex-direction: column; }
             .tools-wrapper { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 10px; flex-shrink: 0; }
             .tool-btn { min-width: 160px; margin-bottom: 0; }
+            .tool-btn.flip-btn { min-width: 100%; margin-bottom: 10px; }
             .sticker-grid { display: flex; overflow-x: auto; gap: 15px; padding-bottom: 10px; }
             .sticker-item { min-width: 45px; }
         }
 
         /* Hide UI when printing/saving to PDF */
         @media print {
-            @page { size: landscape; }
-            body { background: white; display: block; }
+            @page { size: landscape; margin: 0; }
+            body { background: white; display: block; margin: 0; }
             #toolbar { display: none !important; }
             #workspace-container { padding: 0; overflow: visible; display: block; }
-            #canvas { box-shadow: none; border: none; min-width: 100%; }
-            .panel { border-color: transparent; }
+            /* Force both canvases to print on separate pages */
+            .canvas { box-shadow: none; border: none; min-width: 100vw; min-height: 100vh; margin: 0; display: flex !important; page-break-after: always; }
+            .panel { border-color: transparent; box-shadow: none; }
+            .panel-label { display: none; }
         }
     </style>
 </head>
@@ -70,10 +79,11 @@
     <div id="toolbar">
         <h2>🛠️ Builder Tools</h2>
         
+        <button id="flipBtn" class="tool-btn flip-btn" onclick="toggleSide()">🔄 Viewing: OUTSIDE<br><span style="font-size: 12px; font-weight: normal;">(Click to view Inside)</span></button>
+
         <div class="tools-wrapper">
             <button class="tool-btn" onclick="addHeading()">+ Add Heading</button>
             <button class="tool-btn secondary" onclick="addText()">+ Add Normal Text</button>
-            
             <input type="file" id="imageLoader" accept="image/*" style="display: none;">
             <button class="tool-btn" onclick="document.getElementById('imageLoader').click();" style="background: #10b981;">📸 Upload Image</button>
         </div>
@@ -93,24 +103,54 @@
         </div>
 
         <button class="tool-btn" onclick="window.print()" style="background: #ef4444; margin-top: 15px; width: 100%; flex-shrink: 0;">🖨️ Save as PDF / Print</button>
-        <p style="font-size: 12px; color: #94a3b8; text-align: center; margin-top: 10px;"><em>Double-tap/click an item on the canvas to delete it.</em></p>
+        <p style="font-size: 12px; color: #94a3b8; text-align: center; margin-top: 10px;"><em>Double-tap/click an item to delete it.</em></p>
     </div>
 
     <div id="workspace-container">
-        <div id="canvas">
-            <div class="panel"></div>
-            <div class="panel"></div>
-            <div class="panel"></div>
+        
+        <div id="canvas-outside" class="canvas">
+            <div class="panel"><div class="panel-label">INSIDE FLAP (Folds In)</div></div>
+            <div class="panel"><div class="panel-label">BACK COVER</div></div>
+            <div class="panel"><div class="panel-label">FRONT COVER</div></div>
         </div>
+
+        <div id="canvas-inside" class="canvas" style="display: none;">
+            <div class="panel"><div class="panel-label">LEFT INSIDE</div></div>
+            <div class="panel"><div class="panel-label">CENTER INSIDE</div></div>
+            <div class="panel"><div class="panel-label">RIGHT INSIDE</div></div>
+        </div>
+
     </div>
 
     <script>
-        const canvas = document.getElementById('canvas');
+        const canvasOutside = document.getElementById('canvas-outside');
+        const canvasInside = document.getElementById('canvas-inside');
         const workspace = document.getElementById('workspace-container');
+        const flipBtn = document.getElementById('flipBtn');
+        
+        // Tracks which canvas we are currently working on
+        let currentCanvas = canvasOutside;
 
         let activeItem = null;
         let offsetX = 0;
         let offsetY = 0;
+
+        // Toggle between Outside and Inside views
+        function toggleSide() {
+            if (currentCanvas === canvasOutside) {
+                canvasOutside.style.display = 'none';
+                canvasInside.style.display = 'flex';
+                currentCanvas = canvasInside;
+                flipBtn.innerHTML = '🔄 Viewing: INSIDE<br><span style="font-size: 12px; font-weight: normal;">(Click to view Outside)</span>';
+                flipBtn.style.background = '#0ea5e9'; // Change color for visual feedback
+            } else {
+                canvasOutside.style.display = 'flex';
+                canvasInside.style.display = 'none';
+                currentCanvas = canvasOutside;
+                flipBtn.innerHTML = '🔄 Viewing: OUTSIDE<br><span style="font-size: 12px; font-weight: normal;">(Click to view Inside)</span>';
+                flipBtn.style.background = '#d946ef';
+            }
+        }
 
         // Unified event coordinates for Mouse + Touch
         function getEventPos(e) {
@@ -123,14 +163,13 @@
         }
 
         function makeDraggable(el) {
-            // Start Drag
             const startDrag = (e) => {
                 if(e.target !== el && !el.contains(e.target)) return;
                 activeItem = el;
                 const pos = getEventPos(e);
                 const rect = el.getBoundingClientRect();
                 
-                const canvasRect = canvas.getBoundingClientRect();
+                const canvasRect = currentCanvas.getBoundingClientRect();
                 offsetX = pos.x - rect.left;
                 offsetY = pos.y - rect.top;
             };
@@ -138,7 +177,7 @@
             el.addEventListener('mousedown', startDrag);
             el.addEventListener('touchstart', startDrag, { passive: false });
             
-            // Delete on double click / double tap
+            // Delete on double tap / double click
             let lastTap = 0;
             el.addEventListener('touchend', function(e) {
                 let currentTime = new Date().getTime();
@@ -155,10 +194,10 @@
         // Handle Dragging
         const moveDrag = (e) => {
             if (!activeItem) return;
-            e.preventDefault(); // Stop screen from scrolling on mobile while dragging
+            e.preventDefault(); 
             
             const pos = getEventPos(e);
-            const canvasRect = canvas.getBoundingClientRect();
+            const canvasRect = currentCanvas.getBoundingClientRect();
             
             let newX = pos.x - canvasRect.left - offsetX;
             let newY = pos.y - canvasRect.top - offsetY;
@@ -171,29 +210,26 @@
 
         document.addEventListener('mousemove', moveDrag);
         document.addEventListener('touchmove', moveDrag, { passive: false });
-        
         document.addEventListener('mouseup', endDrag);
         document.addEventListener('touchend', endDrag);
 
-        // Add Elements to Canvas center based on scroll
         function getCenterOffset() {
-            // Drop items relative to where the user has scrolled
             return {
                 x: workspace.scrollLeft + 50,
                 y: workspace.scrollTop + 50
             };
         }
 
+        // Add elements to the *currently active* canvas
         function addHeading() {
             const el = document.createElement('h1');
             el.className = 'draggable brochure-heading';
             el.contentEditable = "true";
             el.innerText = "New Heading";
             const pos = getCenterOffset();
-            el.style.left = pos.x + 'px';
-            el.style.top = pos.y + 'px';
+            el.style.left = pos.x + 'px'; el.style.top = pos.y + 'px';
             makeDraggable(el);
-            canvas.appendChild(el);
+            currentCanvas.appendChild(el);
         }
 
         function addText() {
@@ -202,10 +238,9 @@
             el.contentEditable = "true";
             el.innerText = "Type your facts here...";
             const pos = getCenterOffset();
-            el.style.left = pos.x + 'px';
-            el.style.top = (pos.y + 60) + 'px';
+            el.style.left = pos.x + 'px'; el.style.top = (pos.y + 60) + 'px';
             makeDraggable(el);
-            canvas.appendChild(el);
+            currentCanvas.appendChild(el);
         }
 
         function addSticker(emoji) {
@@ -214,23 +249,20 @@
             el.style.fontSize = '40px';
             el.innerText = emoji;
             const pos = getCenterOffset();
-            el.style.left = pos.x + 'px';
-            el.style.top = pos.y + 'px';
+            el.style.left = pos.x + 'px'; el.style.top = pos.y + 'px';
             makeDraggable(el);
-            canvas.appendChild(el);
+            currentCanvas.appendChild(el);
         }
 
         function addShape(shapeClass) {
             const el = document.createElement('div');
             el.className = `draggable ${shapeClass}`;
             const pos = getCenterOffset();
-            el.style.left = pos.x + 'px';
-            el.style.top = pos.y + 'px';
+            el.style.left = pos.x + 'px'; el.style.top = pos.y + 'px';
             makeDraggable(el);
-            canvas.appendChild(el);
+            currentCanvas.appendChild(el);
         }
 
-        // Image Upload
         document.getElementById('imageLoader').addEventListener('change', function(e) {
             const reader = new FileReader();
             reader.onload = function(event) {
@@ -239,11 +271,10 @@
                 img.src = event.target.result;
                 img.style.maxWidth = '200px';
                 const pos = getCenterOffset();
-                img.style.left = pos.x + 'px';
-                img.style.top = pos.y + 'px';
+                img.style.left = pos.x + 'px'; img.style.top = pos.y + 'px';
                 img.ondragstart = function() { return false; }; 
                 makeDraggable(img);
-                canvas.appendChild(img);
+                currentCanvas.appendChild(img);
             }
             if(e.target.files[0]) {
                 reader.readAsDataURL(e.target.files[0]);
