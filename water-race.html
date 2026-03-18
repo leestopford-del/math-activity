@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Hydro-Race: Streamlining & Drag</title>
+    <title>Hydro-Race: Streamlining & Drag</
+                                              title>
     
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -290,7 +291,8 @@
         // ==========================================
         function launchPhaserGame() {
             switchScreen(''); 
-            document.getElementById('game-container').style.display = 'block';
+            const container = document.getElementById('game-container');
+            container.style.display = 'block';
             document.getElementById('hud').style.display = 'block';
 
             if (!isHost) {
@@ -305,122 +307,174 @@
                 document.querySelector('.pc-controls').style.display = 'none';
             }
 
-            const config = {
-                type: Phaser.AUTO,
-                parent: 'game-container',
-                scale: { mode: Phaser.Scale.RESIZE, width: '100%', height: '100%' },
-                physics: { default: 'arcade', arcade: { debug: false } },
-                scene: { create: createGame, update: updateGame }
-            };
+            // FORCE the browser to recalculate the size of the container before Phaser boots
+            // This prevents the "0x0 Black Screen" bug!
+            void container.offsetWidth;
 
-            gameInstance = new Phaser.Game(config);
-            let localPlayer, cursors, spaceKey, walls;
-            let remotePlayers = {};
+            setTimeout(() => {
+                if (gameInstance) return; // Prevent duplicate engines from launching
 
-            function createGame() {
-                const scene = this;
+                const config = {
+                    type: Phaser.AUTO,
+                    parent: 'game-container',
+                    scale: { mode: Phaser.Scale.RESIZE, width: '100%', height: '100%' },
+                    physics: { default: 'arcade', arcade: { debug: false } },
+                    scene: { create: createGame, update: updateGame }
+                };
+
+                gameInstance = new Phaser.Game(config);
                 
-                scene.cameras.main.setBackgroundColor('#1E293B'); 
-                scene.add.grid(1500, 1500, 5000, 5000, 100, 100, 0x1E293B, 1, 0xffffff, 0.05).setDepth(-1);
+                let localPlayer, cursors, spaceKey, walls;
+                let remotePlayers = {};
 
-                walls = scene.physics.add.staticGroup();
-                const trackGraphics = scene.add.graphics();
-                
-                // Track Path
-                const path = new Phaser.Curves.Path(1000, 3000); 
-                path.lineTo(1000, 2000);
-                path.quadraticCurveTo(1500, 1500, 2000, 1000); // Smooth Curve Right
-                path.lineTo(2000, 0);
-                path.quadraticCurveTo(1500, -500, 1000, -1000); // Smooth Curve Left
-
-                // Stamp circles to build water
-                const points = path.getPoints(200); 
-                trackGraphics.fillStyle(0x0284C7, 1);
-                points.forEach(p => trackGraphics.fillCircle(p.x, p.y, 200));
-
-                // Start Line
-                scene.add.rectangle(1000, 2800, 400, 20, 0xffffff).setDepth(1);
-
-                // Collision Walls (Visible Red Banks)
-                for (let i = 1; i < points.length; i++) {
-                    let p1 = points[i-1], p2 = points[i];
-                    let angle = Phaser.Math.Angle.Between(p1.x, p1.y, p2.x, p2.y);
-                    let normX = Math.sin(angle), normY = -Math.cos(angle), trackWidth = 200; 
+                function createGame() {
+                    const scene = this;
                     
-                    walls.add(scene.add.rectangle(p2.x + normX * trackWidth, p2.y + normY * trackWidth, 50, 50, 0xEF4444, 0.5));
-                    walls.add(scene.add.rectangle(p2.x - normX * trackWidth, p2.y - normY * trackWidth, 50, 50, 0xEF4444, 0.5));
+                    // Added a lighter grid line so we can easily confirm the camera is rendering!
+                    scene.cameras.main.setBackgroundColor('#1E293B'); 
+                    scene.add.grid(1500, 1500, 5000, 5000, 100, 100, 0x1E293B, 1, 0x38BDF8, 0.1).setDepth(-1);
+
+                    walls = scene.physics.add.staticGroup();
+                    const trackGraphics = scene.add.graphics();
+                    
+                    const path = new Phaser.Curves.Path(1000, 3000); 
+                    path.lineTo(1000, 2000);
+                    path.quadraticCurveTo(1500, 1500, 2000, 1000); 
+                    path.lineTo(2000, 0);
+                    path.quadraticCurveTo(1500, -500, 1000, -1000); 
+
+                    const points = path.getPoints(200); 
+                    trackGraphics.fillStyle(0x0284C7, 1);
+                    points.forEach(p => trackGraphics.fillCircle(p.x, p.y, 200));
+
+                    scene.add.rectangle(1000, 2800, 400, 20, 0xffffff).setDepth(1);
+
+                    // Bulletproof physics body creation for walls
+                    for (let i = 1; i < points.length; i++) {
+                        let p1 = points[i-1], p2 = points[i];
+                        let angle = Phaser.Math.Angle.Between(p1.x, p1.y, p2.x, p2.y);
+                        let normX = Math.sin(angle), normY = -Math.cos(angle), trackWidth = 200; 
+                        
+                        let wall1 = scene.add.rectangle(p2.x + normX * trackWidth, p2.y + normY * trackWidth, 50, 50, 0xEF4444, 0.5);
+                        let wall2 = scene.add.rectangle(p2.x - normX * trackWidth, p2.y - normY * trackWidth, 50, 50, 0xEF4444, 0.5);
+                        
+                        scene.physics.add.existing(wall1, true); // Force static body
+                        scene.physics.add.existing(wall2, true); // Force static body
+                        walls.add(wall1);
+                        walls.add(wall2);
+                    }
+
+                    cursors = scene.input.keyboard.createCursorKeys();
+
+                    if (!isHost) {
+                        spaceKey = scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+                        
+                        localPlayer = createNativeShape(scene, selectedChar.shape, selectedChar.color);
+                        scene.physics.add.existing(localPlayer);
+                        localPlayer.body.setMaxVelocity(selectedChar.speed);
+                        localPlayer.body.setDrag(selectedChar.drag);
+                        
+                        localPlayer.x = 1000 + (Math.random() - 0.5) * 200;
+                        localPlayer.y = 2900 + (Math.random() * 100);
+                        localPlayer.angle = -90; 
+                        localPlayer.isCrashed = false;
+
+                        scene.cameras.main.startFollow(localPlayer, true, 0.1, 0.1);
+                        scene.cameras.main.setZoom(0.6);
+
+                        scene.physics.add.overlap(localPlayer, walls, () => {
+                            const speed = localPlayer.body.speed;
+                            if (speed > 150 && !localPlayer.isCrashed) { 
+                                localPlayer.isCrashed = true;
+                                localPlayer.body.setVelocity(0);
+                                localPlayer.setFillStyle(0xEF4444);
+                                
+                                playersRef.child(myId).update({ status: 'CRASHED' });
+                                document.getElementById('drag-status').innerText = "CRASHED INTO BANK!";
+                                document.getElementById('drag-status').style.color = "#EF4444";
+                                touchInput.left = touchInput.right = touchInput.gas = touchInput.brake = false;
+                            } else if (speed > 0) {
+                                localPlayer.body.setVelocity(localPlayer.body.velocity.x * 0.5, localPlayer.body.velocity.y * 0.5);
+                            }
+                        });
+                    } else {
+                        scene.cameras.main.setZoom(0.4);
+                        scene.cameras.main.centerOn(1000, 2000); 
+                        
+                        scene.input.on('pointermove', function (pointer) {
+                            if (!pointer.isDown) return;
+                            scene.cameras.main.scrollX -= (pointer.x - pointer.prevPosition.x) / scene.cameras.main.zoom;
+                            scene.cameras.main.scrollY -= (pointer.y - pointer.prevPosition.y) / scene.cameras.main.zoom;
+                        });
+                    }
+
+                    playersRef.on('value', snap => {
+                        const players = snap.val() || {};
+                        Object.keys(remotePlayers).forEach(id => {
+                            if (!players[id]) {
+                                remotePlayers[id].sprite.destroy(); remotePlayers[id].text.destroy(); delete remotePlayers[id];
+                            }
+                        });
+
+                        Object.values(players).forEach(pData => {
+                            if (pData.id === myId) return; 
+                            if (!remotePlayers[pData.id]) {
+                                const sprite = createNativeShape(scene, pData.shape, pData.color);
+                                const text = scene.add.text(0, 0, pData.name, { fontSize: '32px', fill: '#FFF', fontStyle: 'bold', stroke: '#000', strokeThickness: 6 }).setOrigin(0.5).setDepth(15);
+                                remotePlayers[pData.id] = { sprite, text };
+                            }
+                            const rp = remotePlayers[pData.id];
+                            rp.sprite.x = pData.x; rp.sprite.y = pData.y; rp.sprite.angle = pData.angle;
+                            if(pData.status === 'CRASHED') rp.sprite.setFillStyle(0xEF4444);
+                            rp.text.x = pData.x; rp.text.y = pData.y - 60;
+                        });
+                    });
                 }
 
-                cursors = scene.input.keyboard.createCursorKeys();
+                function updateGame() {
+                    if (isHost) {
+                        const camSpeed = 15;
+                        if (cursors.left.isDown) this.cameras.main.scrollX -= camSpeed;
+                        if (cursors.right.isDown) this.cameras.main.scrollX += camSpeed;
+                        if (cursors.up.isDown) this.cameras.main.scrollY -= camSpeed;
+                        if (cursors.down.isDown) this.cameras.main.scrollY += camSpeed;
+                        return; 
+                    }
 
-                // === PLAYER LOGIC ===
-                if (!isHost) {
-                    spaceKey = scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
-                    
-                    localPlayer = createNativeShape(scene, selectedChar.shape, selectedChar.color);
-                    scene.physics.add.existing(localPlayer);
-                    localPlayer.body.setMaxVelocity(selectedChar.speed);
-                    localPlayer.body.setDrag(selectedChar.drag);
-                    
-                    localPlayer.x = 1000 + (Math.random() - 0.5) * 200;
-                    localPlayer.y = 2900 + (Math.random() * 100);
-                    localPlayer.angle = -90; 
-                    localPlayer.isCrashed = false;
+                    if (!localPlayer || localPlayer.isCrashed) return;
 
-                    scene.cameras.main.startFollow(localPlayer, true, 0.1, 0.1);
-                    scene.cameras.main.setZoom(0.6);
+                    if (cursors.left.isDown || touchInput.left) localPlayer.setAngularVelocity(-200);
+                    else if (cursors.right.isDown || touchInput.right) localPlayer.setAngularVelocity(200);
+                    else localPlayer.setAngularVelocity(0);
 
-                    scene.physics.add.overlap(localPlayer, walls, () => {
-                        const speed = localPlayer.body.speed;
-                        if (speed > 150 && !localPlayer.isCrashed) { 
-                            localPlayer.isCrashed = true;
-                            localPlayer.body.setVelocity(0);
-                            localPlayer.setFillStyle(0xEF4444);
-                            
-                            playersRef.child(myId).update({ status: 'CRASHED' });
-                            document.getElementById('drag-status').innerText = "CRASHED INTO BANK!";
-                            document.getElementById('drag-status').style.color = "#EF4444";
-                            touchInput.left = touchInput.right = touchInput.gas = touchInput.brake = false;
-                        } else if (speed > 0) {
-                            localPlayer.body.setVelocity(localPlayer.body.velocity.x * 0.5, localPlayer.body.velocity.y * 0.5);
-                        }
-                    });
-                } else {
-                    // === HOST SPECTATOR LOGIC ===
-                    scene.cameras.main.setZoom(0.4);
-                    scene.cameras.main.centerOn(1000, 2000); // Point camera at the start line
-                    
-                    // Allow host to drag the camera with mouse/touch
-                    scene.input.on('pointermove', function (pointer) {
-                        if (!pointer.isDown) return;
-                        scene.cameras.main.scrollX -= (pointer.x - pointer.prevPosition.x) / scene.cameras.main.zoom;
-                        scene.cameras.main.scrollY -= (pointer.y - pointer.prevPosition.y) / scene.cameras.main.zoom;
-                    });
+                    if (cursors.up.isDown || touchInput.gas) this.physics.velocityFromRotation(localPlayer.rotation, selectedChar.speed, localPlayer.body.acceleration);
+                    else localPlayer.body.setAcceleration(0);
+
+                    const hudDrag = document.getElementById('drag-status');
+                    if ((spaceKey && spaceKey.isDown) || touchInput.brake) {
+                        localPlayer.body.setDrag(selectedChar.drag + selectedBrake.brakeDrag);
+                        hudDrag.innerText = "BRAKING: DEPLOYED"; hudDrag.style.color = "#EF4444";
+                    } else {
+                        localPlayer.body.setDrag(selectedChar.drag);
+                        hudDrag.innerText = "Brakes: OFF"; hudDrag.style.color = "#94A3B8";
+                    }
+
+                    if (!localPlayer.oldPos || Math.abs(localPlayer.x - localPlayer.oldPos.x) > 1 || Math.abs(localPlayer.y - localPlayer.oldPos.y) > 1 || Math.abs(localPlayer.angle - localPlayer.oldPos.angle) > 1) {
+                        playersRef.child(myId).update({ x: localPlayer.x, y: localPlayer.y, angle: localPlayer.angle });
+                        localPlayer.oldPos = { x: localPlayer.x, y: localPlayer.y, angle: localPlayer.angle };
+                    }
                 }
 
-                // Sync Network Players (Visible to everyone!)
-                playersRef.on('value', snap => {
-                    const players = snap.val() || {};
-                    Object.keys(remotePlayers).forEach(id => {
-                        if (!players[id]) {
-                            remotePlayers[id].sprite.destroy(); remotePlayers[id].text.destroy(); delete remotePlayers[id];
-                        }
-                    });
+                function createNativeShape(scene, shapeType, colorHex) {
+                    let width = shapeType === 'streamlined' ? 80 : 50;
+                    let height = shapeType === 'streamlined' ? 30 : 50;
+                    let shape = scene.add.rectangle(0, 0, width, height, colorHex).setDepth(10);
+                    shape.setStrokeStyle(3, 0xffffff);
+                    return shape;
+                }
 
-                    Object.values(players).forEach(pData => {
-                        if (pData.id === myId) return; // Ignore self
-                        if (!remotePlayers[pData.id]) {
-                            const sprite = createNativeShape(scene, pData.shape, pData.color);
-                            const text = scene.add.text(0, 0, pData.name, { fontSize: '32px', fill: '#FFF', fontStyle: 'bold', stroke: '#000', strokeThickness: 6 }).setOrigin(0.5).setDepth(15);
-                            remotePlayers[pData.id] = { sprite, text };
-                        }
-                        const rp = remotePlayers[pData.id];
-                        rp.sprite.x = pData.x; rp.sprite.y = pData.y; rp.sprite.angle = pData.angle;
-                        if(pData.status === 'CRASHED') rp.sprite.setFillStyle(0xEF4444);
-                        rp.text.x = pData.x; rp.text.y = pData.y - 60;
-                    });
-                });
-            }
+            }, 100); 
+        }
 
             function updateGame() {
                 // Host Camera Panning via Keyboard
