@@ -3,119 +3,211 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Hydro-Race: Streamlining & Drag</
-                                              title>
-    
-    <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-
+    <title>Hydrodynamics: Water Resistance Simulation</title>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
-        body { margin: 0; background-color: #0F172A; color: #F8FAFC; font-family: 'Segoe UI', Tahoma, sans-serif; overflow: hidden; touch-action: none; }
-        .screen { display: none; width: 100vw; height: 100vh; flex-direction: column; align-items: center; justify-content: flex-start; position: absolute; top: 0; left: 0; background: #0F172A; z-index: 100; overflow-y: auto; padding-top: 20px;}
-        .active-screen { display: flex; }
-        
-        h1 { color: #38BDF8; font-size: 2.2rem; text-transform: uppercase; margin-bottom: 10px; text-align: center;}
-        h2 { color: #94A3B8; margin-bottom: 20px; font-weight: normal; text-align: center; font-size: 1.1rem; padding: 0 15px;}
-        
-        .container { background: #1E293B; padding: 30px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); text-align: center; max-width: 800px; width: 90%; margin-bottom: 30px;}
-        
-        input { padding: 12px; font-size: 1.2rem; border-radius: 8px; border: 2px solid #38BDF8; background: #020617; color: white; margin-bottom: 20px; text-align: center; outline: none; width: 80%; }
-        button.primary-btn { background: linear-gradient(90deg, #38BDF8, #0284C7); color: white; border: none; padding: 15px 30px; font-size: 1.2rem; font-weight: bold; border-radius: 8px; cursor: pointer; margin: 10px; transition: 0.2s; width: 80%;}
-        button.primary-btn:active { transform: scale(0.95); }
-        .btn-danger { background: linear-gradient(90deg, #EF4444, #B91C1C) !important; }
-
-        .grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-bottom: 20px; }
-        .card { background: #0F172A; border: 2px solid #334155; padding: 15px 10px; border-radius: 8px; cursor: pointer; width: 130px; transition: 0.2s; display: flex; flex-direction: column; justify-content: center; user-select: none;}
-        .card.selected { border-color: #38BDF8; background: rgba(56, 189, 248, 0.2); box-shadow: 0 0 15px rgba(56, 189, 248, 0.4);}
-        .card-title { font-size: 1rem; font-weight: bold; margin-bottom: 5px; color: #F8FAFC;}
-        .card-type { font-size: 0.75rem; color: #94A3B8; text-transform: uppercase; letter-spacing: 1px;}
-
-        #game-container { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 5; display: none; }
-        
-        #hud { position: absolute; top: 10px; left: 10px; z-index: 20; background: rgba(0,0,0,0.8); padding: 15px; border-radius: 8px; border-left: 4px solid #38BDF8; pointer-events: none; display: none;}
-        #hud h3 { margin:0 0 5px 0; color: #38BDF8; font-size: 1.2rem; }
-        #hud p { margin: 0; color: #94A3B8; font-size: 0.9rem; }
-        
-        .player-list { list-style: none; padding: 0; text-align: left; max-height: 250px; overflow-y: auto;}
-        .player-list li { padding: 10px; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; gap: 10px; font-size: 1rem;}
-        .status-crashed { color: #EF4444; font-weight: bold; }
-        .status-racing { color: #10B981; }
-        .status-lobby { color: #F59E0B; }
-
-        /* ON-SCREEN MOBILE CONTROLS */
-        #mobile-controls { display: none; position: absolute; bottom: 20px; left: 0; width: 100vw; justify-content: space-between; padding: 0 20px; box-sizing: border-box; z-index: 30; pointer-events: none; }
-        .control-cluster { display: flex; gap: 10px; pointer-events: auto; }
-        .touch-btn { background: rgba(56, 189, 248, 0.4); border: 2px solid #38BDF8; color: white; font-size: 1.5rem; font-weight: bold; border-radius: 50%; width: 70px; height: 70px; display: flex; justify-content: center; align-items: center; user-select: none; touch-action: none; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
-        .touch-btn:active { background: rgba(56, 189, 248, 0.8); transform: scale(0.95); }
-        .btn-brake { background: rgba(239, 68, 68, 0.4); border-color: #EF4444; width: 80px; height: 80px; font-size: 1rem;}
-        .btn-brake:active { background: rgba(239, 68, 68, 0.8); }
-        .btn-gas { width: 80px; height: 80px; font-size: 1.2rem; background: rgba(16, 185, 129, 0.4); border-color: #10B981;}
-        .btn-gas:active { background: rgba(16, 185, 129, 0.8); }
-
-        @media (max-width: 600px) {
-            .touch-btn { width: 60px; height: 60px; }
-            .btn-brake, .btn-gas { width: 70px; height: 70px; }
+        :root {
+            --bg: #0F172A;
+            --panel: #1E293B;
+            --text: #F8FAFC;
+            --text-muted: #94A3B8;
+            --primary: #0EA5E9;
+            --success: #10B981;
+            --danger: #EF4444;
         }
 
-        /* Hide touch controls on PC */
-        @media (pointer: fine) { #mobile-controls { display: none !important; } }
+        body {
+            margin: 0; padding: 0;
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            overflow: hidden; /* Prevent scrolling during gameplay */
+        }
+
+        /* --- UI SCREENS --- */
+        .screen {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .active-screen { display: flex; }
+
+        .panel {
+            background: var(--panel);
+            padding: 30px;
+            border-radius: 15px;
+            border: 1px solid #334155;
+            width: 100%;
+            max-width: 600px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        }
+
+        h1 { margin-top: 0; font-size: 1.5rem; text-align: center; color: var(--primary); }
+        h2 { font-size: 1.1rem; margin-bottom: 10px; color: var(--text-muted); }
+
+        input[type="text"] {
+            width: 100%; padding: 12px; margin-bottom: 20px;
+            border-radius: 8px; border: 1px solid #475569;
+            background: var(--bg); color: var(--text);
+            font-size: 1rem; box-sizing: border-box;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .card {
+            background: var(--bg);
+            border: 2px solid #334155;
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .card:hover { border-color: var(--primary); }
+        .card.selected { border-color: var(--primary); background: rgba(14, 165, 233, 0.1); }
+        .card-title { display: block; font-weight: 600; margin-bottom: 5px; }
+        .card-desc { font-size: 0.8rem; color: var(--text-muted); }
+
+        button {
+            width: 100%; padding: 15px;
+            background: var(--primary); color: white;
+            border: none; border-radius: 8px;
+            font-size: 1.1rem; font-weight: 600;
+            cursor: pointer; transition: 0.2s;
+        }
+        button:hover { background: #0284C7; }
+        button.danger { background: var(--danger); }
+        button.danger:hover { background: #DC2626; }
+        button.success { background: var(--success); }
+        button.success:hover { background: #059669; }
+
+        .player-list {
+            list-style: none; padding: 0; margin: 0 0 20px 0;
+            max-height: 250px; overflow-y: auto;
+        }
+        .player-list li {
+            padding: 10px; border-bottom: 1px solid #334155;
+            display: flex; justify-content: space-between;
+        }
+
+        /* --- GAME & HUD --- */
+        #game-container {
+            position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
+            display: none; z-index: 1;
+        }
+
+        #hud {
+            position: absolute; top: 10px; left: 10px;
+            background: rgba(15, 23, 42, 0.85);
+            padding: 15px; border-radius: 10px;
+            border: 1px solid #334155; z-index: 10;
+            display: none; pointer-events: none;
+        }
+
+        /* --- MOBILE CONTROLS --- */
+        #mobile-controls {
+            position: absolute; bottom: 20px; left: 0; width: 100%;
+            display: none; justify-content: space-between; padding: 0 20px;
+            box-sizing: border-box; z-index: 10; pointer-events: none;
+        }
+        .control-group { display: flex; gap: 10px; pointer-events: auto; }
+        .btn-touch {
+            width: 60px; height: 60px;
+            background: rgba(30, 41, 59, 0.8);
+            border: 2px solid #475569; border-radius: 50%;
+            color: white; font-size: 1.5rem; font-weight: bold;
+            display: flex; align-items: center; justify-content: center;
+            user-select: none;
+        }
+        .btn-touch:active { background: rgba(14, 165, 233, 0.5); }
+        .btn-brake { background: rgba(239, 68, 68, 0.5); border-color: var(--danger); width: 80px; border-radius: 15px;}
+        
+        .status-lobby { color: var(--primary); }
+        .status-racing { color: var(--success); }
+        .status-crashed { color: var(--danger); font-weight: bold; }
     </style>
 </head>
 <body>
 
-    <div id="hud">
-        <h3 id="hud-title">Vessel Telemetry</h3>
-        <p class="pc-controls" style="display: none; margin-bottom: 5px;">Controls: Arrow Keys to Steer/Gas, SPACE to Brake</p>
-        <div id="drag-status" style="color: #94A3B8; font-size: 1rem; font-weight: bold;">Brakes: OFF</div>
-    </div>
-
-    <div id="mobile-controls">
-        <div class="control-cluster">
-            <div class="touch-btn" id="t-left">◀</div>
-            <div class="touch-btn" id="t-right">▶</div>
-        </div>
-        <div class="control-cluster" style="align-items: flex-end;">
-            <div class="touch-btn btn-brake" id="t-brake">BRAKE</div>
-            <div class="touch-btn btn-gas" id="t-gas">GAS</div>
-        </div>
-    </div>
-
     <div id="screen-login" class="screen">
-        <div class="container">
-            <h1>Hydro-Race Setup</h1>
-            <h2>Configure your vessel for the rapids. Choose your shape and drag carefully!</h2>
-            <input type="text" id="player-name" placeholder="Enter Callsign..." autocomplete="off">
-            <h3 style="text-align: left; color: #38BDF8; margin-bottom: 10px; font-size: 1.1rem;">1. Select Hull Design</h3>
+        <div class="panel">
+            <h1>Vehicle Configuration</h1>
+            <input type="text" id="player-name" placeholder="Enter your callsign..." autocomplete="off">
+            
+            <h2>Hull Shape (Surface Area)</h2>
             <div class="grid" id="char-grid"></div>
-            <h3 style="text-align: left; color: #38BDF8; margin-top: 20px; margin-bottom: 10px; font-size: 1.1rem;">2. Select Braking System</h3>
+
+            <h2>Braking System (Intentional Drag)</h2>
             <div class="grid" id="brake-grid"></div>
-            <button class="primary-btn" onclick="joinLobby()">ENTER SERVER</button>
+
+            <button onclick="window.joinLobby()">Initialize Sub & Join Lobby</button>
         </div>
     </div>
 
     <div id="screen-lobby" class="screen">
-        <div class="container">
-            <h1>RACE LOBBY</h1>
-            <p style="font-size: 1.1rem; color: #94A3B8;">Awaiting Instructor to clear the channel...</p>
-            <ul class="player-list" id="lobby-players"></ul>
+        <div class="panel" style="text-align: center;">
+            <h1>Lobby Setup</h1>
+            <p style="color: var(--text-muted);">Awaiting Instructor to clear the channel...</p>
+            <div style="background: var(--bg); padding: 15px; border-radius: 10px; margin-top: 20px;">
+                <h3 style="margin-top:0;">Connected Pilots</h3>
+                <ul class="player-list" id="lobby-players"></ul>
+            </div>
         </div>
     </div>
 
     <div id="screen-host" class="screen">
-        <div class="container" style="max-width: 600px;">
-            <h1 style="color: #EF4444;">🛡️ INSTRUCTOR COMMAND 🛡️</h1>
-            <p style="font-size: 1.1rem; color: #94A3B8;">Manage the lobby. You will act as a spectator drone during the race.</p>
-            <ul class="player-list" id="host-players" style="background: #020617; padding: 15px; border-radius: 8px; margin-bottom: 20px;"></ul>
-            <button class="primary-btn" onclick="startRace()">🏁 LAUNCH SIMULATION</button>
-            <button class="primary-btn btn-danger" onclick="resetServer()">🔄 RESET LOBBY (CLEAR TRACK)</button>
+        <div class="panel">
+            <h1>Instructor Command Center</h1>
+            <p style="color: var(--text-muted); text-align:center;">Monitor connections and manage the simulation.</p>
+            
+            <div style="background: var(--bg); padding: 15px; border-radius: 10px; margin-bottom: 20px;">
+                <h3 style="margin-top:0;">Telemetry Uplinks</h3>
+                <ul class="player-list" id="host-players"></ul>
+            </div>
+
+            <div style="display: flex; gap: 10px;">
+                <button class="success" onclick="window.startRace()">Launch Simulation</button>
+                <button class="danger" onclick="window.endRace()">Abort / Reset to Lobby</button>
+            </div>
         </div>
     </div>
 
     <div id="game-container"></div>
+    
+    <div id="hud">
+        <h3 id="hud-title" style="margin: 0 0 5px 0; color: var(--primary);">Telemetry</h3>
+        <div id="drag-status" style="color: var(--text-muted); font-weight: 600;">Brakes: OFF</div>
+        <div class="pc-controls" style="margin-top: 10px; font-size: 0.8rem; color: #475569;">
+            Controls: Arrow Keys (Steer/Gas) | SPACE (Brake)
+        </div>
+    </div>
 
-    <script>
-        // --- FIREBASE SETUP ---
+    <div id="mobile-controls">
+        <div class="control-group">
+            <div class="btn-touch" id="btn-left">←</div>
+            <div class="btn-touch" id="btn-right">→</div>
+        </div>
+        <div class="control-group">
+            <div class="btn-touch btn-brake" id="btn-brake">BRK</div>
+            <div class="btn-touch" id="btn-up">↑</div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
+        import { getDatabase, ref, set, update, onValue, remove, onDisconnect } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-database.js";
+
+        // --- FIREBASE CONFIG ---
         const firebaseConfig = {
             apiKey: "AIzaSyBpf5wi0wShnatqUhcmPhSOdnd0NdBL65A",
             authDomain: "symmetry-and-nets.firebaseapp.com",
@@ -125,73 +217,83 @@
             messagingSenderId: "250211420064",
             appId: "1:250211420064:web:fe4a064715042bedf546c5"
         };
-        if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
-        const db = firebase.database();
-        const raceRef = db.ref('water_race');
-        const playersRef = raceRef.child('players');
-        const stateRef = raceRef.child('global_state');
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
 
-        // --- GAME DATA ---
-        const characters = [
-            { id: 'dolphin', name: 'Dolphin', type: 'Natural', speed: 600, drag: 50, color: 0x38BDF8, shape: 'streamlined' },
-            { id: 'shark', name: 'Shark', type: 'Natural', speed: 600, drag: 50, color: 0x94A3B8, shape: 'streamlined' },
-            { id: 'turtle', name: 'Turtle', type: 'Natural', speed: 300, drag: 600, color: 0x10B981, shape: 'bluff' },
-            { id: 'jellyfish', name: 'Jellyfish', type: 'Natural', speed: 150, drag: 900, color: 0xD946EF, shape: 'bluff' },
-            { id: 'submarine', name: 'Submarine', type: 'Engineered', speed: 600, drag: 50, color: 0xF59E0B, shape: 'streamlined' },
-            { id: 'torpedo', name: 'Torpedo', type: 'Engineered', speed: 600, drag: 30, color: 0xEF4444, shape: 'streamlined' },
-            { id: 'rowboat', name: 'Rowboat', type: 'Engineered', speed: 300, drag: 600, color: 0x8B5CF6, shape: 'bluff' },
-            { id: 'box', name: 'Floating Box', type: 'Engineered', speed: 100, drag: 1200, color: 0xA8A29E, shape: 'bluff' }
-        ];
-
-        const brakes = [
-            { id: 'drogue', name: 'Submarine Drogue', brakeDrag: 1500 },
-            { id: 'anchor', name: 'Ship Anchor', brakeDrag: 700 },
-            { id: 'pebble', name: 'Streamlined Pebble', brakeDrag: 0 } // Useless brake
-        ];
-
-        let myId = '', myName = '', selectedChar = characters[0], selectedBrake = brakes[0];
-        let isHost = window.location.search.includes('host=true');
+        // --- GLOBAL VARIABLES ---
+        const urlParams = new URLSearchParams(window.location.search);
+        const isHost = urlParams.get('host') === 'true';
+        let myId = isHost ? 'HOST' : '';
         let gameInstance = null;
-        let touchInput = { left: false, right: false, gas: false, brake: false };
 
-        // Mobile Controls Binder
-        function bindTouchButton(elementId, actionName) {
-            const el = document.getElementById(elementId);
-            const press = (e) => { e.preventDefault(); touchInput[actionName] = true; };
-            const release = (e) => { e.preventDefault(); touchInput[actionName] = false; };
-            el.addEventListener('touchstart', press, {passive: false});
-            el.addEventListener('touchend', release, {passive: false});
-            el.addEventListener('mousedown', press);
-            el.addEventListener('mouseup', release);
-            el.addEventListener('mouseleave', release);
+        const stateRef = ref(db, 'gameState');
+        const playersRef = ref(db, 'players');
+
+        // Physics Configurations
+        const characters = [
+            { id: 'c1', name: 'Streamlined', type: 'Low Drag', shape: 'streamlined', speed: 400, drag: 100, color: 0x38BDF8 },
+            { id: 'c2', name: 'Standard Hull', type: 'Med Drag', shape: 'standard', speed: 300, drag: 250, color: 0xA78BFA },
+            { id: 'c3', name: 'Bluff Body', type: 'High Drag', shape: 'bluff', speed: 200, drag: 500, color: 0xFBBF24 }
+        ];
+        const brakes = [
+            { id: 'b1', name: 'None', brakeDrag: 0 },
+            { id: 'b2', name: 'Standard Flaps', brakeDrag: 300 },
+            { id: 'b3', name: 'Drogue Chute', brakeDrag: 800 }
+        ];
+
+        let selectedChar = characters[0];
+        let selectedBrake = brakes[0];
+
+        // Mobile Controls State
+        const touchInput = { left: false, right: false, gas: false, brake: false };
+
+        // --- UTILITY FUNCTIONS ---
+        function switchScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(el => el.classList.remove('active-screen'));
+            if (screenId) document.getElementById(screenId).classList.add('active-screen');
         }
 
-        bindTouchButton('t-left', 'left'); bindTouchButton('t-right', 'right');
-        bindTouchButton('t-gas', 'gas'); bindTouchButton('t-brake', 'brake');
+        // Expose functions to window so inline HTML onclick handlers work within a module
+        window.joinLobby = () => {
+            const name = document.getElementById('player-name').value.trim();
+            if (!name) return alert("Enter a callsign!");
+            
+            myId = 'player_' + Math.random().toString(36).substr(2, 9);
+            const myPlayerRef = ref(db, 'players/' + myId);
+            
+            // Set up cleanup if player disconnects unexpectedly
+            onDisconnect(myPlayerRef).remove();
 
-        if (window.matchMedia("(pointer: fine)").matches) {
-            document.querySelector('.pc-controls').style.display = 'block';
-        }
+            set(myPlayerRef, {
+                id: myId, name: name,
+                shape: selectedChar.shape, color: selectedChar.color, charName: selectedChar.name,
+                x: 0, y: 0, angle: 0, status: 'In Lobby'
+            });
 
-        // --- UI INITIALIZATION ---
-        // --- UI INITIALIZATION ---
-        function initUI() {
+            switchScreen('screen-lobby');
+        };
+
+        window.startRace = () => set(stateRef, 'racing');
+        window.endRace = () => {
+            set(stateRef, 'lobby');
+            set(playersRef, null); // Wipe all players so they have to rejoin
+        };
+
+        // --- INITIALIZATION ---
+        function init() {
             if (isHost) {
-                // Host gets sent directly to the command center
-                document.getElementById('screen-host').classList.add('active-screen');
-                
-                // THE FIX: Force the database back to 'lobby' whenever the host loads the page
-                // This prevents getting dragged into an old, uncleared race state.
-                stateRef.set('lobby'); 
+                switchScreen('screen-host');
+                // Force lobby state on host load to prevent the ghost race bug
+                set(stateRef, 'lobby'); 
             } else {
-                // Players get the character selection
-                document.getElementById('screen-login').classList.add('active-screen');
+                switchScreen('screen-login');
                 
+                // Populate UI Selection Grids
                 const charGrid = document.getElementById('char-grid');
                 characters.forEach(c => {
                     const div = document.createElement('div');
                     div.className = 'card' + (c.id === selectedChar.id ? ' selected' : '');
-                    div.innerHTML = `<span class="card-title">${c.name}</span><span class="card-type">${c.type}</span>`;
+                    div.innerHTML = `<span class="card-title">${c.name}</span><span class="card-desc">${c.type}</span>`;
                     div.onclick = () => {
                         selectedChar = c;
                         document.querySelectorAll('#char-grid .card').forEach(el => el.classList.remove('selected'));
@@ -214,17 +316,17 @@
                 });
             }
 
-            // Sync Database State
-            stateRef.on('value', snap => {
+            // Sync Game State (Lobby vs Racing)
+            onValue(stateRef, (snap) => {
                 const state = snap.val();
                 
                 if (state === 'racing' && !gameInstance) {
-                    // Only launch if we are Host OR if we are a Player who actually joined
+                    // Only launch if Host OR if a Player who actually pressed "Join Lobby"
                     if (isHost || myId !== '') {
                         launchPhaserGame();
                     }
                 } else if (state === 'lobby') {
-                    // Tear down game if returning to lobby
+                    // Tear down game engine safely
                     if (gameInstance) {
                         gameInstance.destroy(true);
                         gameInstance = null;
@@ -236,15 +338,16 @@
                     
                     if (isHost) {
                         switchScreen('screen-host');
-                    } else if (myId) {
-                        switchScreen('screen-lobby');
-                        playersRef.child(myId).update({ status: 'In Lobby', x: 0, y: 0 }); 
+                    } else if (myId !== '') {
+                        // Reset player to UI login if host resets server
+                        switchScreen('screen-login');
+                        myId = ''; 
                     }
                 }
             });
 
-            // Update Lobby Lists
-            playersRef.on('value', snap => {
+            // Update UI Player Lists
+            onValue(playersRef, (snap) => {
                 const players = snap.val() || {};
                 let html = '';
                 Object.values(players).forEach(p => {
@@ -253,66 +356,46 @@
                 });
                 
                 if (document.getElementById('lobby-players')) document.getElementById('lobby-players').innerHTML = html;
-                if (document.getElementById('host-players')) document.getElementById('host-players').innerHTML = html || "<span style='color:#94A3B8'>No pilots connected yet.</span>";
+                if (document.getElementById('host-players')) document.getElementById('host-players').innerHTML = html || "<span style='color:#94A3B8'>No telemetry signals detected.</span>";
             });
+
+            // Bind Touch Controls
+            const bindTouch = (id, key) => {
+                const el = document.getElementById(id);
+                if(!el) return;
+                el.addEventListener('touchstart', (e) => { e.preventDefault(); touchInput[key] = true; });
+                el.addEventListener('touchend', (e) => { e.preventDefault(); touchInput[key] = false; });
+                el.addEventListener('mousedown', (e) => { e.preventDefault(); touchInput[key] = true; });
+                el.addEventListener('mouseup', (e) => { e.preventDefault(); touchInput[key] = false; });
+            };
+            bindTouch('btn-left', 'left'); bindTouch('btn-right', 'right');
+            bindTouch('btn-up', 'gas'); bindTouch('btn-brake', 'brake');
         }
 
-        function switchScreen(id) {
-            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active-screen'));
-            if(id) document.getElementById(id).classList.add('active-screen');
-        }
-
-        function joinLobby() {
-            myName = document.getElementById('player-name').value.trim();
-            if (!myName) return alert('Enter a callsign!');
-            myId = 'Pilot_' + Math.random().toString(36).substr(2, 6);
-            
-            playersRef.child(myId).set({
-                id: myId, name: myName, charId: selectedChar.id, charName: selectedChar.name, 
-                color: selectedChar.color, shape: selectedChar.shape, x: 0, y: 0, angle: 0, status: 'In Lobby'
-            });
-            playersRef.child(myId).onDisconnect().remove();
-            switchScreen('screen-lobby');
-        }
-
-        // --- HOST COMMANDS ---
-        function startRace() { stateRef.set('racing'); }
-        function resetServer() { 
-            // Wipe all player DB data entirely to prevent ghost players in next round
-            raceRef.remove().then(() => {
-                stateRef.set('lobby'); 
-            });
-        }
-
-        initUI();
-
-       // ==========================================
+        // ==========================================
         // PHASER 3 GAME ENGINE
         // ==========================================
         function launchPhaserGame() {
-            switchScreen(''); 
+            switchScreen(''); // Hide UI elements
             const container = document.getElementById('game-container');
             container.style.display = 'block';
             document.getElementById('hud').style.display = 'block';
 
             if (!isHost) {
                 document.getElementById('mobile-controls').style.display = 'flex'; 
-                document.getElementById('drag-status').innerText = "Brakes: OFF";
-                document.getElementById('drag-status').style.color = "#94A3B8";
-                playersRef.child(myId).update({ status: 'Racing' });
+                update(ref(db, 'players/' + myId), { status: 'Racing' });
             } else {
                 document.getElementById('hud-title').innerText = "Spectator Drone Active";
-                document.getElementById('drag-status').innerText = "Pan Camera with Arrow Keys/Touch";
+                document.getElementById('drag-status').innerText = "Pan Camera: Click & Drag OR Arrow Keys";
                 document.getElementById('drag-status').style.color = "#10B981";
                 document.querySelector('.pc-controls').style.display = 'none';
             }
 
-            // FORCE the browser to recalculate the size of the container before Phaser boots
-            // This prevents the "0x0 Black Screen" bug!
+            // FIX: Force browser to recalculate DOM size before booting Phaser
             void container.offsetWidth;
 
             setTimeout(() => {
-                if (gameInstance) return; // Prevent duplicate engines from launching
+                if (gameInstance) return;
 
                 const config = {
                     type: Phaser.AUTO,
@@ -330,7 +413,6 @@
                 function createGame() {
                     const scene = this;
                     
-                    // Added a lighter grid line so we can easily confirm the camera is rendering!
                     scene.cameras.main.setBackgroundColor('#1E293B'); 
                     scene.add.grid(1500, 1500, 5000, 5000, 100, 100, 0x1E293B, 1, 0x38BDF8, 0.1).setDepth(-1);
 
@@ -347,9 +429,10 @@
                     trackGraphics.fillStyle(0x0284C7, 1);
                     points.forEach(p => trackGraphics.fillCircle(p.x, p.y, 200));
 
+                    // Starting Line
                     scene.add.rectangle(1000, 2800, 400, 20, 0xffffff).setDepth(1);
 
-                    // Bulletproof physics body creation for walls
+                    // Generate Bulletproof Static Walls
                     for (let i = 1; i < points.length; i++) {
                         let p1 = points[i-1], p2 = points[i];
                         let angle = Phaser.Math.Angle.Between(p1.x, p1.y, p2.x, p2.y);
@@ -358,8 +441,8 @@
                         let wall1 = scene.add.rectangle(p2.x + normX * trackWidth, p2.y + normY * trackWidth, 50, 50, 0xEF4444, 0.5);
                         let wall2 = scene.add.rectangle(p2.x - normX * trackWidth, p2.y - normY * trackWidth, 50, 50, 0xEF4444, 0.5);
                         
-                        scene.physics.add.existing(wall1, true); // Force static body
-                        scene.physics.add.existing(wall2, true); // Force static body
+                        scene.physics.add.existing(wall1, true); 
+                        scene.physics.add.existing(wall2, true); 
                         walls.add(wall1);
                         walls.add(wall2);
                     }
@@ -389,7 +472,7 @@
                                 localPlayer.body.setVelocity(0);
                                 localPlayer.setFillStyle(0xEF4444);
                                 
-                                playersRef.child(myId).update({ status: 'CRASHED' });
+                                update(ref(db, 'players/' + myId), { status: 'CRASHED' });
                                 document.getElementById('drag-status').innerText = "CRASHED INTO BANK!";
                                 document.getElementById('drag-status').style.color = "#EF4444";
                                 touchInput.left = touchInput.right = touchInput.gas = touchInput.brake = false;
@@ -398,6 +481,7 @@
                             }
                         });
                     } else {
+                        // Host Camera Setup
                         scene.cameras.main.setZoom(0.4);
                         scene.cameras.main.centerOn(1000, 2000); 
                         
@@ -408,14 +492,20 @@
                         });
                     }
 
-                    playersRef.on('value', snap => {
+                    // Sync Remote Players
+                    onValue(playersRef, (snap) => {
                         const players = snap.val() || {};
+                        
+                        // Remove disconnected players
                         Object.keys(remotePlayers).forEach(id => {
                             if (!players[id]) {
-                                remotePlayers[id].sprite.destroy(); remotePlayers[id].text.destroy(); delete remotePlayers[id];
+                                remotePlayers[id].sprite.destroy(); 
+                                remotePlayers[id].text.destroy(); 
+                                delete remotePlayers[id];
                             }
                         });
 
+                        // Update/Add current players
                         Object.values(players).forEach(pData => {
                             if (pData.id === myId) return; 
                             if (!remotePlayers[pData.id]) {
@@ -443,13 +533,16 @@
 
                     if (!localPlayer || localPlayer.isCrashed) return;
 
+                    // Steering
                     if (cursors.left.isDown || touchInput.left) localPlayer.setAngularVelocity(-200);
                     else if (cursors.right.isDown || touchInput.right) localPlayer.setAngularVelocity(200);
                     else localPlayer.setAngularVelocity(0);
 
+                    // Acceleration
                     if (cursors.up.isDown || touchInput.gas) this.physics.velocityFromRotation(localPlayer.rotation, selectedChar.speed, localPlayer.body.acceleration);
                     else localPlayer.body.setAcceleration(0);
 
+                    // Braking & Drag Update
                     const hudDrag = document.getElementById('drag-status');
                     if ((spaceKey && spaceKey.isDown) || touchInput.brake) {
                         localPlayer.body.setDrag(selectedChar.drag + selectedBrake.brakeDrag);
@@ -459,15 +552,16 @@
                         hudDrag.innerText = "Brakes: OFF"; hudDrag.style.color = "#94A3B8";
                     }
 
+                    // Network Sync (Only send if moved)
                     if (!localPlayer.oldPos || Math.abs(localPlayer.x - localPlayer.oldPos.x) > 1 || Math.abs(localPlayer.y - localPlayer.oldPos.y) > 1 || Math.abs(localPlayer.angle - localPlayer.oldPos.angle) > 1) {
-                        playersRef.child(myId).update({ x: localPlayer.x, y: localPlayer.y, angle: localPlayer.angle });
+                        update(ref(db, 'players/' + myId), { x: localPlayer.x, y: localPlayer.y, angle: localPlayer.angle });
                         localPlayer.oldPos = { x: localPlayer.x, y: localPlayer.y, angle: localPlayer.angle };
                     }
                 }
 
                 function createNativeShape(scene, shapeType, colorHex) {
-                    let width = shapeType === 'streamlined' ? 80 : 50;
-                    let height = shapeType === 'streamlined' ? 30 : 50;
+                    let width = shapeType === 'streamlined' ? 80 : (shapeType === 'bluff' ? 60 : 50);
+                    let height = shapeType === 'streamlined' ? 30 : (shapeType === 'bluff' ? 60 : 50);
                     let shape = scene.add.rectangle(0, 0, width, height, colorHex).setDepth(10);
                     shape.setStrokeStyle(3, 0xffffff);
                     return shape;
@@ -475,3 +569,9 @@
 
             }, 100); 
         }
+
+        // Run setup
+        init();
+    </script>
+</body>
+</html>
