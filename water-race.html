@@ -173,11 +173,15 @@
         }
 
         // --- UI INITIALIZATION ---
+        // --- UI INITIALIZATION ---
         function initUI() {
             if (isHost) {
                 // Host gets sent directly to the command center
                 document.getElementById('screen-host').classList.add('active-screen');
-                stateRef.once('value', snap => { if(!snap.exists()) stateRef.set('lobby'); });
+                
+                // THE FIX: Force the database back to 'lobby' whenever the host loads the page
+                // This prevents getting dragged into an old, uncleared race state.
+                stateRef.set('lobby'); 
             } else {
                 // Players get the character selection
                 document.getElementById('screen-login').classList.add('active-screen');
