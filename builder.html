@@ -2,17 +2,17 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>The Royal Printing Press</title>
     <style>
         /* General Setup */
-        body { font-family: 'Segoe UI', Tahoma, sans-serif; margin: 0; padding: 0; background: #f1f5f9; display: flex; height: 100vh; overflow: hidden; }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; margin: 0; padding: 0; background: #f1f5f9; display: flex; height: 100vh; overflow: hidden; flex-direction: row; }
         
         /* Sidebar Toolbar */
-        #toolbar { width: 250px; background: #1e293b; color: white; padding: 20px; box-shadow: 2px 0 10px rgba(0,0,0,0.2); overflow-y: auto; z-index: 100; }
+        #toolbar { width: 260px; background: #1e293b; color: white; padding: 20px; box-shadow: 2px 0 10px rgba(0,0,0,0.2); overflow-y: auto; z-index: 100; flex-shrink: 0; }
         #toolbar h2 { margin-top: 0; font-size: 18px; color: #fbbf24; border-bottom: 1px solid #334155; padding-bottom: 10px; }
         
-        .tool-btn { display: block; width: 100%; background: #3b82f6; color: white; border: none; padding: 12px; margin-bottom: 10px; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        .tool-btn { display: block; width: 100%; background: #3b82f6; color: white; border: none; padding: 12px; margin-bottom: 10px; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.2s; font-size: 14px; }
         .tool-btn:hover { background: #2563eb; }
         .tool-btn.secondary { background: #475569; }
         .tool-btn.secondary:hover { background: #64748b; }
@@ -26,30 +26,40 @@
         .shape-neon-circle { width: 40px; height: 40px; border: 4px solid #22d3ee; border-radius: 50%; box-shadow: 0 0 10px #22d3ee, inset 0 0 10px #22d3ee; }
         .shape-alert-box { width: 40px; height: 20px; background: rgba(239, 68, 68, 0.2); border: 2px dashed #ef4444; }
 
-        /* Workspace Area */
-        #workspace-container { flex-grow: 1; padding: 30px; display: flex; justify-content: center; align-items: flex-start; overflow: auto; }
+        /* Workspace Area - Scrollable for mobile */
+        #workspace-container { flex-grow: 1; padding: 20px; overflow: auto; display: flex; align-items: flex-start; justify-content: flex-start; position: relative; }
         
-        /* The Brochure Canvas (A4 Landscape aspect ratio approximation) */
-        #canvas { width: 840px; height: 594px; background: white; box-shadow: 0 10px 30px rgba(0,0,0,0.15); position: relative; overflow: hidden; display: flex; }
+        /* The Brochure Canvas (Fixed ratio to preserve layout for printing) */
+        #canvas { min-width: 840px; min-height: 594px; background: white; box-shadow: 0 10px 30px rgba(0,0,0,0.15); position: relative; overflow: hidden; display: flex; transform-origin: top left; }
         
         /* The 3 Brochure Panels */
         .panel { flex: 1; border-right: 2px dashed #e2e8f0; height: 100%; position: relative; pointer-events: none; }
         .panel:last-child { border-right: none; }
         
         /* Draggable Items */
-        .draggable { position: absolute; cursor: grab; padding: 5px; z-index: 10; }
+        .draggable { position: absolute; cursor: grab; padding: 5px; z-index: 10; touch-action: none; }
         .draggable:active { cursor: grabbing; z-index: 99; outline: 2px dashed #3b82f6; }
         
         /* Text styling */
         .brochure-heading { font-size: 28px; font-weight: 900; color: #0f172a; margin: 0; min-width: 150px; }
         .brochure-text { font-size: 14px; color: #475569; margin: 0; min-width: 150px; line-height: 1.5; }
         
+        /* --- MOBILE RESPONSIVENESS --- */
+        @media (max-width: 768px) {
+            body { flex-direction: column; } /* Stack toolbar on top */
+            #toolbar { width: 100%; height: 250px; padding: 10px; box-sizing: border-box; display: flex; flex-direction: column; }
+            .tools-wrapper { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 10px; }
+            .tool-btn { min-width: 150px; margin-bottom: 0; }
+            .sticker-grid { display: flex; overflow-x: auto; gap: 15px; padding-bottom: 10px; }
+            .sticker-item { min-width: 40px; }
+        }
+
         /* Hide UI when printing/saving to PDF */
         @media print {
-            body { background: white; }
-            #toolbar { display: none; }
-            #workspace-container { padding: 0; }
-            #canvas { box-shadow: none; border: none; }
+            body { background: white; display: block; }
+            #toolbar { display: none !important; }
+            #workspace-container { padding: 0; overflow: visible; display: block; }
+            #canvas { box-shadow: none; border: none; min-width: 100%; }
             .panel { border-color: transparent; }
         }
     </style>
@@ -59,13 +69,15 @@
     <div id="toolbar">
         <h2>🛠️ Builder Tools</h2>
         
-        <button class="tool-btn" onclick="addHeading()">+ Add Heading</button>
-        <button class="tool-btn secondary" onclick="addText()">+ Add Normal Text</button>
+        <div class="tools-wrapper">
+            <button class="tool-btn" onclick="addHeading()">+ Add Heading</button>
+            <button class="tool-btn secondary" onclick="addText()">+ Add Normal Text</button>
+            
+            <input type="file" id="imageLoader" accept="image/*" style="display: none;">
+            <button class="tool-btn" onclick="document.getElementById('imageLoader').click();" style="background: #10b981;">📸 Upload Image</button>
+        </div>
         
-        <input type="file" id="imageLoader" accept="image/*" style="display: none;">
-        <button class="tool-btn" onclick="document.getElementById('imageLoader').click();" style="background: #10b981;">📸 Upload Image</button>
-        
-        <h2 style="margin-top: 20px;">✨ Magic Stickers</h2>
+        <h2 style="margin-top: 15px;">✨ Magic Stickers</h2>
         <div class="sticker-grid">
             <div class="sticker-item" onclick="addSticker('🌲')">🌲</div>
             <div class="sticker-item" onclick="addSticker('⚔️')">⚔️</div>
@@ -75,18 +87,12 @@
             <div class="sticker-item" onclick="addSticker('🔥')">🔥</div>
             <div class="sticker-item" onclick="addSticker('⚠️')">⚠️</div>
             <div class="sticker-item" onclick="addSticker('📍')">📍</div>
-        </div>
-
-        <h2 style="margin-top: 10px;">⭕ Highlight Shapes</h2>
-        <div style="display: flex; gap: 15px; margin-bottom: 20px;">
             <div class="sticker-item shape-neon-circle" onclick="addShape('shape-neon-circle')" title="Neon Circle"></div>
             <div class="sticker-item shape-alert-box" onclick="addShape('shape-alert-box')" title="Alert Box"></div>
         </div>
 
-        <hr style="border-color: #334155;">
-        <p style="font-size: 12px; color: #94a3b8; text-align: center;"><em>Double-click any item on the canvas to delete it.</em></p>
-
-        <button class="tool-btn" onclick="window.print()" style="background: #ef4444; margin-top: 20px;">🖨️ Save as PDF / Print</button>
+        <button class="tool-btn" onclick="window.print()" style="background: #ef4444; margin-top: 15px; width: 100%;">🖨️ Save as PDF / Print</button>
+        <p style="font-size: 12px; color: #94a3b8; text-align: center; margin-top: 10px;"><em>Double-tap/click an item on the canvas to delete it.</em></p>
     </div>
 
     <div id="workspace-container">
@@ -99,101 +105,132 @@
 
     <script>
         const canvas = document.getElementById('canvas');
+        const workspace = document.getElementById('workspace-container');
 
-        // Drag and Drop State
         let activeItem = null;
         let offsetX = 0;
         let offsetY = 0;
 
-        // Makes an element draggable
-        function makeDraggable(el) {
-            el.addEventListener('mousedown', (e) => {
-                activeItem = el;
-                offsetX = e.clientX - el.getBoundingClientRect().left;
-                offsetY = e.clientY - el.getBoundingClientRect().top;
-            });
-            
-            // Double click to delete
-            el.addEventListener('dblclick', () => {
-                el.remove();
-            });
+        // Unified event coordinates for Mouse + Touch
+        function getEventPos(e) {
+            if (e.touches && e.touches.length > 0) {
+                return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+            } else if (e.changedTouches && e.changedTouches.length > 0) {
+                return { x: e.changedTouches[0].clientX, y: e.changedTouches[0].clientY };
+            }
+            return { x: e.clientX, y: e.clientY };
         }
 
-        // Global Mouse Events for dragging
-        document.addEventListener('mousemove', (e) => {
-            if (activeItem) {
-                const canvasRect = canvas.getBoundingClientRect();
-                // Calculate position relative to canvas
-                let newX = e.clientX - canvasRect.left - offsetX;
-                let newY = e.clientY - canvasRect.top - offsetY;
+        function makeDraggable(el) {
+            // Start Drag
+            const startDrag = (e) => {
+                if(e.target !== el && !el.contains(e.target)) return;
+                activeItem = el;
+                const pos = getEventPos(e);
+                const rect = el.getBoundingClientRect();
                 
-                // Keep inside canvas bounds loosely
-                activeItem.style.left = `${newX}px`;
-                activeItem.style.top = `${newY}px`;
-            }
-        });
+                // Calculate offset relative to the canvas scale/scroll
+                const canvasRect = canvas.getBoundingClientRect();
+                offsetX = pos.x - rect.left;
+                offsetY = pos.y - rect.top;
+            };
 
-        document.addEventListener('mouseup', () => {
-            activeItem = null;
-        });
+            el.addEventListener('mousedown', startDrag);
+            el.addEventListener('touchstart', startDrag, { passive: false });
+            
+            // Delete on double click / double tap
+            el.addEventListener('dblclick', () => el.remove());
+        }
 
-        // Add Heading
+        // Handle Dragging
+        const moveDrag = (e) => {
+            if (!activeItem) return;
+            e.preventDefault(); // Stop screen from scrolling on mobile while dragging
+            
+            const pos = getEventPos(e);
+            const canvasRect = canvas.getBoundingClientRect();
+            
+            // Calculate new position relative to the canvas
+            let newX = pos.x - canvasRect.left - offsetX;
+            let newY = pos.y - canvasRect.top - offsetY;
+            
+            activeItem.style.left = `${newX}px`;
+            activeItem.style.top = `${newY}px`;
+        };
+
+        const endDrag = () => { activeItem = null; };
+
+        document.addEventListener('mousemove', moveDrag);
+        document.addEventListener('touchmove', moveDrag, { passive: false });
+        
+        document.addEventListener('mouseup', endDrag);
+        document.addEventListener('touchend', endDrag);
+
+        // Add Elements to Canvas center based on scroll
+        function getCenterOffset() {
+            return {
+                x: workspace.scrollLeft + 50,
+                y: workspace.scrollTop + 50
+            };
+        }
+
         function addHeading() {
             const el = document.createElement('h1');
             el.className = 'draggable brochure-heading';
             el.contentEditable = "true";
             el.innerText = "New Heading";
-            el.style.left = '50px';
-            el.style.top = '50px';
+            const pos = getCenterOffset();
+            el.style.left = pos.x + 'px';
+            el.style.top = pos.y + 'px';
             makeDraggable(el);
             canvas.appendChild(el);
         }
 
-        // Add Normal Text
         function addText() {
             const el = document.createElement('p');
             el.className = 'draggable brochure-text';
             el.contentEditable = "true";
-            el.innerText = "Type your facts here... Keep it short!";
-            el.style.left = '50px';
-            el.style.top = '100px';
+            el.innerText = "Type your facts here...";
+            const pos = getCenterOffset();
+            el.style.left = pos.x + 'px';
+            el.style.top = (pos.y + 50) + 'px';
             makeDraggable(el);
             canvas.appendChild(el);
         }
 
-        // Add Sticker (Emoji)
         function addSticker(emoji) {
             const el = document.createElement('div');
             el.className = 'draggable';
             el.style.fontSize = '40px';
             el.innerText = emoji;
-            el.style.left = '100px';
-            el.style.top = '150px';
+            const pos = getCenterOffset();
+            el.style.left = pos.x + 'px';
+            el.style.top = pos.y + 'px';
             makeDraggable(el);
             canvas.appendChild(el);
         }
 
-        // Add Special Shape
         function addShape(shapeClass) {
             const el = document.createElement('div');
             el.className = `draggable ${shapeClass}`;
-            el.style.left = '100px';
-            el.style.top = '150px';
+            const pos = getCenterOffset();
+            el.style.left = pos.x + 'px';
+            el.style.top = pos.y + 'px';
             makeDraggable(el);
             canvas.appendChild(el);
         }
 
-        // Handle Image Upload
+        // Image Upload
         document.getElementById('imageLoader').addEventListener('change', function(e) {
             const reader = new FileReader();
             reader.onload = function(event) {
                 const img = document.createElement('img');
                 img.className = 'draggable';
                 img.src = event.target.result;
-                img.style.maxWidth = '200px'; // Restrict size
-                img.style.left = '100px';
-                img.style.top = '100px';
-                // Prevent default image drag ghosting
+                img.style.maxWidth = '200px';
+                const pos = getCenterOffset();
+                img.style.left = pos.x + 'px';
+                img.style.top = pos.y + 'px';
                 img.ondragstart = function() { return false; }; 
                 makeDraggable(img);
                 canvas.appendChild(img);
