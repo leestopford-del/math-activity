@@ -5,25 +5,26 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>The Royal Printing Press - Multiplayer</title>
     <style>
-        body { margin: 0; padding: 0; background: #222; display: flex; flex-direction: column; align-items: center; color: white; font-family: 'Segoe UI', Tahoma, sans-serif; }
-        #game-container { position: relative; margin-top: 20px; width: 720px; max-width: 100%; border: 4px solid #78350f; border-radius: 8px; overflow: hidden; background: #000; box-shadow: 0 0 15px rgba(0,0,0,0.5); }
-        canvas { display: block; width: 100%; height: auto; }
+        body { margin: 0; padding: 0; background: #222; display: flex; flex-direction: column; align-items: center; color: white; font-family: 'Segoe UI', Tahoma, sans-serif; height: 100vh; overflow: hidden; }
+        #game-container { position: relative; margin-top: 20px; width: 720px; max-width: 95vw; aspect-ratio: 720 / 480; border: 4px solid #78350f; border-radius: 8px; overflow: hidden; background: #000; box-shadow: 0 0 20px rgba(0,0,0,0.7); }
+        canvas { display: block; width: 100%; height: 100%; image-rendering: pixelated; }
         
-        /* START SCREEN */
-        #start-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; text-align: center; }
-        #start-screen h1 { color: #fbbf24; margin-bottom: 20px; }
-        #player-name-input { padding: 12px; font-size: 18px; border-radius: 4px; border: none; margin-bottom: 20px; width: 250px; text-align: center; background: white; color: black; }
+        /* LOBBY / START SCREEN */
+        #start-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.9); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; text-align: center; }
+        #start-screen h1 { color: #fbbf24; margin-bottom: 10px; text-shadow: 2px 2px #000; font-size: 2.5rem; }
+        #start-screen p { color: #ddd; margin-bottom: 20px; }
+        #player-name-input { padding: 12px; font-size: 18px; border-radius: 4px; border: 3px solid #3b82f6; margin-bottom: 20px; width: 250px; text-align: center; outline: none; }
         .char-select-btn { background: #3b82f6; color: white; border: 2px solid #60a5fa; padding: 15px 30px; font-size: 18px; font-weight: bold; border-radius: 8px; cursor: pointer; margin: 10px; transition: 0.2s; }
         .char-select-btn:hover { background: #2563eb; transform: scale(1.05); }
 
-        /* DIALOGUE BOX */
+        /* DIALOGUE SYSTEM */
         #dialogue-box { position: absolute; bottom: 0; left: 0; width: 100%; background: #1e293b; border-top: 4px solid #f8fafc; padding: 20px; box-sizing: border-box; display: none; z-index: 50; }
-        #speaker-name { color: #fbbf24; font-weight: bold; font-size: 18px; margin-top: 0; margin-bottom: 10px; }
-        #dialogue-text { font-size: 16px; margin-bottom: 15px; line-height: 1.5; }
-        .quiz-btn, #continue-btn { display: block; width: 100%; text-align: left; background: #334155; color: white; border: 1px solid #475569; padding: 10px; margin-bottom: 8px; border-radius: 4px; cursor: pointer; font-size: 14px; }
-        .quiz-btn:hover, #continue-btn:hover { background: #475569; }
-        #continue-btn { text-align: center; font-weight: bold; background: #2563eb; border-color: #3b82f6; }
-        #quiz-options { display: none; } 
+        #speaker-name { color: #fbbf24; font-weight: bold; font-size: 20px; margin: 0 0 10px 0; }
+        #dialogue-text { font-size: 18px; margin-bottom: 15px; line-height: 1.4; color: #f1f5f9; }
+        .quiz-btn, #continue-btn { display: block; width: 100%; text-align: left; background: #334155; color: white; border: 1px solid #475569; padding: 12px; margin-bottom: 8px; border-radius: 4px; cursor: pointer; font-size: 16px; transition: 0.2s; }
+        .quiz-btn:hover { background: #475569; border-color: #94a3b8; }
+        #continue-btn { text-align: center; font-weight: bold; background: #2563eb; border: none; }
+        #continue-btn:hover { background: #1d4ed8; }
     </style>
 </head>
 <body>
@@ -33,29 +34,31 @@
 
         <div id="start-screen">
             <h1>The Royal Printing Press</h1>
-            <input type="text" id="player-name-input" placeholder="Type your name here..." maxlength="12">
+            <p>Pick a character to enter the village</p>
+            <input type="text" id="player-name-input" placeholder="Type your name..." maxlength="12">
             <div>
-                <button id="btn-purple" class="char-select-btn">Select Purple Hair</button>
-                <button id="btn-pink" class="char-select-btn" style="background: #ec4899; border-color: #f472b6;">Select Pink Hair</button>
+                <button id="btn-purple" class="char-select-btn">Purple Hair</button>
+                <button id="btn-pink" class="char-select-btn" style="background: #ec4899; border-color: #f472b6;">Pink Hair</button>
             </div>
         </div>
 
         <div id="dialogue-box">
-            <h3 id="speaker-name">Name</h3>
-            <p id="dialogue-text">Text goes here...</p>
-            <button id="continue-btn">Continue</button>
-            <div id="quiz-options">
+            <h3 id="speaker-name">Master Editor</h3>
+            <p id="dialogue-text">...</p>
+            <div id="quiz-options" style="display:none;">
                 <button id="opt-a" class="quiz-btn">A) The forest covers over 10,000 acres.</button>
-                <button id="opt-b" class="quiz-btn">B) Are you ready to step into a world of ultimate adventure?</button>
+                <button id="opt-b" class="quiz-btn">B) Are you ready to step into a world of adventure?</button>
                 <button id="opt-c" class="quiz-btn">C) You should visit the gift shop.</button>
             </div>
+            <button id="continue-btn" style="display:none;">Continue</button>
         </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
-        import { getDatabase, ref, set, onValue, onDisconnect, update, remove } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-database.js";
+        import { getDatabase, ref, set, onValue, onDisconnect, update as dbUpdate } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-database.js";
 
+        // 1. FIREBASE CONFIG
         const firebaseConfig = {
             apiKey: "AIzaSyBpf5wi0wShnatqUhcmPhSOdnd0NdBL65A",
             authDomain: "symmetry-and-nets.firebaseapp.com",
@@ -65,193 +68,196 @@
             messagingSenderId: "250211420064",
             appId: "1:250211420064:web:fe4a064715042bedf546c5"
         };
-
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        // --- ENGINE ASSETS ---
+        // 2. ASSETS
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
-
         const imgMap = new Image(); imgMap.src = '1-0f8bf240.jpg'; 
-        const imgSprites = new Image(); imgSprites.src = 'chibi-layered.png'; 
-        const imgAnimals = new Image(); imgAnimals.src = 'spritesheet.png'; 
+        const imgSprites = new Image(); imgSprites.src = 'chibi-layered.png';
+        const imgAnimals = new Image(); imgAnimals.src = 'spritesheet.png';
 
+        // 3. GAME STATE
         let gameActive = false;
         let isDialogueOpen = false;
-        let canRoam = false; 
-        const playerId = 'player_' + Math.floor(Math.random() * 1000000);
-        let otherPlayers = {}; 
+        let canRoam = false;
+        const playerId = 'p_' + Math.floor(Math.random() * 999999);
+        let otherPlayers = {};
+        let keys = {};
         let lastFirebaseUpdate = 0;
 
         let player = { 
             x: 100, y: 150, width: 48, height: 48, speed: 4, 
-            spriteW: 16, spriteH: 16, frameX: 0, frameY: 0,
-            direction: 'down', isMoving: false, walkFrame: 0, animTimer: 0,
-            name: "Student"
+            frameX: 0, frameY: 0, name: "Student", 
+            direction: 'down', isMoving: false, walkFrame: 0, animTimer: 0 
         };
         
-        let npc = { x: 150, y: 80, width: 48, height: 48, spriteW: 16, spriteH: 16, frameX: 0, frameY: 1 };
+        let npc = { x: 160, y: 70, width: 48, height: 48, frameX: 0, frameY: 1 };
 
         let animals = [
             { x: 300, y: 150, startX: 300, range: 60, speed: 0.5, dir: 1, frameY: 5, spriteW: 32, spriteH: 32 },
             { x: 250, y: 200, startX: 250, range: 40, speed: 0.3, dir: 1, frameY: 6, spriteW: 32, spriteH: 32 },
-            { x: 350, y: 220, startX: 350, range: 40, speed: 0.4, dir: -1, frameY: 6, spriteW: 32, spriteH: 32 },
-            { x: 150, y: 350, startX: 150, range: 80, speed: 1, dir: 1, frameY: 8, spriteW: 32, spriteH: 32 },
-            { x: 500, y: 100, startX: 500, range: 30, speed: 0.2, dir: -1, frameY: 0, spriteW: 32, spriteH: 32 },
-            { x: 500, y: 350, startX: 500, range: 100, speed: 1.5, dir: 1, frameY: 4, spriteW: 32, spriteH: 32 },
-            { x: 600, y: 400, startX: 600, range: 80, speed: 1.2, dir: -1, frameY: 4, spriteW: 32, spriteH: 32 }
+            { x: 400, y: 300, startX: 400, range: 80, speed: 1.2, dir: -1, frameY: 8, spriteW: 32, spriteH: 32 },
+            { x: 550, y: 100, startX: 550, range: 100, speed: 1.5, dir: 1, frameY: 4, spriteW: 32, spriteH: 32 }
         ];
 
-        let keys = { ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false, w: false, a: false, s: false, d: false };
+        // 4. FUNCTIONS
+        function startGame(row) {
+            const nameVal = document.getElementById('player-name-input').value;
+            if(nameVal.trim()) player.name = nameVal;
+            player.frameY = row;
 
-        // --- BUTTON LOGIC (Inside Module) ---
-        document.getElementById('btn-purple').addEventListener('click', () => startGame(0));
-        document.getElementById('btn-pink').addEventListener('click', () => startGame(2));
-        document.getElementById('continue-btn').addEventListener('click', closeDialogue);
-        document.getElementById('opt-a').addEventListener('click', () => checkAnswer(false));
-        document.getElementById('opt-b').addEventListener('click', () => checkAnswer(true));
-        document.getElementById('opt-c').addEventListener('click', () => checkAnswer(false));
-
-        function startGame(selectedRow) {
-            let nameInput = document.getElementById('player-name-input').value;
-            if (nameInput.trim() !== "") player.name = nameInput;
-
-            player.frameY = selectedRow; 
             document.getElementById('start-screen').style.display = 'none';
             gameActive = true;
-            
-            const playerRef = ref(db, `players/${playerId}`);
-            set(playerRef, { x: player.x, y: player.y, name: player.name, frameX: player.frameX, frameY: player.frameY, direction: player.direction });
-            onDisconnect(playerRef).remove();
 
-            onValue(ref(db, 'players'), (snapshot) => {
-                otherPlayers = snapshot.val() || {};
+            // Sync to Firebase
+            const pRef = ref(db, `players/${playerId}`);
+            set(pRef, { x: player.x, y: player.y, name: player.name, frameY: player.frameY, frameX: 0, direction: 'down' });
+            
+            onDisconnect(pRef).remove();
+
+            onValue(ref(db, 'players'), (snap) => {
+                otherPlayers = snap.val() || {};
                 delete otherPlayers[playerId];
             });
 
-            setTimeout(() => {
-                openDialogue("Master Editor", `Welcome, ${player.name}! You cannot explore the wilds until you prove your worth. Which sentence uses a <strong>rhetorical question</strong>?`, 'quiz');
-            }, 500); 
-
-            gameLoop(); 
+            openDialogue("Master Editor", `Halt! Welcome ${player.name}. You cannot explore the village until you prove your skills. Which of these is a <strong>rhetorical question</strong>?`, true);
+            requestAnimationFrame(gameLoop);
         }
 
-        function openDialogue(speaker, text, type) {
-            isDialogueOpen = true; 
-            player.isMoving = false; 
-            document.getElementById('speaker-name').innerHTML = speaker;
+        function openDialogue(speaker, text, isQuiz) {
+            isDialogueOpen = true;
+            document.getElementById('speaker-name').innerText = speaker;
             document.getElementById('dialogue-text').innerHTML = text;
             document.getElementById('dialogue-box').style.display = 'block';
+            document.getElementById('quiz-options').style.display = isQuiz ? 'block' : 'none';
+            document.getElementById('continue-btn').style.display = isQuiz ? 'none' : 'block';
+        }
 
-            if (type === 'quiz') {
-                document.getElementById('quiz-options').style.display = 'block';
-                document.getElementById('continue-btn').style.display = 'none';
+        function handleQuiz(isCorrect) {
+            if(isCorrect) {
+                canRoam = true;
+                openDialogue("Master Editor", "<strong>Excellent!</strong> Rhetorical questions don't need an answer—they make the reader think. You are now free to explore the village!", false);
             } else {
-                document.getElementById('quiz-options').style.display = 'none';
-                document.getElementById('continue-btn').style.display = 'block';
+                openDialogue("Master Editor", "Not quite. Remember, a rhetorical question is used for effect, not for information. Try again!", true);
             }
         }
 
-        function closeDialogue() {
+        // 5. THE "BRIDGE" (Fixing the Lobby Buttons)
+        document.getElementById('btn-purple').addEventListener('click', () => startGame(0));
+        document.getElementById('btn-pink').addEventListener('click', () => startGame(2));
+        document.getElementById('opt-a').addEventListener('click', () => handleQuiz(false));
+        document.getElementById('opt-b').addEventListener('click', () => handleQuiz(true));
+        document.getElementById('opt-c').addEventListener('click', () => handleQuiz(false));
+        document.getElementById('continue-btn').addEventListener('click', () => {
             document.getElementById('dialogue-box').style.display = 'none';
-            setTimeout(() => { isDialogueOpen = false; }, 200); 
-        }
+            isDialogueOpen = false;
+        });
 
-        function checkAnswer(isCorrect) {
-            if (isCorrect) {
-                canRoam = true; 
-                openDialogue("Master Editor", "<strong>Correct!</strong> The path is now open. Go gather facts for your brochure!", 'story');
-            } else {
-                openDialogue("Master Editor", "Incorrect! A rhetorical question hooks the reader with a question mark. Try again!", 'quiz');
-            }
-        }
-
-        // --- KEYBOARD LISTENER (Safe for typing) ---
+        // 6. CONTROLS
         window.addEventListener('keydown', (e) => { 
-            if (document.activeElement.tagName === 'INPUT') return;
+            if(document.activeElement.id === 'player-name-input') return;
             keys[e.key] = true; 
         });
-        window.addEventListener('keyup', (e) => { 
-            if (document.activeElement.tagName === 'INPUT') return;
-            keys[e.key] = false; 
-        });
-        window.addEventListener('keydown', (e) => { 
-            if (document.activeElement.tagName === 'INPUT') return;
-            if ((e.key === ' ' || e.key === 'Enter') && gameActive && !isDialogueOpen) {
-                let dist = Math.hypot(player.x - npc.x, player.y - npc.y);
-                if (dist < 60) openDialogue("Master Editor", "Which sentence uses a <strong>rhetorical question</strong>?", 'quiz');
-            }
-        });
+        window.addEventListener('keyup', (e) => { keys[e.key] = false; });
 
-        // --- UPDATE & DRAW ---
-        function update() {
-            if (!gameActive || isDialogueOpen) return; 
+        // 7. GAME LOGIC
+        function updateGame() {
+            if(!gameActive || isDialogueOpen) return;
+            
+            let moved = false;
+            player.isMoving = false;
 
-            player.isMoving = false; 
-            if (keys.ArrowUp || keys.w) { player.y -= player.speed; player.direction = 'up'; player.isMoving = true; }
-            if (keys.ArrowDown || keys.s) { player.y += player.speed; player.direction = 'down'; player.isMoving = true; }
-            if (keys.ArrowLeft || keys.a) { player.x -= player.speed; player.direction = 'left'; player.isMoving = true; }
-            if (keys.ArrowRight || keys.d) { player.x += player.speed; player.direction = 'right'; player.isMoving = true; }
+            if(keys.ArrowUp || keys.w) { player.y -= player.speed; player.direction = 'up'; player.isMoving = true; moved = true; }
+            if(keys.ArrowDown || keys.s) { player.y += player.speed; player.direction = 'down'; player.isMoving = true; moved = true; }
+            if(keys.ArrowLeft || keys.a) { player.x -= player.speed; player.direction = 'left'; player.isMoving = true; moved = true; }
+            if(keys.ArrowRight || keys.d) { player.x += player.speed; player.direction = 'right'; player.isMoving = true; moved = true; }
 
-            if (!canRoam) {
-                if (player.x > 250) player.x = 250;
-                if (player.y > 200) player.y = 200;
-            }
+            // Collision check for the quiz wall
+            if(!canRoam && player.y > 180) player.y = 180;
 
-            if (player.isMoving) {
+            // Boundaries
+            if(player.x < 0) player.x = 0;
+            if(player.y < 0) player.y = 0;
+            if(player.x > 672) player.x = 672;
+            if(player.y > 432) player.y = 432;
+
+            if(player.isMoving) {
                 player.animTimer++;
-                if (player.animTimer >= 12) { player.walkFrame = player.walkFrame === 0 ? 1 : 0; player.animTimer = 0; }
+                if(player.animTimer > 10) { player.walkFrame = player.walkFrame === 0 ? 1 : 0; player.animTimer = 0; }
                 
+                // Anim frame selection
+                if(player.direction === 'down') player.frameX = player.walkFrame === 0 ? 3 : 6;
+                else if(player.direction === 'up') player.frameX = player.walkFrame === 0 ? 5 : 8;
+                else player.frameX = player.walkFrame === 0 ? 4 : 7;
+
+                // Sync to Firebase (Throttle to every 50ms)
                 const now = Date.now();
-                if (now - lastFirebaseUpdate > 50) {
-                    update(ref(db, `players/${playerId}`), { x: player.x, y: player.y, frameX: player.frameX, direction: player.direction });
+                if(now - lastFirebaseUpdate > 50) {
+                    dbUpdate(ref(db, `players/${playerId}`), { 
+                        x: player.x, y: player.y, frameX: player.frameX, direction: player.direction 
+                    });
                     lastFirebaseUpdate = now;
                 }
+            } else {
+                // Idle frames
+                if(player.direction === 'down') player.frameX = 0;
+                else if(player.direction === 'up') player.frameX = 2;
+                else player.frameX = 1;
             }
 
-            if (player.direction === 'down') player.frameX = player.isMoving ? (player.walkFrame === 0 ? 3 : 6) : 0;
-            else if (player.direction === 'up') player.frameX = player.isMoving ? (player.walkFrame === 0 ? 5 : 8) : 2;
-            else if (player.direction === 'left' || player.direction === 'right') player.frameX = player.isMoving ? (player.walkFrame === 0 ? 4 : 7) : 1;
-
+            // Move Animals
             animals.forEach(a => {
                 a.x += a.speed * a.dir;
                 if (a.x > a.startX + a.range || a.x < a.startX - a.range) a.dir *= -1; 
             });
         }
 
-        function draw() {
-            ctx.clearRect(0,0, canvas.width, canvas.height);
-            if(imgMap.complete) ctx.drawImage(imgMap, 0, 0, canvas.width, canvas.height);
-
+        function drawGame() {
+            ctx.clearRect(0,0,720,480);
+            
+            // Map
+            if(imgMap.complete) ctx.drawImage(imgMap, 0, 0, 720, 480);
+            
+            // Animals
             if(imgAnimals.complete) {
                 animals.forEach(a => {
                     ctx.save();
-                    if (a.dir === -1) { ctx.scale(-1, 1); ctx.drawImage(imgAnimals, 0, a.frameY * a.spriteH, a.spriteW, a.spriteH, -a.x - 32, a.y, 32, 32); }
-                    else { ctx.drawImage(imgAnimals, 0, a.frameY * a.spriteH, a.spriteW, a.spriteH, a.x, a.y, 32, 32); }
+                    if (a.dir === -1) { ctx.scale(-1, 1); ctx.drawImage(imgAnimals, 0, a.frameY * 32, 32, 32, -a.x - 32, a.y, 32, 32); }
+                    else { ctx.drawImage(imgAnimals, 0, a.frameY * 32, 32, 32, a.x, a.y, 32, 32); }
                     ctx.restore();
                 });
             }
 
-            ctx.drawImage(imgSprites, npc.frameX * npc.spriteW, npc.frameY * npc.spriteH, npc.spriteW, npc.spriteH, npc.x, npc.y, npc.width, npc.height);
+            // NPC
+            if(imgSprites.complete) ctx.drawImage(imgSprites, 0, 16, 16, 16, npc.x, npc.y, 48, 48);
 
-            for (let id in otherPlayers) {
+            // Other Players
+            for(let id in otherPlayers) {
                 let p = otherPlayers[id];
                 ctx.save();
-                if (p.direction === 'right') { ctx.scale(-1,1); ctx.drawImage(imgSprites, p.frameX*16, p.frameY*16, 16, 16, -p.x-48, p.y, 48, 48); }
+                if(p.direction === 'right') { ctx.scale(-1,1); ctx.drawImage(imgSprites, p.frameX*16, p.frameY*16, 16, 16, -p.x-48, p.y, 48, 48); }
                 else { ctx.drawImage(imgSprites, p.frameX*16, p.frameY*16, 16, 16, p.x, p.y, 48, 48); }
                 ctx.restore();
-                ctx.fillStyle = "white"; ctx.fillText(p.name, p.x + 24, p.y - 5);
+                ctx.fillStyle = "#fbbf24"; ctx.font = "bold 12px Arial"; ctx.textAlign = "center";
+                ctx.fillText(p.name, p.x + 24, p.y - 5);
             }
 
-            ctx.save(); 
-            if (player.direction === 'right') { ctx.scale(-1, 1); ctx.drawImage(imgSprites, player.frameX * 16, player.frameY * 16, 16, 16, -player.x - 48, player.y, 48, 48); }
-            else { ctx.drawImage(imgSprites, player.frameX * 16, player.frameY * 16, 16, 16, player.x, player.y, 48, 48); }
-            ctx.restore(); 
-            ctx.fillStyle = "white"; ctx.textAlign = "center"; ctx.fillText(player.name, player.x + 24, player.y - 5);
+            // Local Player
+            ctx.save();
+            if(player.direction === 'right') { ctx.scale(-1,1); ctx.drawImage(imgSprites, player.frameX*16, player.frameY*16, 16, 16, -player.x-48, player.y, 48, 48); }
+            else { ctx.drawImage(imgSprites, player.frameX*16, player.frameY*16, 16, 16, player.x, player.y, 48, 48); }
+            ctx.restore();
+            ctx.fillStyle = "white"; ctx.font = "bold 12px Arial"; ctx.textAlign = "center";
+            ctx.fillText(player.name, player.x + 24, player.y - 5);
         }
 
-        function gameLoop() { update(); draw(); requestAnimationFrame(gameLoop); }
+        function gameLoop() { 
+            updateGame(); 
+            drawGame(); 
+            if(gameActive) requestAnimationFrame(gameLoop); 
+        }
     </script>
 </body>
 </html>
