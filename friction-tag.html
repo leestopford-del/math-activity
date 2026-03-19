@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Friction Frenzy: Multi-Surface Tag</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0F172A;
+            --panel: #1E293B;
+            --text: #F8FAFC;
+            --ice: #E0F7FA;
+            --wood: #D4A373;
+            --carpet: #BC4749;
+            --rubber: #2B2D42;
+            --red-team: #EF4444;
+            --blue-team: #38BDF8;
+        }
+
+        body { margin: 0; background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; overflow: hidden; touch-action: none; }
+        
+        .screen { display: none; width: 100vw; height: 100vh; flex-direction: column; align-items: center; justify-content: flex-start; position: absolute; top: 0; left: 0; background: var(--bg); z-index: 100; overflow-y: auto; padding-top: 40px; box-sizing: border-box;}
+        .active-screen { display: flex; }
+
+        .container { background: var(--panel); padding: 30px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); text-align: center; max-width: 600px; width: 90%; }
+        h1 { color: #10B981; font-weight: 900; text-transform: uppercase; margin-top: 0; letter-spacing: 1px;}
+        p { color: #94A3B8; }
+
+        input, select { width: 100%; padding: 15px; margin-bottom: 20px; border-radius: 8px; border: 2px solid #334155; background: #020617; color: white; font-size: 1.2rem; box-sizing: border-box; outline: none;}
+        button { background: #10B981; color: white; border: none; padding: 15px 30px; font-size: 1.2rem; font-weight: bold; border-radius: 8px; cursor: pointer; width: 100%; margin-bottom: 10px; transition: 0.2s; }
+        button:hover { filter: brightness(1.2); }
+        button.danger { background: var(--red-team); }
+        button.blue-btn { background: var(--blue-team); }
+
+        .player-list { list-style: none; padding: 0; text-align: left; max-height: 250px; overflow-y: auto; margin-bottom: 20px; background: #020617; border-radius: 8px; padding: 10px;}
+        .player-list li { padding: 10px; border-bottom: 1px dashed #334155; display: flex; justify-content: space-between; font-weight: bold;}
+        .team-red { color: var(--red-team); }
+        .team-blue { color: var(--blue-team); }
+
+        /* Game Elements */
+        #game-ui { display: none; position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 10;}
+        canvas { display: block; margin: 0 auto; background: #000; box-shadow: 0 0 20px rgba(0,0,0,0.8); }
+        
+        #hud { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); padding: 10px 30px; border-radius: 20px; border: 2px solid #334155; text-align: center; z-index: 20; display: flex; gap: 20px; align-items: center;}
+        .hud-stat { font-size: 1.2rem; font-weight: bold; }
+        
+        /* Mobile Joystick */
+        #joystick-zone { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); width: 150px; height: 150px; background: rgba(255,255,255,0.1); border-radius: 50%; border: 2px solid rgba(255,255,255,0.3); touch-action: none; display: none; }
+        #joystick-knob { position: absolute; top: 50px; left: 50px; width: 50px; height: 50px; background: rgba(255,255,255,0.5); border-radius: 50%; pointer-events: none; }
+        @media (max-width: 800px) { #joystick-zone { display: block; } }
+    </style>
+</head>
+<body>
+
+    <div id="screen-login" class="screen">
+        <div class="container">
+            <h1>Friction Frenzy</h1>
+            <p>Select your team and enter the arena.</p>
+            <input type="text" id="player-name" placeholder="Enter Callsign..." autocomplete="off">
+            <select id="player-team">
+                <option value="Red">Red Team (Seekers in Round 1)</option>
+                <option value="Blue">Blue Team (Seekers in Round 2)</option>
+            </select>
+            <button onclick="window.joinLobby()">Enter Server</button>
+        </div>
+    </div>
+
+    <div id="screen-lobby" class="screen">
+        <div class="container">
+            <h1>Awaiting Deployment</h1>
+            <p>Wait for the Instructor to initialize the simulation.</p>
+            <ul class="player-list" id="lobby-players"></ul>
+        </div>
+    </div>
+
+    <div id="screen-host" class="screen">
+        <div class="container" style="max-width: 800px;">
+            <h1 style="color: var(--red-team);">Instructor Console</h1>
+            <p>Round 1: Red catches Blue. Round 2: Blue catches Red.</p>
+            <ul class="player-list" id="host-players"></ul>
+            <div style="display: flex; gap: 10px;">
+                <button class="danger" onclick="window.hostStartRound(1)">Start R1 (Red Hunts)</button>
+                <button class="blue-btn" onclick="window.hostStartRound(2)">Start R2 (Blue Hunts)</button>
+                <button style="background: #334155;" onclick="window.hostReset()">Reset Server</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="game-ui">
+        <div id="hud">
+            <div class="hud-stat" id="hud-timer" style="color: white;">00:00</div>
+            <div class="hud-stat" id="hud-status" style="color: #10B981;">WAITING...</div>
+        </div>
+        <canvas id="gameCanvas" width="1000" height="700"></canvas>
+        <div id="joystick-zone"><div id="joystick-knob"></div></div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
+        import { getDatabase, ref, set, update, onValue, remove, onDisconnect, get } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBpf5wi0wShnatqUhcmPhSOdnd0NdBL65A",
+            authDomain: "symmetry-and-nets.firebaseapp.com",
+            databaseURL: "https://symmetry-and-nets-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "symmetry-and-nets",
+            storageBucket: "symmetry-and-nets.firebasestorage.app",
+            messagingSenderId: "250211420064",
+            appId: "1:250211420064:web:fe4a064715042bedf546c5"
+        };
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        // Map Constants (Logical Size)
+        const GAME_W = 1000;
+        const GAME_H = 700;
+
+        // Surface Physics Dictated by p3.html concepts
+        // Zones are vertical lanes. Array order corresponds to x-coordinates.
+        const SURFACES = [
+            { name: "Ice", color: "#E0F7FA", friction: 0.99, accel: 0.15, maxSpd: 9 },      // 0 - 250px
+            { name: "Wood", color: "#D4A373", friction: 0.92, accel: 0.4, maxSpd: 6.5 },     // 250 - 500px
+            { name: "Carpet", color: "#BC4749", friction: 0.75, accel: 0.9, maxSpd: 4.5 },   // 500 - 750px
+            { name: "Rubber", color: "#2B2D42", friction: 0.50, accel: 1.5, maxSpd: 3.5 }    // 750 - 1000px
+        ];
+
+        let myId = '';
+        let localPlayer = { x: 500, y: 350, vx: 0, vy: 0, team: '', caught: false };
+        let remotePlayers = {};
+        let globalState = { phase: 'lobby', round: 0, seekerTeam: '', timeRemaining: 0 };
+        
+        const isHost = new URLSearchParams(window.location.search).get('host') === 'true';
+
+        // UI Helpers
+        function switchScreen(id) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active-screen'));
+            document.getElementById('game-ui').style.display = 'none';
+            if(id) document.getElementById(id).classList.add('active-screen');
+        }
+
+        // ==========================================
+        // CLIENT LOGIC
+        // ==========================================
+        window.joinLobby = () => {
+            const name = document.getElementById('player-name').value.trim();
+            const team = document.getElementById('player-team').value;
+            if (!name) return alert("Callsign required.");
+            
+            myId = 'Pilot_' + Math.random().toString(36).substr(2, 6);
+            localPlayer.team = team;
+            localPlayer.name = name;
+            
+            const pRef = ref(db, 'friction_race/players/' + myId);
+            onDisconnect(pRef).remove();
+            set(pRef, { name, team, x: GAME_W/2, y: GAME_H/2, caught: false });
+            
+            switchScreen('screen-lobby');
+            startEngine();
+        };
+
+        // ==========================================
+        // HOST COMMANDS & THE FIREBASE CLEAN-RESET
+        // ==========================================
+        window.hostStartRound = async (roundNum) => {
+            const seekerTeam = roundNum === 1 ? 'Red' : 'Blue';
+            
+            // 1. Fetch current players to prevent deleting them, but wiping their state
+            const snap = await get(ref(db, 'friction_race/players'));
+            const currentPlayers = snap.val() || {};
+            
+            let updates = {};
+            
+            // 2. THE FIX: Loop over every player and forcefully reset their physics and statuses.
+            // No data carries over from the previous round!
+            Object.keys(currentPlayers).forEach(pid => {
+                const p = currentPlayers[pid];
+                // Spawn Red Team at Top, Blue Team at Bottom so they must cross surfaces
+                const spawnY = p.team === 'Red' ? 100 + Math.random()*50 : GAME_H - 150 + Math.random()*50;
+                const spawnX = 100 + Math.random() * (GAME_W - 200);
+
+                updates[`players/${pid}/x`] = spawnX;
+                updates[`players/${pid}/y`] = spawnY;
+                updates[`players/${pid}/caught`] = false;
+            });
+
+            // Set game state
+            updates['gameState/phase'] = 'playing';
+            updates['gameState/round'] = roundNum;
+            updates['gameState/seekerTeam'] = seekerTeam;
+            updates['gameState/timeRemaining'] = 60; // 60 seconds
+
+            // Atomic update to Firebase ensures everyone resets simultaneously
+            await update(ref(db, 'friction_race'), updates);
+        };
+
+        window.hostReset = () => {
+            set(ref(db, 'friction_race'), { gameState: { phase: 'lobby' }, players: {} });
+        };
+
+        // ==========================================
+        // DB LISTENERS
+        // ==========================================
+        function setupListeners() {
+            onValue(ref(db, 'friction_race/gameState'), snap => {
+                globalState = snap.val() || { phase: 'lobby' };
+                
+                if (globalState.phase === 'lobby') {
+                    if (isHost) switchScreen('screen-host');
+                    else if (myId) switchScreen('screen-lobby');
+                    else switchScreen('screen-login');
+                } else if (globalState.phase === 'playing' || globalState.phase === 'ended') {
+                    switchScreen(''); // hide HTML screens
+                    document.getElementById('game-ui').style.display = 'block';
+                    resizeCanvas();
+                    
+                    // Update HUD
+                    document.getElementById('hud-timer').innerText = `Time: ${globalState.timeRemaining}s`;
+                    if (globalState.phase === 'ended') {
+                        document.getElementById('hud-status').innerText = "ROUND OVER";
+                        document.getElementById('hud-status').style.color = "#F59E0B";
+                    } else {
+                        const isSeeker = localPlayer.team === globalState.seekerTeam;
+                        document.getElementById('hud-status').innerText = isHost ? `${globalState.seekerTeam} TEAM IS SEEKING` : (isSeeker ? "YOU ARE THE CATCHER!" : "RUN AWAY!");
+                        document.getElementById('hud-status').style.color = globalState.seekerTeam === 'Red' ? varRed : varBlue;
+                    }
+
+                    // If a player just entered the round, wipe local velocity memory
+                    if(globalState.timeRemaining === 60) {
+                        localPlayer.vx = 0; localPlayer.vy = 0;
+                    }
+                }
+            });
+
+            onValue(ref(db, 'friction_race/players'), snap => {
+                remotePlayers = snap.val() || {};
+                
+                // Update lobby lists
+                let html = '';
+                Object.values(remotePlayers).forEach(p => {
+                    let teamClass = p.team === 'Red' ? 'team-red' : 'team-blue';
+                    let status = p.caught ? ' (CAUGHT)' : '';
+                    html += `<li><span class="${teamClass}">${p.name} [${p.team}]</span> <span>${status}</span></li>`;
+                });
+                if(document.getElementById('lobby-players')) document.getElementById('lobby-players').innerHTML = html;
+                if(document.getElementById('host-players')) document.getElementById('host-players').innerHTML = html || "<span style='color:#94A3B8'>No telemetry signals detected.</span>";
+
+                // Sync local player if caught status changes by host
+                if (myId && remotePlayers[myId]) {
+                    localPlayer.caught = remotePlayers[myId].caught;
+                    // Note: We don't overwrite localPlayer.x/y here to prevent jitter, 
+                    // unless they just got explicitly teleported (handled via timeRemaining trick above or distance checks).
+                }
+            });
+        }
+
+        // ==========================================
+        // GAME ENGINE & PHYSICS
+        // ==========================================
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const varRed = '#EF4444'; const varBlue = '#38BDF8';
+
+        let keys = { ArrowUp:false, ArrowDown:false, ArrowLeft:false, ArrowRight:false, w:false, a:false, s:false, d:false };
+        window.addEventListener('keydown', e => keys[e.key] = true);
+        window.addEventListener('keyup', e => keys[e.key] = false);
+
+        // Joystick Logic
+        const joyZone = document.getElementById('joystick-zone');
+        const joyKnob = document.getElementById('joystick-knob');
+        let joyActive = false;
+        let joyVec = { x: 0, y: 0 };
+        
+        joyZone.addEventListener('pointerdown', e => { joyActive = true; handleJoy(e); });
+        window.addEventListener('pointermove', e => { if(joyActive) handleJoy(e); });
+        window.addEventListener('pointerup', () => { joyActive = false; joyKnob.style.transform = `translate(0px, 0px)`; joyVec = {x:0, y:0}; });
+
+        function handleJoy(e) {
+            const rect = joyZone.getBoundingClientRect();
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+            let dx = e.clientX - centerX;
+            let dy = e.clientY - centerY;
+            const distance = Math.min(rect.width/2, Math.hypot(dx, dy));
+            const angle = Math.atan2(dy, dx);
+            
+            const knobX = Math.cos(angle) * distance;
+            const knobY = Math.sin(angle) * distance;
+            joyKnob.style.transform = `translate(${knobX}px, ${knobY}px)`;
+            
+            // Normalize -1 to 1
+            joyVec.x = knobX / (rect.width/2);
+            joyVec.y = knobY / (rect.height/2);
+        }
+
+        function resizeCanvas() {
+            const ratio = GAME_W / GAME_H;
+            let winW = window.innerWidth;
+            let winH = window.innerHeight;
+            if (winW / winH < ratio) {
+                canvas.style.width = winW + 'px';
+                canvas.style.height = (winW / ratio) + 'px';
+            } else {
+                canvas.style.height = winH + 'px';
+                canvas.style.width = (winH * ratio) + 'px';
+            }
+        }
+        window.addEventListener('resize', resizeCanvas);
+
+        function startEngine() {
+            requestAnimationFrame(gameLoop);
+            if(isHost) setInterval(hostLogicLoop, 100); // Host ticks
+        }
+
+        // --- CLIENT PHYSICS LOOP ---
+        let lastSync = 0;
+        function gameLoop() {
+            if (globalState.phase === 'playing' && !isHost && !localPlayer.caught) {
+                // Determine Current Zone (4 lanes, 250px each)
+                let zoneIndex = Math.floor(localPlayer.x / (GAME_W / 4));
+                zoneIndex = Math.max(0, Math.min(3, zoneIndex));
+                const physics = SURFACES[zoneIndex];
+
+                // Input Vectors
+                let inputX = joyVec.x; let inputY = joyVec.y;
+                if (keys.ArrowUp || keys.w) inputY = -1;
+                if (keys.ArrowDown || keys.s) inputY = 1;
+                if (keys.ArrowLeft || keys.a) inputX = -1;
+                if (keys.ArrowRight || keys.d) inputX = 1;
+
+                // Normalize keyboard diagonal
+                if(inputX !== 0 && inputY !== 0 && !joyActive) {
+                    const length = Math.hypot(inputX, inputY);
+                    inputX /= length; inputY /= length;
+                }
+
+                // Apply Acceleration based on Surface
+                localPlayer.vx += inputX * physics.accel;
+                localPlayer.vy += inputY * physics.accel;
+
+                // Apply Drag (Friction) based on Surface
+                localPlayer.vx *= physics.friction;
+                localPlayer.vy *= physics.friction;
+
+                // Speed Cap
+                const speed = Math.hypot(localPlayer.vx, localPlayer.vy);
+                if (speed > physics.maxSpd) {
+                    localPlayer.vx = (localPlayer.vx / speed) * physics.maxSpd;
+                    localPlayer.vy = (localPlayer.vy / speed) * physics.maxSpd;
+                }
+
+                // Apply Movement
+                localPlayer.x += localPlayer.vx;
+                localPlayer.y += localPlayer.vy;
+
+                // Walls
+                if (localPlayer.x < 15) { localPlayer.x = 15; localPlayer.vx *= -0.5; }
+                if (localPlayer.x > GAME_W - 15) { localPlayer.x = GAME_W - 15; localPlayer.vx *= -0.5; }
+                if (localPlayer.y < 15) { localPlayer.y = 15; localPlayer.vy *= -0.5; }
+                if (localPlayer.y > GAME_H - 15) { localPlayer.y = GAME_H - 15; localPlayer.vy *= -0.5; }
+
+                // Throttle Firebase Sync to prevent overwhelming network
+                if (Date.now() - lastSync > 40) { // ~25 fps sync
+                    update(ref(db, `friction_race/players/${myId}`), { x: localPlayer.x, y: localPlayer.y });
+                    lastSync = Date.now();
+                }
+            }
+
+            drawScene();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // --- HOST AUTHORITY LOOP ---
+        function hostLogicLoop() {
+            if (globalState.phase !== 'playing') return;
+
+            const players = Object.values(remotePlayers);
+            const seekers = players.filter(p => p.team === globalState.seekerTeam);
+            const hiders = players.filter(p => p.team !== globalState.seekerTeam && !p.caught);
+
+            // Host calculates Tag Collisions (Radius = 15, so distance < 30 = TAG)
+            let updates = {};
+            let taggedSomeone = false;
+
+            seekers.forEach(s => {
+                hiders.forEach(h => {
+                    const dist = Math.hypot(s.x - h.x, s.y - h.y);
+                    if (dist < 30) {
+                        updates[`players/${h.id}/caught`] = true;
+                        taggedSomeone = true;
+                    }
+                });
+            });
+
+            if (taggedSomeone) {
+                update(ref(db, 'friction_race'), updates);
+            }
+
+            // Host decrements timer
+            if (!window.lastTimeCheck) window.lastTimeCheck = Date.now();
+            if (Date.now() - window.lastTimeCheck > 1000) {
+                let timeLeft = globalState.timeRemaining - 1;
+                
+                // End Condition
+                if (timeLeft <= 0 || hiders.length === 0) {
+                    update(ref(db, 'friction_race/gameState'), { phase: 'ended', timeRemaining: 0 });
+                } else {
+                    update(ref(db, 'friction_race/gameState'), { timeRemaining: timeLeft });
+                }
+                window.lastTimeCheck = Date.now();
+            }
+        }
+
+        // --- RENDERER ---
+        function drawScene() {
+            ctx.clearRect(0, 0, GAME_W, GAME_H);
+
+            // 1. Draw The 4 Friction Surfaces
+            const laneW = GAME_W / 4;
+            SURFACES.forEach((surf, i) => {
+                ctx.fillStyle = surf.color;
+                ctx.fillRect(i * laneW, 0, laneW, GAME_H);
+                
+                // Texture Details
+                ctx.strokeStyle = "rgba(255,255,255,0.1)";
+                ctx.lineWidth = 2;
+                if (surf.name === "Ice") {
+                    // Slight shiny streaks
+                    ctx.beginPath(); ctx.moveTo(i*laneW + 50, 100); ctx.lineTo(i*laneW + 200, 300); ctx.stroke();
+                } else if (surf.name === "Carpet") {
+                    // Dotted texture representation
+                    ctx.fillStyle = "rgba(0,0,0,0.05)";
+                    for(let x=0; x<10; x++) for(let y=0; y<10; y++) ctx.fillRect(i*laneW + x*25, y*70, 5, 5);
+                } else if (surf.name === "Rubber") {
+                    // Grid pattern
+                    for(let x=0; x<laneW; x+=40) { ctx.beginPath(); ctx.moveTo(i*laneW+x, 0); ctx.lineTo(i*laneW+x, GAME_H); ctx.stroke(); }
+                }
+
+                // Title
+                ctx.fillStyle = "rgba(255,255,255,0.7)";
+                ctx.font = "bold 24px Inter";
+                ctx.textAlign = "center";
+                ctx.fillText(surf.name, i * laneW + laneW/2, 40);
+            });
+
+            // 2. Draw Players
+            Object.values(remotePlayers).forEach(p => {
+                // If the player is the local client, use our ultra-smooth local positions, not the jittery network ones.
+                const drawX = (p.id === myId) ? localPlayer.x : p.x;
+                const drawY = (p.id === myId) ? localPlayer.y : p.y;
+                const isCaught = (p.id === myId) ? localPlayer.caught : p.caught;
+
+                ctx.beginPath();
+                ctx.arc(drawX, drawY, 15, 0, Math.PI * 2);
+                
+                if (isCaught) {
+                    ctx.fillStyle = "#64748B"; // Ghosted
+                    ctx.shadowBlur = 0;
+                } else {
+                    ctx.fillStyle = p.team === 'Red' ? varRed : varBlue;
+                    ctx.shadowColor = ctx.fillStyle;
+                    ctx.shadowBlur = p.team === globalState.seekerTeam ? 15 : 5; // Seekers glow bright
+                }
+                ctx.fill();
+
+                // Name Tag
+                ctx.fillStyle = isCaught ? "#64748B" : "#FFF";
+                ctx.font = "14px Inter";
+                ctx.textAlign = "center";
+                ctx.shadowBlur = 0;
+                ctx.fillText(p.name, drawX, drawY - 25);
+            });
+        }
+
+        // Init Sequence
+        if (isHost) {
+            switchScreen('screen-host');
+            set(stateRef, { phase: 'lobby' }); // Wipe state on host load
+        } else {
+            switchScreen('screen-login');
+        }
+        setupListeners();
+        
+        // Host needs engine running to spectate
+        if (isHost) startEngine();
+
+    </script>
+</body>
+</html>
