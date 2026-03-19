@@ -28,21 +28,18 @@
       overflow-y: auto;
     }
     h1 {
-      font-family: Orbitron, sans-serif;
-      color: var(--teal);
-      font-size: clamp(2rem, 5vw, 3.2rem);
-      margin: 0 0 10px;
-      text-shadow: 0 0 14px rgba(16, 185, 129, 0.5);
-      text-transform: uppercase;
+      font-family: Orbitron, sans-serif; color: var(--teal);
+      font-size: clamp(2rem, 5vw, 3.2rem); margin: 0 0 10px;
+      text-shadow: 0 0 14px rgba(16, 185, 129, 0.5); text-transform: uppercase;
     }
     .sub { color: #aab; max-width: 820px; line-height: 1.4; margin: 0 0 18px; font-size: clamp(0.95rem, 2.2vw, 1.1rem); }
     
-    input, select { width: 100%; max-width: 300px; padding: 12px; margin-bottom: 15px; border-radius: 8px; border: 2px solid var(--border); background: rgba(255,255,255,0.05); color: white; font-size: 1.1rem; text-align: center; outline: none; font-family: Roboto, sans-serif;}
-    input:focus, select:focus { border-color: var(--teal); }
+    input { width: 100%; max-width: 300px; padding: 12px; margin-bottom: 15px; border-radius: 8px; border: 2px solid var(--border); background: rgba(255,255,255,0.05); color: white; font-size: 1.1rem; text-align: center; outline: none; font-family: Roboto, sans-serif;}
+    input:focus { border-color: var(--teal); }
 
     .btn {
       background: var(--teal); color: #0b0f19; border: none; padding: 14px 22px; font-size: clamp(1rem, 2.2vw, 1.2rem);
-      font-family: Orbitron, sans-serif; font-weight: 800; border-radius: 10px; cursor: pointer; margin: 10px; transition: 0.15s;
+      font-family: Orbitron, sans-serif; font-weight: 800; border-radius: 10px; cursor: pointer; margin: 10px; transition: 0.15s; width: 280px; max-width: 100%;
     }
     .btn:hover { background: #fff; box-shadow: 0 0 20px rgba(16, 185, 129, 0.55); transform: translateY(-2px); }
     .btn-alt { background: var(--blue); }
@@ -64,7 +61,7 @@
     #timer-display { font-family: Orbitron, sans-serif; font-size: clamp(1.8rem, 5vw, 2.6rem); color: var(--teal); }
     #role-banner { font-weight: 800; font-size: clamp(0.95rem, 2.8vw, 1.15rem); margin-top: 6px; text-transform: uppercase; text-align: center; }
 
-    /* Touch Controls */
+    /* Touch Controls (Mimicking Electric Highway) */
     #touch-controls {
       position: fixed; bottom: 16px; left: 16px; z-index: 80; display: none; pointer-events: auto;
       user-select: none; -webkit-user-select: none; touch-action: none;
@@ -85,32 +82,29 @@
     <h1>FRICTION FRENZY</h1>
     <p class="sub">Stage 6 Physics: Surface Area, Drag, and Acceleration.</p>
     
-    <div style="background: rgba(255,255,255,0.05); padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.1);">
+    <div style="background: rgba(255,255,255,0.05); padding: 30px; border-radius: 12px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.1); display: flex; flex-direction: column; align-items: center;">
       <h3 style="margin-top: 0;">Student Access</h3>
       <input type="text" id="player-name" placeholder="Enter Callsign..." autocomplete="off">
-      <select id="player-team">
-        <option value="Red">Team Red</option>
-        <option value="Blue">Team Blue</option>
-      </select>
       <button class="btn" onclick="joinGame('player')">Join as Player</button>
+      <p style="font-size: 0.85rem; color: #aab; margin-top: 10px; font-style: italic;">*You will be auto-assigned to Red or Blue team.</p>
     </div>
 
-    <div>
+    <div style="display: flex; flex-direction: column; align-items: center;">
       <button class="btn btn-alt" onclick="joinGame('teacher')">Join as Teacher (Host)</button>
-      <button class="btn btn-alt" style="background: #334155;" onclick="joinGame('observer')">Join as Observer</button>
+      <button class="btn btn-alt" style="background: #334155; color: white;" onclick="joinGame('observer')">Join as Observer</button>
     </div>
   </div>
 
   <div id="lobby" class="overlay" style="display:none;">
-    <h1 id="lobby-title">LOBBY</h1>
+    <h1 id="lobby-title">ARENA LOBBY</h1>
     <p class="sub" id="my-identity-card" style="font-size: 1.3rem; color: #fff;"></p>
 
-    <div style="background: rgba(0,0,0,0.5); padding: 15px; border-radius: 10px; width: 100%; max-width: 400px; margin-bottom: 20px; border: 1px solid var(--border);">
+    <div style="background: rgba(0,0,0,0.5); padding: 15px; border-radius: 10px; width: 100%; max-width: 500px; margin-bottom: 20px; border: 1px solid var(--border);">
       <h3 style="margin-top: 0; color: var(--teal);">Connected Pilots</h3>
-      <ul id="lobby-players-list" style="list-style: none; padding: 0; margin: 0; text-align: left; max-height: 200px; overflow-y: auto;"></ul>
+      <ul id="lobby-players-list" style="list-style: none; padding: 0; margin: 0; text-align: left; max-height: 250px; overflow-y: auto; font-size: 1.1rem;"></ul>
     </div>
 
-    <div id="host-start-area" style="display:none; padding: 20px; border: 1px dashed var(--teal); border-radius: 12px; max-width: 500px; width: 100%;">
+    <div id="host-start-area" style="display:none; padding: 20px; border: 1px dashed var(--teal); border-radius: 12px; max-width: 600px; width: 100%;">
       <p style="color: var(--teal); margin:0 0 10px; font-family:Orbitron, sans-serif; font-size: 1.2rem;">TEACHER CONTROLS</p>
       <p class="sub" style="margin:0 0 15px;">Round 1: Red hunts Blue. Round 2: Blue hunts Red.</p>
       <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
@@ -140,14 +134,14 @@
         <span style="color:#E0F7FA">1. Ice (Max Speed: 9 | Slide: High)</span><br>
         <span style="color:#D4A373">2. Wood (Max Speed: 6.5 | Slide: Med)</span><br>
         <span style="color:#BC4749">3. Carpet (Max Speed: 4.5 | Slide: Low)</span><br>
-        <span style="color:#64748B">4. Rubber (Max Speed: 3.5 | Slide: None)</span>
+        <span style="color:#94A3B8">4. Rubber (Max Speed: 3.5 | Slide: None)</span>
       </div>
     </div>
 
     <div id="top-center-ui">
       <div id="timer-display">1:00</div>
       <div id="role-banner">WAITING...</div>
-      <button id="force-end-btn" class="btn btn-danger" style="display:none; padding: 8px 15px; font-size: 0.9rem; margin-top: 10px;" onclick="forceEndRound()">Force End</button>
+      <button id="force-end-btn" class="btn btn-danger" style="display:none; padding: 8px 15px; font-size: 0.9rem; margin-top: 10px; width: 150px;" onclick="forceEndRound()">Force End</button>
     </div>
 
     <div class="hud-panel" style="visibility:hidden;">Spacer</div>
@@ -180,22 +174,25 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
-    // --- LOGICAL CONSTANTS ---
+    // --- MAP & PHYSICS CONSTANTS ---
+    // Architecture directly mimicking Electric Highway map bounds
     const PLAY_W = 1200;
     const PLAY_H = 800;
-    const FPS = 60;
-    const SYNC_RATE = 50; // Sync to firebase every 50ms
+    const PLAY_BOUNDS = { minX: 150, maxX: 1050, minY: 50, maxY: 750 }; 
+    const ZONE_WIDTH = (PLAY_BOUNDS.maxX - PLAY_BOUNDS.minX) / 4; // 900 / 4 = 225px lanes
 
-    // The 4 Surface Zones (Dictated by p3.html)
+    const SYNC_RATE = 50; 
+
+    // The 4 Surface Zones from p3.html
     const SURFACES = [
-      { name: "Ice", color: "#E0F7FA", text: "#000", friction: 0.99, accel: 0.2, maxSpd: 9 },
-      { name: "Polished Wood", color: "#D4A373", text: "#fff", friction: 0.92, accel: 0.5, maxSpd: 6.5 },
-      { name: "Thick Carpet", color: "#BC4749", text: "#fff", friction: 0.75, accel: 1.0, maxSpd: 4.5 },
-      { name: "Rubber Matting", color: "#2B2D42", text: "#fff", friction: 0.50, accel: 2.0, maxSpd: 3.5 }
+      { name: "Ice", color: "rgba(224, 247, 250, 0.2)", text: "#E0F7FA", friction: 0.99, accel: 0.15, maxSpd: 9 },
+      { name: "Wood", color: "rgba(212, 163, 115, 0.2)", text: "#D4A373", friction: 0.92, accel: 0.4, maxSpd: 6.5 },
+      { name: "Carpet", color: "rgba(188, 71, 73, 0.2)", text: "#BC4749", friction: 0.75, accel: 0.9, maxSpd: 4.5 },
+      { name: "Rubber", color: "rgba(43, 45, 66, 0.4)", text: "#94A3B8", friction: 0.50, accel: 1.5, maxSpd: 3.5 }
     ];
 
     // --- STATE VARIABLES ---
-    let myRole = null; // 'player', 'teacher', 'observer'
+    let myRole = null; 
     let myId = '';
     let me = { name: '', team: '', x: 0, y: 0, vx: 0, vy: 0, caught: false };
     
@@ -225,22 +222,24 @@
       resizeCanvas();
     }
 
-    // Expose to window for HTML buttons
+    // --- CLIENT LOGIN & AUTO-ASSIGN ---
     window.joinGame = (role) => {
       myRole = role;
       
       if (role === 'player') {
         const name = document.getElementById('player-name').value.trim();
-        const team = document.getElementById('player-team').value;
         if (!name) return alert("Please enter a callsign.");
+        
+        // AUTO-ASSIGN LOGIC (Mimics Electric Highway random team generation)
+        const team = Math.random() > 0.5 ? "Red" : "Blue";
         
         myId = 'P_' + Math.random().toString(36).substr(2, 6);
         me.name = name;
         me.team = team;
         
-        const pRef = ref(db, `friction_tag/players/${myId}`);
-        onDisconnect(pRef).remove();
-        set(pRef, { name: me.name, team: me.team, x: PLAY_W/2, y: PLAY_H/2, caught: false });
+        const pRef = ref(db, `friction_frenzy/players/${myId}`);
+        onDisconnect(pRef).remove(); // Clears ghost data if student closes tab
+        set(pRef, { id: myId, name: me.name, team: me.team, x: PLAY_W/2, y: PLAY_H/2, caught: false });
         
         document.getElementById('my-identity-card').innerHTML = `Logged in as: <b class="team-${team}">${name} [${team}]</b>`;
         document.getElementById('hud-identity').innerHTML = `<span class="team-${team}">${name} [${team}]</span>`;
@@ -256,15 +255,16 @@
         document.getElementById('waiting-msg').style.display = 'none';
         document.getElementById('waiting-next-msg').style.display = 'none';
         
-        // Host enforces lobby state on entry to prevent ghost states
-        set(ref(db, 'friction_tag/gameState'), { phase: 'lobby', round: 0, seekerTeam: 'Red', timeLeft: 60 });
+        // Host enforces lobby state on entry
+        set(ref(db, 'friction_frenzy/gameState'), { phase: 'lobby', round: 0, seekerTeam: 'Red', timeLeft: 60 });
       }
 
       showScreen('lobby');
       setupDBListeners();
       
       if (role === 'teacher') {
-        hostInterval = setInterval(hostLoop, 100);
+        // Run host loops at higher speed for buttery smooth collision detection
+        hostInterval = setInterval(hostLoop, 50);
       }
       
       requestAnimationFrame(gameLoop);
@@ -282,34 +282,37 @@
       updates['gameState/seekerTeam'] = seekerTeam;
       updates['gameState/timeLeft'] = 60;
 
-      // ABSOLUTE WIPE: Reset all players cleanly
+      // ABSOLUTE DB WIPE: Reset all players cleanly into their spawn zones
       Object.keys(remotePlayers).forEach(pid => {
         let p = remotePlayers[pid];
-        // Red spawns left, Blue spawns right
-        let spawnX = p.team === 'Red' ? 100 + Math.random()*100 : PLAY_W - 200 + Math.random()*100;
-        let spawnY = 100 + Math.random() * (PLAY_H - 200);
+        
+        // Red spawns in the far left Ice Zone. Blue spawns in the far right Rubber zone.
+        let spawnX = p.team === 'Red' ? PLAY_BOUNDS.minX + 50 + Math.random()*50 : PLAY_BOUNDS.maxX - 100 + Math.random()*50;
+        let spawnY = PLAY_BOUNDS.minY + 50 + Math.random() * (PLAY_BOUNDS.maxY - 150);
         
         updates[`players/${pid}/x`] = spawnX;
         updates[`players/${pid}/y`] = spawnY;
         updates[`players/${pid}/caught`] = false;
       });
 
-      update(ref(db, 'friction_tag'), updates);
+      // Send to DB atomically
+      update(ref(db, 'friction_frenzy'), updates);
     };
 
     window.forceEndRound = () => {
       if (myRole !== 'teacher') return;
-      update(ref(db, 'friction_tag/gameState'), { phase: 'ended', timeLeft: 0 });
+      update(ref(db, 'friction_frenzy/gameState'), { phase: 'ended', timeLeft: 0 });
     };
 
     window.returnToLobby = () => {
       if (myRole !== 'teacher') return;
-      update(ref(db, 'friction_tag/gameState'), { phase: 'lobby' });
+      update(ref(db, 'friction_frenzy/gameState'), { phase: 'lobby' });
     };
 
     // --- FIREBASE LISTENERS ---
     function setupDBListeners() {
-      onValue(ref(db, 'friction_tag/gameState'), snap => {
+      // Game State Listener
+      onValue(ref(db, 'friction_frenzy/gameState'), snap => {
         let state = snap.val();
         if (!state) return;
         gameState = state;
@@ -319,7 +322,7 @@
         } else if (gameState.phase === 'playing') {
           showScreen('game');
           
-          // Clear local velocity to prevent sliding into new round
+          // CRITICAL FIX: Zero out local velocity to prevent sliding into a new round!
           me.vx = 0; me.vy = 0;
 
           document.getElementById('timer-display').innerText = `00:${gameState.timeLeft.toString().padStart(2, '0')}`;
@@ -338,21 +341,24 @@
         }
       });
 
-      onValue(ref(db, 'friction_tag/players'), snap => {
+      // Player Telemetry Listener
+      onValue(ref(db, 'friction_frenzy/players'), snap => {
         remotePlayers = snap.val() || {};
         
         let html = '';
         Object.values(remotePlayers).forEach(p => {
           let caughtStr = p.caught ? ' <span style="color:#64748B;">(CAUGHT)</span>' : '';
-          html += `<li style="padding: 8px 0; border-bottom: 1px dashed var(--border);"><span class="team-${p.team}">${p.name} [${p.team}]</span> ${caughtStr}</li>`;
+          html += `<li style="padding: 10px 0; border-bottom: 1px dashed var(--border); font-size: 1.1rem;"><span class="team-${p.team}">${p.name} [${p.team}]</span> ${caughtStr}</li>`;
         });
         
         const listEl = document.getElementById('lobby-players-list');
         if (listEl) listEl.innerHTML = html || "<span style='color:#aab'>No pilots connected yet.</span>";
 
+        // Sync "Caught" status from Server -> Client
         if (myRole === 'player' && remotePlayers[myId]) {
             me.caught = remotePlayers[myId].caught;
-            // Only sync external position if we are caught (stops us from moving locally)
+            
+            // If we are caught, completely surrender our local position to the server
             if (me.caught) {
                 me.x = remotePlayers[myId].x;
                 me.y = remotePlayers[myId].y;
@@ -392,7 +398,7 @@
       joyVec.y = ty / R;
     }
 
-    // --- GAME LOOP & PHYSICS ---
+    // --- GAME LOOP & CLIENT PHYSICS ---
     function gameLoop() {
       if (gameState.phase === 'playing') {
         if (myRole === 'player' && !me.caught) {
@@ -414,23 +420,26 @@
       if (keys.ArrowLeft || keys.a) ix = -1;
       if (keys.ArrowRight || keys.d) ix = 1;
 
+      // Normalize Keyboard Vector
       if (ix !== 0 && iy !== 0 && !joyActive) {
         let len = Math.hypot(ix, iy);
         ix /= len; iy /= len;
       }
 
-      // Determine Friction Zone (4 lanes)
-      let laneWidth = PLAY_W / 4;
-      let zoneIdx = Math.floor(me.x / laneWidth);
-      zoneIdx = Math.max(0, Math.min(3, zoneIdx));
-      let surf = SURFACES[zoneIdx];
+      // DETERMINE FRICTION ZONE based on map math
+      let laneIndex = Math.floor((me.x - PLAY_BOUNDS.minX) / ZONE_WIDTH);
+      laneIndex = Math.max(0, Math.min(3, laneIndex)); // Clamp between 0 and 3
+      let surf = SURFACES[laneIndex];
 
+      // Accelerate
       me.vx += ix * surf.accel;
       me.vy += iy * surf.accel;
       
+      // Apply Drag
       me.vx *= surf.friction;
       me.vy *= surf.friction;
 
+      // Speed Cap
       let speed = Math.hypot(me.vx, me.vy);
       if (speed > surf.maxSpd) {
         me.vx = (me.vx / speed) * surf.maxSpd;
@@ -440,15 +449,16 @@
       me.x += me.vx;
       me.y += me.vy;
 
-      // Bounds
-      if (me.x < 20) { me.x = 20; me.vx *= -0.5; }
-      if (me.x > PLAY_W - 20) { me.x = PLAY_W - 20; me.vx *= -0.5; }
-      if (me.y < 20) { me.y = 20; me.vy *= -0.5; }
-      if (me.y > PLAY_H - 20) { me.y = PLAY_H - 20; me.vy *= -0.5; }
+      // HARD MAP BOUNDARIES (Mimicking Electric Highway)
+      const radius = 15;
+      if (me.x < PLAY_BOUNDS.minX + radius) { me.x = PLAY_BOUNDS.minX + radius; me.vx *= -0.5; }
+      if (me.x > PLAY_BOUNDS.maxX - radius) { me.x = PLAY_BOUNDS.maxX - radius; me.vx *= -0.5; }
+      if (me.y < PLAY_BOUNDS.minY + radius) { me.y = PLAY_BOUNDS.minY + radius; me.vy *= -0.5; }
+      if (me.y > PLAY_BOUNDS.maxY - radius) { me.y = PLAY_BOUNDS.maxY - radius; me.vy *= -0.5; }
 
-      // Sync
+      // Throttle DB Upload
       if (Date.now() - lastSync > SYNC_RATE) {
-        update(ref(db, `friction_tag/players/${myId}`), { x: Math.round(me.x), y: Math.round(me.y) });
+        update(ref(db, `friction_frenzy/players/${myId}`), { x: Math.round(me.x), y: Math.round(me.y) });
         lastSync = Date.now();
       }
     }
@@ -459,44 +469,53 @@
       if (gameState.phase !== 'playing') return;
 
       let updates = {};
-      let changed = false;
-
-      let playersArr = Object.values(remotePlayers);
+      let playersArr = Object.values(remotePlayers || {});
+      
       let seekers = playersArr.filter(p => p.team === gameState.seekerTeam);
-      let runners = playersArr.filter(p => p.team !== gameState.seekerTeam && !p.caught);
+      let runners = playersArr.filter(p => p.team !== gameState.seekerTeam);
+      let activeRunners = runners.filter(p => !p.caught);
 
-      // Collision Detection (Radius 20 = Dist 40)
-      for (let s of seekers) {
-        for (let r of runners) {
-          let dist = Math.hypot(s.x - r.x, s.y - r.y);
-          if (dist < 40) {
+      // 1. Tag Collision Detection (Radius 15. Hitbox = 30px)
+      seekers.forEach(s => {
+        activeRunners.forEach(r => {
+          if (Math.hypot(s.x - r.x, s.y - r.y) < 30) {
             updates[`players/${r.id}/caught`] = true;
-            r.caught = true; // prevent double catching in same frame
-            changed = true;
+            r.caught = true; // Local mutation prevents double-catching in the same frame
           }
+        });
+      });
+
+      // Update DB if a catch was made
+      if (Object.keys(updates).length > 0) {
+        update(ref(db, 'friction_frenzy'), updates);
+        updates = {};
+      }
+
+      // 2. Slow Timer & Win Condition Tick (Every 1 second)
+      let now = Date.now();
+      if (now - lastHostTick >= 1000) {
+        lastHostTick = now;
+        let timeRemaining = gameState.timeLeft - 1;
+        
+        // Refresh active runners array post-catch
+        activeRunners = playersArr.filter(p => p.team !== gameState.seekerTeam && !p.caught);
+
+        if (timeRemaining <= 0) {
+          updates['gameState/phase'] = 'ended';
+          updates['gameState/timeLeft'] = 0;
+        } 
+        // THE BUG FIX: The grace period (timeRemaining < 59) prevents the game from instantly ending 
+        // while Firebase is still wiping the "caught" statuses from the previous round.
+        else if (activeRunners.length === 0 && playersArr.length > 1 && timeRemaining < 59) {
+          updates['gameState/phase'] = 'ended';
+          updates['gameState/timeLeft'] = timeRemaining;
+        } 
+        else {
+          updates['gameState/timeLeft'] = timeRemaining;
         }
-      }
 
-      // Check win condition (All runners caught)
-      if (runners.length === 0 && playersArr.length > 1) {
-        updates['gameState/phase'] = 'ended';
-        updates['gameState/timeLeft'] = 0;
-        changed = true;
-      }
-
-      if (changed) {
-        update(ref(db, 'friction_tag'), updates);
-      }
-
-      // Timer
-      if (Date.now() - lastHostTick >= 1000) {
-        lastHostTick = Date.now();
-        if (gameState.timeLeft > 0 && updates['gameState/phase'] !== 'ended') {
-          update(ref(db, 'friction_tag/gameState'), { timeLeft: gameState.timeLeft - 1 });
-          
-          if (gameState.timeLeft - 1 <= 0) {
-             update(ref(db, 'friction_tag/gameState'), { phase: 'ended' });
-          }
+        if (Object.keys(updates).length > 0) {
+          update(ref(db, 'friction_frenzy'), updates);
         }
       }
     }
@@ -521,56 +540,75 @@
     function drawCanvas() {
       ctx.clearRect(0, 0, PLAY_W, PLAY_H);
 
-      // Draw Surfaces
-      let laneW = PLAY_W / 4;
+      // Draw Grid Background (Electric Highway Style)
+      ctx.strokeStyle = "rgba(255,255,255,0.03)";
+      ctx.lineWidth = 1;
+      for (let x=0; x<PLAY_W; x+=50) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,PLAY_H); ctx.stroke(); }
+      for (let y=0; y<PLAY_H; y+=50) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(PLAY_W,y); ctx.stroke(); }
+
+      // Draw The 4 Friction Lanes
       for (let i = 0; i < 4; i++) {
-        ctx.fillStyle = SURFACES[i].color;
-        ctx.fillRect(i * laneW, 0, laneW, PLAY_H);
+        let startX = PLAY_BOUNDS.minX + (i * ZONE_WIDTH);
         
+        // Fill lane
+        ctx.fillStyle = SURFACES[i].color;
+        ctx.fillRect(startX, PLAY_BOUNDS.minY, ZONE_WIDTH, PLAY_BOUNDS.maxY - PLAY_BOUNDS.minY);
+        
+        // Lane Text
         ctx.fillStyle = SURFACES[i].text;
-        ctx.font = "bold 24px Orbitron";
+        ctx.font = "bold 26px Orbitron";
         ctx.textAlign = "center";
         ctx.globalAlpha = 0.5;
-        ctx.fillText(SURFACES[i].name.toUpperCase(), i * laneW + laneW/2, 40);
+        ctx.fillText(SURFACES[i].name.toUpperCase(), startX + (ZONE_WIDTH/2), PLAY_BOUNDS.minY - 15);
         ctx.globalAlpha = 1.0;
 
-        // Draw boundaries
-        ctx.strokeStyle = "rgba(0,0,0,0.1)";
-        ctx.lineWidth = 2;
-        ctx.beginPath(); ctx.moveTo(i*laneW, 0); ctx.lineTo(i*laneW, PLAY_H); ctx.stroke();
+        // Dashed Highway lines
+        if (i < 3) {
+          ctx.strokeStyle = "rgba(255,255,255,0.2)";
+          ctx.lineWidth = 4;
+          ctx.setLineDash([15, 15]);
+          ctx.beginPath();
+          ctx.moveTo(startX + ZONE_WIDTH, PLAY_BOUNDS.minY);
+          ctx.lineTo(startX + ZONE_WIDTH, PLAY_BOUNDS.maxY);
+          ctx.stroke();
+          ctx.setLineDash([]);
+        }
       }
+
+      // Draw Outer Highway Boundaries
+      ctx.strokeStyle = var('--teal');
+      ctx.lineWidth = 4;
+      ctx.strokeRect(PLAY_BOUNDS.minX, PLAY_BOUNDS.minY, PLAY_BOUNDS.maxX - PLAY_BOUNDS.minX, PLAY_BOUNDS.maxY - PLAY_BOUNDS.minY);
 
       // Draw Players
       Object.entries(remotePlayers).forEach(([id, p]) => {
         let drawX = p.x; let drawY = p.y; let isCaught = p.caught;
         
-        // Smooth local drawing
+        // Smoothing for local player
         if (id === myId && myRole === 'player' && !me.caught) {
           drawX = me.x; drawY = me.y;
         }
 
         ctx.beginPath();
-        ctx.arc(drawX, drawY, 20, 0, Math.PI * 2);
+        ctx.arc(drawX, drawY, 15, 0, Math.PI * 2);
         
         if (isCaught) {
-          ctx.fillStyle = "#64748B";
+          ctx.fillStyle = "rgba(100,100,100,0.5)"; // EH Caught Grey
           ctx.shadowBlur = 0;
         } else {
           ctx.fillStyle = p.team === 'Red' ? "#EF4444" : "#38BDF8";
           ctx.shadowColor = ctx.fillStyle;
-          ctx.shadowBlur = p.team === gameState.seekerTeam ? 20 : 5; // Seekers glow
+          ctx.shadowBlur = p.team === gameState.seekerTeam ? 20 : 5; // Seekers glow bright!
         }
         
         ctx.fill();
-        ctx.lineWidth = 3;
-        ctx.strokeStyle = "#fff";
-        ctx.stroke();
         ctx.shadowBlur = 0;
 
-        ctx.fillStyle = isCaught ? "#64748B" : "#fff";
+        // Player Text
+        ctx.fillStyle = isCaught ? "#666" : "#fff";
         ctx.font = "bold 14px Roboto";
         ctx.textAlign = "center";
-        ctx.fillText(p.name, drawX, drawY - 28);
+        ctx.fillText(p.name, drawX, drawY - 22);
       });
     }
   </script>
