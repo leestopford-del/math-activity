@@ -4,18 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Friction Frenzy: Multi-Surface Tag</title>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.60.0/phaser.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+    
     <style>
         :root {
-            --bg: #0F172A;
-            --panel: #1E293B;
-            --text: #F8FAFC;
-            --ice: #E0F7FA;
-            --wood: #D4A373;
-            --carpet: #BC4749;
-            --rubber: #2B2D42;
-            --red-team: #EF4444;
-            --blue-team: #38BDF8;
+            --bg: #0F172A; --panel: #1E293B; --text: #F8FAFC;
+            --red-team: #EF4444; --blue-team: #38BDF8;
         }
 
         body { margin: 0; background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; overflow: hidden; touch-action: none; }
@@ -25,30 +21,35 @@
 
         .container { background: var(--panel); padding: 30px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); text-align: center; max-width: 600px; width: 90%; }
         h1 { color: #10B981; font-weight: 900; text-transform: uppercase; margin-top: 0; letter-spacing: 1px;}
-        p { color: #94A3B8; }
+        p { color: #94A3B8; margin-bottom: 25px;}
 
         input, select { width: 100%; padding: 15px; margin-bottom: 20px; border-radius: 8px; border: 2px solid #334155; background: #020617; color: white; font-size: 1.2rem; box-sizing: border-box; outline: none;}
+        input:focus, select:focus { border-color: #10B981; }
+        
         button { background: #10B981; color: white; border: none; padding: 15px 30px; font-size: 1.2rem; font-weight: bold; border-radius: 8px; cursor: pointer; width: 100%; margin-bottom: 10px; transition: 0.2s; }
-        button:hover { filter: brightness(1.2); }
+        button:hover { filter: brightness(1.2); transform: translateY(-2px);}
         button.danger { background: var(--red-team); }
         button.blue-btn { background: var(--blue-team); }
 
-        .player-list { list-style: none; padding: 0; text-align: left; max-height: 250px; overflow-y: auto; margin-bottom: 20px; background: #020617; border-radius: 8px; padding: 10px;}
-        .player-list li { padding: 10px; border-bottom: 1px dashed #334155; display: flex; justify-content: space-between; font-weight: bold;}
-        .team-red { color: var(--red-team); }
-        .team-blue { color: var(--blue-team); }
+        .player-list { list-style: none; padding: 0; text-align: left; max-height: 250px; overflow-y: auto; margin-bottom: 20px; background: #020617; border-radius: 8px; padding: 10px; border: 1px solid #334155;}
+        .player-list li { padding: 12px 10px; border-bottom: 1px dashed #334155; display: flex; justify-content: space-between; font-weight: bold; font-size: 1.1rem;}
+        .player-list li:last-child { border-bottom: none; }
+        .team-Red { color: var(--red-team); }
+        .team-Blue { color: var(--blue-team); }
 
         /* Game Elements */
         #game-ui { display: none; position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 10;}
-        canvas { display: block; margin: 0 auto; background: #000; box-shadow: 0 0 20px rgba(0,0,0,0.8); }
+        #game-container { width: 100%; height: 100%; }
         
-        #hud { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); padding: 10px 30px; border-radius: 20px; border: 2px solid #334155; text-align: center; z-index: 20; display: flex; gap: 20px; align-items: center;}
-        .hud-stat { font-size: 1.2rem; font-weight: bold; }
+        #hud { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.85); padding: 15px 30px; border-radius: 12px; border: 2px solid #334155; text-align: center; z-index: 20; display: flex; flex-direction: column; gap: 5px; min-width: 300px; box-shadow: 0 5px 15px rgba(0,0,0,0.5);}
+        .hud-stat { font-size: 1.5rem; font-weight: 900; text-transform: uppercase;}
+        .hud-sub { font-size: 1rem; color: #94A3B8; font-weight: bold;}
         
         /* Mobile Joystick */
-        #joystick-zone { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); width: 150px; height: 150px; background: rgba(255,255,255,0.1); border-radius: 50%; border: 2px solid rgba(255,255,255,0.3); touch-action: none; display: none; }
-        #joystick-knob { position: absolute; top: 50px; left: 50px; width: 50px; height: 50px; background: rgba(255,255,255,0.5); border-radius: 50%; pointer-events: none; }
+        #joystick-zone { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); width: 160px; height: 160px; background: rgba(255,255,255,0.1); border-radius: 50%; border: 3px solid rgba(255,255,255,0.2); touch-action: none; display: none; z-index: 30;}
+        #joystick-knob { position: absolute; top: 55px; left: 55px; width: 50px; height: 50px; background: rgba(255,255,255,0.8); border-radius: 50%; pointer-events: none; box-shadow: 0 4px 10px rgba(0,0,0,0.5);}
         @media (max-width: 800px) { #joystick-zone { display: block; } }
+        @media (pointer: fine) { #joystick-zone { display: none !important; } } /* Hide on PC */
     </style>
 </head>
 <body>
@@ -59,8 +60,8 @@
             <p>Select your team and enter the arena.</p>
             <input type="text" id="player-name" placeholder="Enter Callsign..." autocomplete="off">
             <select id="player-team">
-                <option value="Red">Red Team (Seekers in Round 1)</option>
-                <option value="Blue">Blue Team (Seekers in Round 2)</option>
+                <option value="Red">🔴 Red Team</option>
+                <option value="Blue">🔵 Blue Team</option>
             </select>
             <button onclick="window.joinLobby()">Enter Server</button>
         </div>
@@ -69,37 +70,41 @@
     <div id="screen-lobby" class="screen">
         <div class="container">
             <h1>Awaiting Deployment</h1>
-            <p>Wait for the Instructor to initialize the simulation.</p>
+            <p>Wait for the Instructor to initialize the simulation...</p>
             <ul class="player-list" id="lobby-players"></ul>
         </div>
     </div>
 
     <div id="screen-host" class="screen">
-        <div class="container" style="max-width: 800px;">
+        <div class="container" style="max-width: 700px;">
             <h1 style="color: var(--red-team);">Instructor Console</h1>
-            <p>Round 1: Red catches Blue. Round 2: Blue catches Red.</p>
+            <p>Manage the lobby and initiate the rounds. You are an observer.</p>
+            
             <ul class="player-list" id="host-players"></ul>
-            <div style="display: flex; gap: 10px;">
+            
+            <div style="display: flex; gap: 10px; margin-bottom: 10px;">
                 <button class="danger" onclick="window.hostStartRound(1)">Start R1 (Red Hunts)</button>
                 <button class="blue-btn" onclick="window.hostStartRound(2)">Start R2 (Blue Hunts)</button>
-                <button style="background: #334155;" onclick="window.hostReset()">Reset Server</button>
             </div>
+            <button style="background: #334155; border: 1px solid #475569;" onclick="window.hostReset()">Reset Server to Lobby</button>
         </div>
     </div>
 
     <div id="game-ui">
         <div id="hud">
-            <div class="hud-stat" id="hud-timer" style="color: white;">00:00</div>
+            <div class="hud-stat" id="hud-timer" style="color: white;">00:60</div>
             <div class="hud-stat" id="hud-status" style="color: #10B981;">WAITING...</div>
+            <div class="hud-sub" id="hud-controls">Use Arrow Keys / WASD to move</div>
         </div>
-        <canvas id="gameCanvas" width="1000" height="700"></canvas>
+        <div id="game-container"></div>
         <div id="joystick-zone"><div id="joystick-knob"></div></div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
-        import { getDatabase, ref, set, update, onValue, remove, onDisconnect, get } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-database.js";
+        import { getDatabase, ref, set, update, onValue, onDisconnect, get } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-database.js";
 
+        // --- FIREBASE CONFIG ---
         const firebaseConfig = {
             apiKey: "AIzaSyBpf5wi0wShnatqUhcmPhSOdnd0NdBL65A",
             authDomain: "symmetry-and-nets.firebaseapp.com",
@@ -112,378 +117,361 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        // Map Constants (Logical Size)
-        const GAME_W = 1000;
-        const GAME_H = 700;
-
-        // Surface Physics Dictated by p3.html concepts
-        // Zones are vertical lanes. Array order corresponds to x-coordinates.
-        const SURFACES = [
-            { name: "Ice", color: "#E0F7FA", friction: 0.99, accel: 0.15, maxSpd: 9 },      // 0 - 250px
-            { name: "Wood", color: "#D4A373", friction: 0.92, accel: 0.4, maxSpd: 6.5 },     // 250 - 500px
-            { name: "Carpet", color: "#BC4749", friction: 0.75, accel: 0.9, maxSpd: 4.5 },   // 500 - 750px
-            { name: "Rubber", color: "#2B2D42", friction: 0.50, accel: 1.5, maxSpd: 3.5 }    // 750 - 1000px
-        ];
-
+        // --- GLOBAL VARIABLES ---
+        // Bulletproof Host Detection (Fixes local file URL stripping)
+        const isHost = window.location.href.includes('host=true');
+        
         let myId = '';
         let localPlayer = { x: 500, y: 350, vx: 0, vy: 0, team: '', caught: false };
         let remotePlayers = {};
         let globalState = { phase: 'lobby', round: 0, seekerTeam: '', timeRemaining: 0 };
-        
-        const isHost = new URLSearchParams(window.location.search).get('host') === 'true';
+        let gameInstance = null;
 
-        // UI Helpers
+        // --- PHYSICS ZONES (Based on p3.html) ---
+        // Ice is highly slippery (low friction multiplier, high max speed). Rubber is grippy.
+        const SURFACES = [
+            { name: "Ice", color: 0xE0F7FA, text: "#000000", friction: 0.99, accel: 0.15, maxSpd: 10 },    // Lane 1
+            { name: "Wood", color: 0xD4A373, text: "#FFFFFF", friction: 0.92, accel: 0.4, maxSpd: 7 },     // Lane 2
+            { name: "Carpet", color: 0xBC4749, text: "#FFFFFF", friction: 0.75, accel: 0.9, maxSpd: 5 },   // Lane 3
+            { name: "Rubber", color: 0x2B2D42, text: "#FFFFFF", friction: 0.50, accel: 1.5, maxSpd: 3.5 }  // Lane 4
+        ];
+
+        // --- UI ROUTING ---
         function switchScreen(id) {
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active-screen'));
             document.getElementById('game-ui').style.display = 'none';
             if(id) document.getElementById(id).classList.add('active-screen');
         }
 
-        // ==========================================
-        // CLIENT LOGIC
-        // ==========================================
+        // --- PLAYER FUNCTIONS ---
         window.joinLobby = () => {
             const name = document.getElementById('player-name').value.trim();
             const team = document.getElementById('player-team').value;
             if (!name) return alert("Callsign required.");
             
-            myId = 'Pilot_' + Math.random().toString(36).substr(2, 6);
+            myId = 'P_' + Math.random().toString(36).substr(2, 6);
             localPlayer.team = team;
             localPlayer.name = name;
             
-            const pRef = ref(db, 'friction_race/players/' + myId);
-            onDisconnect(pRef).remove();
-            set(pRef, { name, team, x: GAME_W/2, y: GAME_H/2, caught: false });
+            const pRef = ref(db, 'friction_frenzy/players/' + myId);
+            onDisconnect(pRef).remove(); // Remove player if they close tab
             
+            set(pRef, { name, team, x: 500, y: 350, caught: false });
             switchScreen('screen-lobby');
-            startEngine();
         };
 
-        // ==========================================
-        // HOST COMMANDS & THE FIREBASE CLEAN-RESET
-        // ==========================================
+        // --- HOST FUNCTIONS ---
         window.hostStartRound = async (roundNum) => {
             const seekerTeam = roundNum === 1 ? 'Red' : 'Blue';
             
-            // 1. Fetch current players to prevent deleting them, but wiping their state
-            const snap = await get(ref(db, 'friction_race/players'));
+            // Fetch current players to wipe their positions/status without deleting them
+            const snap = await get(ref(db, 'friction_frenzy/players'));
             const currentPlayers = snap.val() || {};
             
             let updates = {};
             
-            // 2. THE FIX: Loop over every player and forcefully reset their physics and statuses.
-            // No data carries over from the previous round!
+            // CLEAN WIPE: Reset all players to opposite sides based on team
             Object.keys(currentPlayers).forEach(pid => {
                 const p = currentPlayers[pid];
-                // Spawn Red Team at Top, Blue Team at Bottom so they must cross surfaces
-                const spawnY = p.team === 'Red' ? 100 + Math.random()*50 : GAME_H - 150 + Math.random()*50;
-                const spawnX = 100 + Math.random() * (GAME_W - 200);
+                // Red spawns on the left, Blue on the right
+                const spawnX = p.team === 'Red' ? 100 + Math.random()*100 : 800 + Math.random()*100;
+                const spawnY = 100 + Math.random() * 500;
 
                 updates[`players/${pid}/x`] = spawnX;
                 updates[`players/${pid}/y`] = spawnY;
                 updates[`players/${pid}/caught`] = false;
             });
 
-            // Set game state
+            // Set global game state
             updates['gameState/phase'] = 'playing';
             updates['gameState/round'] = roundNum;
             updates['gameState/seekerTeam'] = seekerTeam;
             updates['gameState/timeRemaining'] = 60; // 60 seconds
 
-            // Atomic update to Firebase ensures everyone resets simultaneously
-            await update(ref(db, 'friction_race'), updates);
+            await update(ref(db, 'friction_frenzy'), updates);
         };
 
         window.hostReset = () => {
-            set(ref(db, 'friction_race'), { gameState: { phase: 'lobby' }, players: {} });
+            // Sends everyone back to lobby, but doesn't delete players
+            update(ref(db, 'friction_frenzy/gameState'), { phase: 'lobby' });
         };
 
-        // ==========================================
-        // DB LISTENERS
-        // ==========================================
+        // --- FIREBASE LISTENERS ---
         function setupListeners() {
-            onValue(ref(db, 'friction_race/gameState'), snap => {
+            // Listen to Game State changes
+            onValue(ref(db, 'friction_frenzy/gameState'), snap => {
                 globalState = snap.val() || { phase: 'lobby' };
                 
                 if (globalState.phase === 'lobby') {
+                    if (gameInstance) { gameInstance.destroy(true); gameInstance = null; }
+                    
                     if (isHost) switchScreen('screen-host');
                     else if (myId) switchScreen('screen-lobby');
                     else switchScreen('screen-login');
-                } else if (globalState.phase === 'playing' || globalState.phase === 'ended') {
-                    switchScreen(''); // hide HTML screens
+                } 
+                else if (globalState.phase === 'playing' || globalState.phase === 'ended') {
+                    switchScreen(''); // Hide menus
                     document.getElementById('game-ui').style.display = 'block';
-                    resizeCanvas();
                     
-                    // Update HUD
-                    document.getElementById('hud-timer').innerText = `Time: ${globalState.timeRemaining}s`;
+                    if (!gameInstance) launchPhaserGame();
+
+                    // Update HUD text
+                    document.getElementById('hud-timer').innerText = `00:${globalState.timeRemaining.toString().padStart(2, '0')}`;
+                    
                     if (globalState.phase === 'ended') {
                         document.getElementById('hud-status').innerText = "ROUND OVER";
                         document.getElementById('hud-status').style.color = "#F59E0B";
                     } else {
-                        const isSeeker = localPlayer.team === globalState.seekerTeam;
-                        document.getElementById('hud-status').innerText = isHost ? `${globalState.seekerTeam} TEAM IS SEEKING` : (isSeeker ? "YOU ARE THE CATCHER!" : "RUN AWAY!");
-                        document.getElementById('hud-status').style.color = globalState.seekerTeam === 'Red' ? varRed : varBlue;
+                        if (isHost) {
+                            document.getElementById('hud-status').innerText = `${globalState.seekerTeam.toUpperCase()} IS HUNTING`;
+                            document.getElementById('hud-status').style.color = globalState.seekerTeam === 'Red' ? '#EF4444' : '#38BDF8';
+                            document.getElementById('hud-controls').innerText = "Spectator Observer Mode";
+                        } else {
+                            const isSeeker = localPlayer.team === globalState.seekerTeam;
+                            document.getElementById('hud-status').innerText = isSeeker ? "YOU ARE SEEKING! CATCH THEM!" : "YOU ARE HIDING! RUN!";
+                            document.getElementById('hud-status').style.color = isSeeker ? '#10B981' : '#F59E0B';
+                        }
                     }
 
-                    // If a player just entered the round, wipe local velocity memory
-                    if(globalState.timeRemaining === 60) {
+                    // Hard reset local velocity if round just started to clear ghost momentum
+                    if (globalState.timeRemaining === 60) {
                         localPlayer.vx = 0; localPlayer.vy = 0;
                     }
                 }
             });
 
-            onValue(ref(db, 'friction_race/players'), snap => {
+            // Listen to Player Updates
+            onValue(ref(db, 'friction_frenzy/players'), snap => {
                 remotePlayers = snap.val() || {};
                 
-                // Update lobby lists
+                // Update UI Lists
                 let html = '';
                 Object.values(remotePlayers).forEach(p => {
-                    let teamClass = p.team === 'Red' ? 'team-red' : 'team-blue';
-                    let status = p.caught ? ' (CAUGHT)' : '';
-                    html += `<li><span class="${teamClass}">${p.name} [${p.team}]</span> <span>${status}</span></li>`;
+                    let status = p.caught ? ' <span style="color:#64748B;">(CAUGHT)</span>' : '';
+                    html += `<li><span class="team-${p.team}">${p.name} [${p.team}]</span> ${status}</li>`;
                 });
                 if(document.getElementById('lobby-players')) document.getElementById('lobby-players').innerHTML = html;
                 if(document.getElementById('host-players')) document.getElementById('host-players').innerHTML = html || "<span style='color:#94A3B8'>No telemetry signals detected.</span>";
 
-                // Sync local player if caught status changes by host
+                // Sync caught status to local player
                 if (myId && remotePlayers[myId]) {
                     localPlayer.caught = remotePlayers[myId].caught;
-                    // Note: We don't overwrite localPlayer.x/y here to prevent jitter, 
-                    // unless they just got explicitly teleported (handled via timeRemaining trick above or distance checks).
                 }
             });
         }
 
-        // ==========================================
-        // GAME ENGINE & PHYSICS
-        // ==========================================
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
-        const varRed = '#EF4444'; const varBlue = '#38BDF8';
+        // --- PHASER 3 GAME ENGINE ---
+        function launchPhaserGame() {
+            // Force browser repaint to avoid 0x0 canvas bug
+            document.getElementById('game-container').getBoundingClientRect();
 
-        let keys = { ArrowUp:false, ArrowDown:false, ArrowLeft:false, ArrowRight:false, w:false, a:false, s:false, d:false };
-        window.addEventListener('keydown', e => keys[e.key] = true);
-        window.addEventListener('keyup', e => keys[e.key] = false);
+            const config = {
+                type: Phaser.AUTO,
+                parent: 'game-container',
+                scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: 1000, height: 700 },
+                scene: { create: createGame, update: updateGame }
+            };
 
-        // Joystick Logic
-        const joyZone = document.getElementById('joystick-zone');
-        const joyKnob = document.getElementById('joystick-knob');
-        let joyActive = false;
-        let joyVec = { x: 0, y: 0 };
-        
-        joyZone.addEventListener('pointerdown', e => { joyActive = true; handleJoy(e); });
-        window.addEventListener('pointermove', e => { if(joyActive) handleJoy(e); });
-        window.addEventListener('pointerup', () => { joyActive = false; joyKnob.style.transform = `translate(0px, 0px)`; joyVec = {x:0, y:0}; });
+            gameInstance = new Phaser.Game(config);
 
-        function handleJoy(e) {
-            const rect = joyZone.getBoundingClientRect();
-            const centerX = rect.left + rect.width / 2;
-            const centerY = rect.top + rect.height / 2;
-            let dx = e.clientX - centerX;
-            let dy = e.clientY - centerY;
-            const distance = Math.min(rect.width/2, Math.hypot(dx, dy));
-            const angle = Math.atan2(dy, dx);
+            let sprites = {};
+            let cursors;
             
-            const knobX = Math.cos(angle) * distance;
-            const knobY = Math.sin(angle) * distance;
-            joyKnob.style.transform = `translate(${knobX}px, ${knobY}px)`;
-            
-            // Normalize -1 to 1
-            joyVec.x = knobX / (rect.width/2);
-            joyVec.y = knobY / (rect.height/2);
-        }
+            // Joystick state
+            let joyActive = false;
+            let joyVec = { x: 0, y: 0 };
 
-        function resizeCanvas() {
-            const ratio = GAME_W / GAME_H;
-            let winW = window.innerWidth;
-            let winH = window.innerHeight;
-            if (winW / winH < ratio) {
-                canvas.style.width = winW + 'px';
-                canvas.style.height = (winW / ratio) + 'px';
-            } else {
-                canvas.style.height = winH + 'px';
-                canvas.style.width = (winH * ratio) + 'px';
-            }
-        }
-        window.addEventListener('resize', resizeCanvas);
+            function createGame() {
+                const scene = this;
 
-        function startEngine() {
-            requestAnimationFrame(gameLoop);
-            if(isHost) setInterval(hostLogicLoop, 100); // Host ticks
-        }
+                // 1. Draw 4 Friction Lanes (Ice, Wood, Carpet, Rubber)
+                const laneW = 1000 / 4;
+                SURFACES.forEach((surf, i) => {
+                    scene.add.rectangle(i * laneW + (laneW/2), 350, laneW, 700, surf.color).setDepth(0);
+                    scene.add.text(i * laneW + (laneW/2), 30, surf.name.toUpperCase(), { font: "bold 24px Inter", fill: surf.text }).setOrigin(0.5).setDepth(1).setAlpha(0.3);
+                });
 
-        // --- CLIENT PHYSICS LOOP ---
-        let lastSync = 0;
-        function gameLoop() {
-            if (globalState.phase === 'playing' && !isHost && !localPlayer.caught) {
-                // Determine Current Zone (4 lanes, 250px each)
-                let zoneIndex = Math.floor(localPlayer.x / (GAME_W / 4));
-                zoneIndex = Math.max(0, Math.min(3, zoneIndex));
-                const physics = SURFACES[zoneIndex];
+                // Controls setup
+                cursors = scene.input.keyboard.createCursorKeys();
+                scene.input.keyboard.addKey('W'); scene.input.keyboard.addKey('A');
+                scene.input.keyboard.addKey('S'); scene.input.keyboard.addKey('D');
 
-                // Input Vectors
-                let inputX = joyVec.x; let inputY = joyVec.y;
-                if (keys.ArrowUp || keys.w) inputY = -1;
-                if (keys.ArrowDown || keys.s) inputY = 1;
-                if (keys.ArrowLeft || keys.a) inputX = -1;
-                if (keys.ArrowRight || keys.d) inputX = 1;
+                // Mobile Joystick Setup
+                const joyZone = document.getElementById('joystick-zone');
+                const joyKnob = document.getElementById('joystick-knob');
+                
+                joyZone.addEventListener('pointerdown', e => { joyActive = true; handleJoy(e); });
+                window.addEventListener('pointermove', e => { if(joyActive) handleJoy(e); });
+                window.addEventListener('pointerup', () => { joyActive = false; joyKnob.style.transform = `translate(0px, 0px)`; joyVec = {x:0, y:0}; });
 
-                // Normalize keyboard diagonal
-                if(inputX !== 0 && inputY !== 0 && !joyActive) {
-                    const length = Math.hypot(inputX, inputY);
-                    inputX /= length; inputY /= length;
+                function handleJoy(e) {
+                    const rect = joyZone.getBoundingClientRect();
+                    const centerX = rect.left + rect.width / 2;
+                    const centerY = rect.top + rect.height / 2;
+                    let dx = e.clientX - centerX;
+                    let dy = e.clientY - centerY;
+                    const dist = Math.min(rect.width/2, Math.hypot(dx, dy));
+                    const angle = Math.atan2(dy, dx);
+                    
+                    const knobX = Math.cos(angle) * dist;
+                    const knobY = Math.sin(angle) * dist;
+                    joyKnob.style.transform = `translate(${knobX}px, ${knobY}px)`;
+                    
+                    joyVec.x = knobX / (rect.width/2);
+                    joyVec.y = knobY / (rect.height/2);
                 }
 
-                // Apply Acceleration based on Surface
-                localPlayer.vx += inputX * physics.accel;
-                localPlayer.vy += inputY * physics.accel;
-
-                // Apply Drag (Friction) based on Surface
-                localPlayer.vx *= physics.friction;
-                localPlayer.vy *= physics.friction;
-
-                // Speed Cap
-                const speed = Math.hypot(localPlayer.vx, localPlayer.vy);
-                if (speed > physics.maxSpd) {
-                    localPlayer.vx = (localPlayer.vx / speed) * physics.maxSpd;
-                    localPlayer.vy = (localPlayer.vy / speed) * physics.maxSpd;
-                }
-
-                // Apply Movement
-                localPlayer.x += localPlayer.vx;
-                localPlayer.y += localPlayer.vy;
-
-                // Walls
-                if (localPlayer.x < 15) { localPlayer.x = 15; localPlayer.vx *= -0.5; }
-                if (localPlayer.x > GAME_W - 15) { localPlayer.x = GAME_W - 15; localPlayer.vx *= -0.5; }
-                if (localPlayer.y < 15) { localPlayer.y = 15; localPlayer.vy *= -0.5; }
-                if (localPlayer.y > GAME_H - 15) { localPlayer.y = GAME_H - 15; localPlayer.vy *= -0.5; }
-
-                // Throttle Firebase Sync to prevent overwhelming network
-                if (Date.now() - lastSync > 40) { // ~25 fps sync
-                    update(ref(db, `friction_race/players/${myId}`), { x: localPlayer.x, y: localPlayer.y });
-                    lastSync = Date.now();
+                // Setup Host Timer Loop
+                if (isHost) {
+                    scene.time.addEvent({ delay: 1000, callback: hostTimerTick, loop: true });
                 }
             }
 
-            drawScene();
-            requestAnimationFrame(gameLoop);
-        }
+            function updateGame() {
+                const scene = this;
 
-        // --- HOST AUTHORITY LOOP ---
-        function hostLogicLoop() {
-            if (globalState.phase !== 'playing') return;
+                // 1. Sync Remote Sprites
+                Object.keys(remotePlayers).forEach(id => {
+                    const p = remotePlayers[id];
+                    
+                    if (!sprites[id]) {
+                        // Create sprite (Circle for players)
+                        let color = p.team === 'Red' ? 0xEF4444 : 0x38BDF8;
+                        let circle = scene.add.circle(p.x, p.y, 20, color).setDepth(5);
+                        circle.setStrokeStyle(3, 0xffffff);
+                        
+                        let nameTag = scene.add.text(p.x, p.y - 35, p.name, { font: "bold 14px Inter", fill: "#fff" }).setOrigin(0.5).setDepth(6);
+                        sprites[id] = { circle, nameTag };
+                    }
 
-            const players = Object.values(remotePlayers);
-            const seekers = players.filter(p => p.team === globalState.seekerTeam);
-            const hiders = players.filter(p => p.team !== globalState.seekerTeam && !p.caught);
+                    // Animate position smoothly, handle caught visual
+                    const s = sprites[id];
+                    let drawX = (id === myId && !isHost) ? localPlayer.x : p.x;
+                    let drawY = (id === myId && !isHost) ? localPlayer.y : p.y;
+                    let isCaught = (id === myId && !isHost) ? localPlayer.caught : p.caught;
 
-            // Host calculates Tag Collisions (Radius = 15, so distance < 30 = TAG)
-            let updates = {};
-            let taggedSomeone = false;
+                    s.circle.x = drawX; s.circle.y = drawY;
+                    s.nameTag.x = drawX; s.nameTag.y = drawY - 35;
 
-            seekers.forEach(s => {
-                hiders.forEach(h => {
-                    const dist = Math.hypot(s.x - h.x, s.y - h.y);
-                    if (dist < 30) {
-                        updates[`players/${h.id}/caught`] = true;
-                        taggedSomeone = true;
+                    if (isCaught) {
+                        s.circle.setFillStyle(0x64748B); // Grey out caught players
+                        s.circle.setAlpha(0.5);
+                    } else {
+                        s.circle.setFillStyle(p.team === 'Red' ? 0xEF4444 : 0x38BDF8);
+                        s.circle.setAlpha(1);
                     }
                 });
-            });
 
-            if (taggedSomeone) {
-                update(ref(db, 'friction_race'), updates);
+                // Remove disconnected sprites
+                Object.keys(sprites).forEach(id => {
+                    if (!remotePlayers[id]) {
+                        sprites[id].circle.destroy(); sprites[id].nameTag.destroy();
+                        delete sprites[id];
+                    }
+                });
+
+                // 2. Client Physics Loop
+                if (!isHost && globalState.phase === 'playing' && !localPlayer.caught) {
+                    
+                    // Input Vector
+                    let ix = joyVec.x; let iy = joyVec.y;
+                    if (cursors.up.isDown || scene.input.keyboard.keys[87]?.isDown) iy = -1;
+                    if (cursors.down.isDown || scene.input.keyboard.keys[83]?.isDown) iy = 1;
+                    if (cursors.left.isDown || scene.input.keyboard.keys[65]?.isDown) ix = -1;
+                    if (cursors.right.isDown || scene.input.keyboard.keys[68]?.isDown) ix = 1;
+
+                    // Normalize diagonal keyboard input
+                    if (ix !== 0 && iy !== 0 && !joyActive) {
+                        const len = Math.hypot(ix, iy);
+                        ix /= len; iy /= len;
+                    }
+
+                    // Determine Current Zone physics
+                    let zoneIndex = Math.floor(localPlayer.x / 250);
+                    zoneIndex = Math.max(0, Math.min(3, zoneIndex));
+                    const physics = SURFACES[zoneIndex];
+
+                    // Apply acceleration
+                    localPlayer.vx += ix * physics.accel;
+                    localPlayer.vy += iy * physics.accel;
+
+                    // Apply drag (friction)
+                    localPlayer.vx *= physics.friction;
+                    localPlayer.vy *= physics.friction;
+
+                    // Cap to max speed
+                    const speed = Math.hypot(localPlayer.vx, localPlayer.vy);
+                    if (speed > physics.maxSpd) {
+                        localPlayer.vx = (localPlayer.vx / speed) * physics.maxSpd;
+                        localPlayer.vy = (localPlayer.vy / speed) * physics.maxSpd;
+                    }
+
+                    localPlayer.x += localPlayer.vx;
+                    localPlayer.y += localPlayer.vy;
+
+                    // Walls (Bounce)
+                    if (localPlayer.x < 20) { localPlayer.x = 20; localPlayer.vx *= -0.5; }
+                    if (localPlayer.x > 980) { localPlayer.x = 980; localPlayer.vx *= -0.5; }
+                    if (localPlayer.y < 20) { localPlayer.y = 20; localPlayer.vy *= -0.5; }
+                    if (localPlayer.y > 680) { localPlayer.y = 680; localPlayer.vy *= -0.5; }
+
+                    // Send to Firebase
+                    update(ref(db, `friction_frenzy/players/${myId}`), { x: localPlayer.x, y: localPlayer.y });
+                }
+
+                // 3. Host Collision Detection Loop
+                if (isHost && globalState.phase === 'playing') {
+                    const players = Object.values(remotePlayers);
+                    const seekers = players.filter(p => p.team === globalState.seekerTeam);
+                    const hiders = players.filter(p => p.team !== globalState.seekerTeam && !p.caught);
+
+                    let updates = {};
+                    let taggedSomeone = false;
+
+                    // Radius of player is 20. If distance < 40, they are touching.
+                    seekers.forEach(s => {
+                        hiders.forEach(h => {
+                            const dist = Math.hypot(s.x - h.x, s.y - h.y);
+                            if (dist < 40) {
+                                updates[`players/${h.id}/caught`] = true;
+                                taggedSomeone = true;
+                            }
+                        });
+                    });
+
+                    // If everyone is caught, end early
+                    if (hiders.length === 0 && players.length > 1) {
+                        updates['gameState/phase'] = 'ended';
+                        taggedSomeone = true;
+                    }
+
+                    if (taggedSomeone) {
+                        update(ref(db, 'friction_frenzy'), updates);
+                    }
+                }
             }
 
-            // Host decrements timer
-            if (!window.lastTimeCheck) window.lastTimeCheck = Date.now();
-            if (Date.now() - window.lastTimeCheck > 1000) {
-                let timeLeft = globalState.timeRemaining - 1;
-                
-                // End Condition
-                if (timeLeft <= 0 || hiders.length === 0) {
-                    update(ref(db, 'friction_race/gameState'), { phase: 'ended', timeRemaining: 0 });
-                } else {
-                    update(ref(db, 'friction_race/gameState'), { timeRemaining: timeLeft });
+            // Host Timer Callback
+            function hostTimerTick() {
+                if (globalState.phase === 'playing') {
+                    let timeLeft = globalState.timeRemaining - 1;
+                    if (timeLeft <= 0) {
+                        update(ref(db, 'friction_frenzy/gameState'), { phase: 'ended', timeRemaining: 0 });
+                    } else {
+                        update(ref(db, 'friction_frenzy/gameState'), { timeRemaining: timeLeft });
+                    }
                 }
-                window.lastTimeCheck = Date.now();
             }
         }
 
-        // --- RENDERER ---
-        function drawScene() {
-            ctx.clearRect(0, 0, GAME_W, GAME_H);
-
-            // 1. Draw The 4 Friction Surfaces
-            const laneW = GAME_W / 4;
-            SURFACES.forEach((surf, i) => {
-                ctx.fillStyle = surf.color;
-                ctx.fillRect(i * laneW, 0, laneW, GAME_H);
-                
-                // Texture Details
-                ctx.strokeStyle = "rgba(255,255,255,0.1)";
-                ctx.lineWidth = 2;
-                if (surf.name === "Ice") {
-                    // Slight shiny streaks
-                    ctx.beginPath(); ctx.moveTo(i*laneW + 50, 100); ctx.lineTo(i*laneW + 200, 300); ctx.stroke();
-                } else if (surf.name === "Carpet") {
-                    // Dotted texture representation
-                    ctx.fillStyle = "rgba(0,0,0,0.05)";
-                    for(let x=0; x<10; x++) for(let y=0; y<10; y++) ctx.fillRect(i*laneW + x*25, y*70, 5, 5);
-                } else if (surf.name === "Rubber") {
-                    // Grid pattern
-                    for(let x=0; x<laneW; x+=40) { ctx.beginPath(); ctx.moveTo(i*laneW+x, 0); ctx.lineTo(i*laneW+x, GAME_H); ctx.stroke(); }
-                }
-
-                // Title
-                ctx.fillStyle = "rgba(255,255,255,0.7)";
-                ctx.font = "bold 24px Inter";
-                ctx.textAlign = "center";
-                ctx.fillText(surf.name, i * laneW + laneW/2, 40);
-            });
-
-            // 2. Draw Players
-            Object.values(remotePlayers).forEach(p => {
-                // If the player is the local client, use our ultra-smooth local positions, not the jittery network ones.
-                const drawX = (p.id === myId) ? localPlayer.x : p.x;
-                const drawY = (p.id === myId) ? localPlayer.y : p.y;
-                const isCaught = (p.id === myId) ? localPlayer.caught : p.caught;
-
-                ctx.beginPath();
-                ctx.arc(drawX, drawY, 15, 0, Math.PI * 2);
-                
-                if (isCaught) {
-                    ctx.fillStyle = "#64748B"; // Ghosted
-                    ctx.shadowBlur = 0;
-                } else {
-                    ctx.fillStyle = p.team === 'Red' ? varRed : varBlue;
-                    ctx.shadowColor = ctx.fillStyle;
-                    ctx.shadowBlur = p.team === globalState.seekerTeam ? 15 : 5; // Seekers glow bright
-                }
-                ctx.fill();
-
-                // Name Tag
-                ctx.fillStyle = isCaught ? "#64748B" : "#FFF";
-                ctx.font = "14px Inter";
-                ctx.textAlign = "center";
-                ctx.shadowBlur = 0;
-                ctx.fillText(p.name, drawX, drawY - 25);
-            });
-        }
-
-        // Init Sequence
+        // Initialize App routing
         if (isHost) {
             switchScreen('screen-host');
-            set(stateRef, { phase: 'lobby' }); // Wipe state on host load
+            set(stateRef, { phase: 'lobby' }); // Wipe state automatically on Host Load
         } else {
             switchScreen('screen-login');
         }
         setupListeners();
-        
-        // Host needs engine running to spectate
-        if (isHost) startEngine();
-
     </script>
 </body>
 </html>
