@@ -1,1520 +1,1057 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Cosmic Fact-Roundup</title>
-  <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
-  <style>
-    :root {
-      --bg: #0b0f19;
-      --panel: rgba(15, 23, 42, 0.95);
-      --blue: #3b82f6;
-      --blue-dark: #2563eb;
-      --gold: #d97706;
-      --gold-dark: #b45309;
-      --teal: #00ffcc;
-      --text-muted: #94a3b8;
-      --danger: #ef4444;
-      --success: #10b981;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Cosmic Fact-Roundup</title>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #0b0f19;
+            color: white;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+        }
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        canvas {
+            box-shadow: 0 0 20px rgba(0,255,204,0.2);
+            border: 2px solid #1e293b;
+            border-radius: 8px;
+            max-width: 100vw;
+            max-height: 100vh;
+        }
 
-    * { box-sizing: border-box; }
-    html, body {
-      margin: 0;
-      padding: 0;
-      width: 100%;
-      height: 100%;
-      background: var(--bg);
-      color: white;
-      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-      overflow: hidden;
-    }
+        #ui-layer {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .panel {
+            pointer-events: auto;
+            background: rgba(15, 23, 42, 0.95);
+            border: 2px solid #3b82f6;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+        }
+        #start-screen { width: 400px; max-width: 90%; }
+        h1 {
+            margin-top: 0;
+            color: #00ffcc;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 0 0 10px rgba(0,255,204,0.5);
+        }
+        input {
+            width: 80%;
+            padding: 10px;
+            margin: 10px 0;
+            background: #1e293b;
+            border: 1px solid #3b82f6;
+            color: white;
+            border-radius: 4px;
+            text-align: center;
+        }
+        .btn {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-weight: bold;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+            transition: 0.2s;
+        }
+        .btn:hover { background: #2563eb; transform: translateY(-2px); }
+        .btn:disabled { background: #475569; cursor: not-allowed; transform: none; }
+        .btn-gold { background: #d97706; }
+        .btn-gold:hover { background: #b45309; }
 
-    body {
-      overscroll-behavior: none;
-      touch-action: none;
-    }
+        #teacher-dash {
+            display: none;
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            width: 250px;
+            text-align: left;
+            padding: 10px;
+        }
+        #teacher-dash h3 {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+            color: #fbbf24;
+            border-bottom: 1px solid #fbbf24;
+            padding-bottom: 5px;
+        }
+        #hud {
+            display: none;
+            position: absolute;
+            top: 10px;
+            width: 100%;
+            justify-content: space-between;
+            padding: 0 20px;
+            box-sizing: border-box;
+            font-size: 20px;
+            font-weight: bold;
+            text-shadow: 0 0 5px black;
+        }
+        #timer { color: #facc15; }
+        #sentence-container {
+            display: none;
+            position: absolute;
+            bottom: 90px;
+            width: min(80%, 900px);
+            background: rgba(0,0,0,0.8);
+            border: 2px solid #facc15;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 20px;
+            text-align: center;
+            pointer-events: none;
+        }
+        .blank {
+            display: inline-block;
+            width: 120px;
+            height: 30px;
+            border-bottom: 3px dashed #facc15;
+            margin: 0 10px;
+            vertical-align: bottom;
+        }
+        #leaderboard {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: min(600px, 90vw);
+            gap: 20px;
+        }
+        .lb-col {
+            flex: 1;
+            background: rgba(0,0,0,0.9);
+            border: 2px solid #3b82f6;
+            border-radius: 8px;
+            padding: 15px;
+        }
+        .lb-col h3 { color: #00ffcc; text-align: center; margin-top: 0; }
+        .lb-list { list-style: none; padding: 0; margin: 0; font-size: 14px; }
+        .lb-list li {
+            padding: 5px 0;
+            border-bottom: 1px solid #334155;
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+        }
 
-    #game-container {
-      position: relative;
-      width: 100vw;
-      height: 100vh;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      overflow: hidden;
-    }
+        #controls-hint {
+            display: none;
+            position: absolute;
+            left: 20px;
+            top: 56px;
+            font-size: 12px;
+            color: #cbd5e1;
+            text-shadow: 0 0 4px black;
+        }
+        #mobile-controls {
+            display: none;
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+        }
+        #mobile-controls.visible {
+            display: block;
+        }
+        #lasso-btn {
+            pointer-events: auto;
+            position: absolute;
+            left: 24px;
+            bottom: 24px;
+            width: 88px;
+            height: 88px;
+            border-radius: 50%;
+            background: rgba(59,130,246,0.55);
+            border: 3px solid #3b82f6;
+            color: white;
+            font-weight: bold;
+            text-shadow: 0 0 5px black;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        #lasso-btn:active { background: rgba(59,130,246,0.85); }
+        .d-pad {
+            pointer-events: auto;
+            position: absolute;
+            right: 24px;
+            bottom: 24px;
+            display: grid;
+            grid-template-columns: repeat(3, 64px);
+            grid-template-rows: repeat(3, 64px);
+            gap: 6px;
+        }
+        .m-btn {
+            background: rgba(255,255,255,0.2);
+            border: 2px solid rgba(255,255,255,0.4);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: white;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+        }
+        .m-btn:active { background: rgba(255,255,255,0.5); }
+        .shake { animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both; }
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+            40%, 60% { transform: translate3d(4px, 0, 0); }
+        }
 
-    canvas {
-      box-shadow: 0 0 20px rgba(0, 255, 204, 0.2);
-      border: 2px solid #1e293b;
-      border-radius: 8px;
-      max-width: 100vw;
-      max-height: 100vh;
-    }
-
-    #ui-layer {
-      position: absolute;
-      inset: 0;
-      pointer-events: none;
-      z-index: 10;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .panel {
-      pointer-events: auto;
-      background: var(--panel);
-      border: 2px solid var(--blue);
-      border-radius: 10px;
-      padding: 20px;
-      text-align: center;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
-    }
-
-    #start-screen {
-      width: 420px;
-      max-width: 92vw;
-    }
-
-    h1 {
-      margin-top: 0;
-      margin-bottom: 12px;
-      color: var(--teal);
-      text-transform: uppercase;
-      letter-spacing: 2px;
-      text-shadow: 0 0 10px rgba(0, 255, 204, 0.45);
-    }
-
-    p.subtext {
-      color: var(--text-muted);
-      font-size: 14px;
-      margin-top: 0;
-      margin-bottom: 16px;
-    }
-
-    input {
-      width: 82%;
-      padding: 12px;
-      margin: 10px 0 12px;
-      background: #1e293b;
-      border: 1px solid var(--blue);
-      color: white;
-      border-radius: 6px;
-      text-align: center;
-      font-size: 15px;
-    }
-
-    .btn {
-      background: var(--blue);
-      color: white;
-      border: none;
-      padding: 12px 18px;
-      font-weight: 700;
-      border-radius: 6px;
-      cursor: pointer;
-      margin: 5px;
-      transition: transform 0.18s ease, background 0.18s ease;
-      min-height: 44px;
-    }
-
-    .btn:hover { background: var(--blue-dark); transform: translateY(-1px); }
-    .btn:disabled { background: #475569; cursor: not-allowed; transform: none; }
-    .btn-gold { background: var(--gold); }
-    .btn-gold:hover { background: var(--gold-dark); }
-
-    #teacher-dash {
-      display: none;
-      position: absolute;
-      top: 12px;
-      left: 12px;
-      width: 300px;
-      text-align: left;
-      padding: 12px;
-      pointer-events: auto;
-    }
-
-    #teacher-dash h3 {
-      margin: 0 0 12px 0;
-      font-size: 14px;
-      color: #fbbf24;
-      border-bottom: 1px solid #fbbf24;
-      padding-bottom: 8px;
-    }
-
-    #teacher-status {
-      margin-top: 10px;
-      font-size: 12px;
-      color: var(--danger);
-      min-height: 16px;
-      white-space: pre-wrap;
-    }
-
-    #hud {
-      display: none;
-      position: absolute;
-      top: 10px;
-      left: 0;
-      width: 100%;
-      padding: 0 18px;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 20px;
-      font-weight: 700;
-      text-shadow: 0 0 5px black;
-      pointer-events: none;
-    }
-
-    #timer { color: #facc15; }
-
-    #sentence-container {
-      display: none;
-      position: absolute;
-      left: 50%;
-      bottom: 92px;
-      transform: translateX(-50%);
-      width: min(860px, 86vw);
-      background: rgba(0, 0, 0, 0.82);
-      border: 2px solid #facc15;
-      padding: 15px;
-      border-radius: 8px;
-      font-size: 20px;
-      text-align: center;
-      pointer-events: none;
-      z-index: 12;
-    }
-
-    .blank {
-      display: inline-block;
-      width: 120px;
-      height: 30px;
-      border-bottom: 3px dashed #facc15;
-      margin: 0 10px;
-      vertical-align: bottom;
-    }
-
-    #leaderboard {
-      display: none;
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: min(700px, 92vw);
-      gap: 20px;
-      z-index: 20;
-    }
-
-    .lb-col {
-      flex: 1;
-      background: rgba(0, 0, 0, 0.9);
-      border: 2px solid var(--blue);
-      border-radius: 8px;
-      padding: 15px;
-    }
-
-    .lb-col h3 {
-      color: var(--teal);
-      text-align: center;
-      margin-top: 0;
-    }
-
-    .lb-list {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-      font-size: 14px;
-    }
-
-    .lb-list li {
-      padding: 5px 0;
-      border-bottom: 1px solid #334155;
-      display: flex;
-      justify-content: space-between;
-      gap: 12px;
-    }
-
-    #mobile-controls {
-      display: none;
-      position: absolute;
-      inset: auto 0 12px 0;
-      width: 100%;
-      pointer-events: none;
-      z-index: 15;
-    }
-
-    #mobile-controls.show {
-      display: block;
-    }
-
-    #lasso-btn {
-      pointer-events: auto;
-      position: absolute;
-      left: 20px;
-      bottom: 0;
-      width: 84px;
-      height: 84px;
-      border-radius: 50%;
-      background: rgba(59, 130, 246, 0.45);
-      border: 3px solid var(--blue);
-      color: white;
-      font-weight: 800;
-      letter-spacing: 0.5px;
-      text-shadow: 0 0 5px black;
-      font-size: 16px;
-      pointer-events: auto;
-    }
-
-    #lasso-btn:active,
-    .m-btn:active,
-    .m-btn.active,
-    #lasso-btn.active {
-      background: rgba(59, 130, 246, 0.8);
-    }
-
-    .d-pad {
-      pointer-events: none;
-      position: absolute;
-      right: 20px;
-      bottom: 0;
-      width: 180px;
-      height: 180px;
-    }
-
-    .m-btn {
-      position: absolute;
-      width: 60px;
-      height: 60px;
-      border-radius: 50%;
-      background: rgba(255, 255, 255, 0.18);
-      border: 2px solid rgba(255, 255, 255, 0.45);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 24px;
-      color: white;
-      user-select: none;
-      pointer-events: auto;
-      touch-action: none;
-      backdrop-filter: blur(2px);
-    }
-
-    #btn-up { left: 60px; top: 0; }
-    #btn-left { left: 0; top: 60px; }
-    #btn-right { left: 120px; top: 60px; }
-    #btn-down { left: 60px; top: 120px; }
-
-    #controls-tip {
-      display: none;
-      position: absolute;
-      left: 18px;
-      top: 58px;
-      font-size: 12px;
-      color: #cbd5e1;
-      background: rgba(15, 23, 42, 0.8);
-      border: 1px solid rgba(255,255,255,0.18);
-      border-radius: 6px;
-      padding: 8px 10px;
-      pointer-events: none;
-      z-index: 16;
-      max-width: min(340px, 70vw);
-    }
-
-    #controls-tip.show { display: block; }
-
-    .shake { animation: shake 0.45s cubic-bezier(.36,.07,.19,.97) both; }
-    @keyframes shake {
-      10%, 90% { transform: translate3d(-1px, 0, 0); }
-      20%, 80% { transform: translate3d(2px, 0, 0); }
-      30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
-      40%, 60% { transform: translate3d(4px, 0, 0); }
-    }
-
-    @media (max-width: 768px) {
-      #teacher-dash {
-        width: 260px;
-      }
-      #hud {
-        font-size: 17px;
-      }
-      #sentence-container {
-        font-size: 16px;
-        bottom: 108px;
-      }
-      #leaderboard {
-        flex-direction: column;
-      }
-    }
-  </style>
+        @media (max-width: 900px) {
+            #controls-hint { display: none !important; }
+            #mobile-controls.visible { display: block; }
+            #sentence-container { font-size: 16px; bottom: 120px; }
+        }
+    </style>
 </head>
 <body>
-  <div id="game-container"></div>
+    <div id="game-container"></div>
 
-  <div id="ui-layer">
-    <div id="start-screen" class="panel">
-      <h1>Cosmic Roundup</h1>
-      <p class="subtext">Lasso the facts and tow them to the correct planet.</p>
-      <input type="text" id="player-name" placeholder="Enter Your Name" maxlength="12" />
-      <div>
-        <button class="btn" id="btn-solo" onclick="joinGame('solo')" disabled>Loading...</button>
-        <button class="btn" id="btn-multi" onclick="joinGame('multi')" disabled>Loading...</button>
-        <button class="btn btn-gold" id="btn-host" onclick="checkTeacher()" disabled>Host (Teacher)</button>
-      </div>
-      <div id="teacher-status">Authenticating connection...</div>
+    <div id="ui-layer">
+        <div id="start-screen" class="panel">
+            <h1>Cosmic Roundup</h1>
+            <p style="color:#94a3b8; font-size:14px;">Lasso the facts and tow them to the correct planet.</p>
+            <input type="text" id="player-name" placeholder="Enter Your Name" maxlength="12">
+            <div>
+                <button class="btn" id="btn-solo" onclick="joinGame('solo')" disabled>Loading...</button>
+                <button class="btn" id="btn-multi" onclick="joinGame('multi')" disabled>Loading...</button>
+                <button class="btn btn-gold" id="btn-host" onclick="checkTeacher()" disabled>Host (Teacher)</button>
+            </div>
+            <div id="teacher-status" style="margin-top:10px; font-size:12px; color:#ef4444;">Authenticating Connection...</div>
+        </div>
+
+        <div id="teacher-dash" class="panel">
+            <h3>Mission Control (Host)</h3>
+            <button class="btn" onclick="startPhase1()" style="width:100%; margin-bottom:5px;">Start Phase 1 (Sorting)</button>
+            <button class="btn" onclick="startPhase2()" style="width:100%; margin-bottom:5px;">Trigger Phase 2 (Transitions)</button>
+            <button class="btn btn-gold" onclick="endGame()" style="width:100%;">End Game & Score</button>
+        </div>
+
+        <div id="hud">
+            <div id="phase-text">Waiting for host...</div>
+            <div id="timer">00:00</div>
+        </div>
+        <div id="controls-hint">Move: WASD / Arrow keys / Gamepad &nbsp; | &nbsp; Lasso: Space / Gamepad A</div>
+
+        <div id="sentence-container">
+            <div id="s1" style="display:none;"><span class="blank" id="b1"></span> Earth and Mars are terrestrial planets.</div>
+            <div id="s2" style="display:none;">Earth has one moon; <span class="blank" id="b2"></span>, Mars has two.</div>
+            <div id="s3" style="display:none;">Earth is blue, <span class="blank" id="b3"></span> Mars is red.</div>
+        </div>
+
+        <div id="leaderboard" style="display:none;">
+            <div class="lb-col">
+                <h3>Top Solo Times</h3>
+                <ul class="lb-list" id="lb-solo"></ul>
+            </div>
+            <div class="lb-col">
+                <h3>Top Class Times</h3>
+                <ul class="lb-list" id="lb-multi"></ul>
+            </div>
+            <button class="btn" onclick="location.reload()" style="position:absolute; bottom:-50px; left:50%; transform:translateX(-50%);">Play Again</button>
+        </div>
+
+        <div id="mobile-controls">
+            <button id="lasso-btn">LASSO</button>
+            <div class="d-pad">
+                <div class="m-btn" id="btn-up" style="grid-column:2; grid-row:1;">▲</div>
+                <div class="m-btn" id="btn-left" style="grid-column:1; grid-row:2;">◀</div>
+                <div class="m-btn" id="btn-right" style="grid-column:3; grid-row:2;">▶</div>
+                <div class="m-btn" id="btn-down" style="grid-column:2; grid-row:3;">▼</div>
+            </div>
+        </div>
     </div>
 
-    <div id="teacher-dash" class="panel">
-      <h3>Mission Control (Host)</h3>
-      <button class="btn" onclick="startPhase1()" style="width:100%; margin-bottom:6px;">Start Phase 1 (Sorting)</button>
-      <button class="btn" onclick="startPhase2()" style="width:100%; margin-bottom:6px;">Trigger Phase 2 (Transitions)</button>
-      <button class="btn btn-gold" onclick="endGame()" style="width:100%;">End Game &amp; Score</button>
-    </div>
-
-    <div id="hud">
-      <div id="phase-text">Waiting for host...</div>
-      <div id="timer">00:00</div>
-    </div>
-
-    <div id="sentence-container">
-      <div id="s1" style="display:none;"><span class="blank" id="b1"></span> Earth and Mars are terrestrial planets.</div>
-      <div id="s2" style="display:none;">Earth has one moon; <span class="blank" id="b2"></span> Mars has two.</div>
-      <div id="s3" style="display:none;">Earth is blue, <span class="blank" id="b3"></span> Mars is red.</div>
-    </div>
-
-    <div id="leaderboard">
-      <div class="lb-col">
-        <h3>Top Solo Times</h3>
-        <ul class="lb-list" id="lb-solo"></ul>
-      </div>
-      <div class="lb-col">
-        <h3>Top Class Times</h3>
-        <ul class="lb-list" id="lb-multi"></ul>
-      </div>
-      <button class="btn" onclick="location.reload()" style="position:absolute; bottom:-52px; left:50%; transform:translateX(-50%);">Play Again</button>
-    </div>
-
-    <div id="controls-tip">Controls: WASD or Arrow Keys to fly, Space to lasso. Gamepad left stick / D-pad to fly, A or X to lasso.</div>
-
-    <div id="mobile-controls">
-      <button id="lasso-btn" type="button">LASSO</button>
-      <div class="d-pad">
-        <div class="m-btn" id="btn-up">▲</div>
-        <div class="m-btn" id="btn-left">◀</div>
-        <div class="m-btn" id="btn-right">▶</div>
-        <div class="m-btn" id="btn-down">▼</div>
-      </div>
-    </div>
-  </div>
-
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-    import { getDatabase, ref, set, onValue, push, remove, update, get, onDisconnect } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyBXgT_LxFUar6FcfFqKJsuY2YIOjG5JLtM",
-      authDomain: "symmetry-and-nets.firebaseapp.com",
-      databaseURL: "https://symmetry-and-nets-default-rtdb.europe-west1.firebasedatabase.app",
-      projectId: "symmetry-and-nets",
-      storageBucket: "symmetry-and-nets.firebasestorage.app",
-      messagingSenderId: "250211420064",
-      appId: "1:250211420064:web:fe4a064715042bedf546c5"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getDatabase(app);
-
-    const DB = {
-      roomMeta: 'learningLibrary/roomMeta',
-      hostUid: 'learningLibrary/roomMeta/hostUid',
-      roomOpen: 'learningLibrary/roomMeta/roomOpen',
-      sessionId: 'learningLibrary/roomMeta/sessionId',
-      sessionStartedAt: 'learningLibrary/roomMeta/sessionStartedAt',
-      statusText: 'learningLibrary/roomMeta/statusText',
-      players: 'learningLibrary/players',
-      gameRoot: 'learningLibrary/meta/cosmic',
-      phaseData: 'learningLibrary/meta/cosmic/phaseData',
-      asteroids: 'learningLibrary/meta/cosmic/asteroids',
-      boards: 'learningLibrary/boards'
-    };
-
-    const PHASE_FACTS = [
-      { id: 'f1', text: 'Third from Sun', correct: 'earth' },
-      { id: 'f2', text: 'Fourth from Sun', correct: 'mars' },
-      { id: 'f3', text: 'Solid Rock Crust', correct: 'both' },
-      { id: 'f4', text: 'Exactly One Moon', correct: 'earth' },
-      { id: 'f5', text: 'Exactly Two Moons', correct: 'mars' },
-      { id: 'f6', text: 'Blue & Green', correct: 'earth' },
-      { id: 'f7', text: 'Red Planet', correct: 'mars' }
-    ];
-
-    const PHASE_WORDS = [
-      { id: 'w1', text: 'Both', correct: 'b1' },
-      { id: 'w2', text: 'However', correct: 'b2' },
-      { id: 'w3', text: 'Whereas', correct: 'b3' }
-    ];
-
-    const ui = {
-      startScreen: document.getElementById('start-screen'),
-      teacherDash: document.getElementById('teacher-dash'),
-      teacherStatus: document.getElementById('teacher-status'),
-      hud: document.getElementById('hud'),
-      phaseText: document.getElementById('phase-text'),
-      timer: document.getElementById('timer'),
-      sentenceContainer: document.getElementById('sentence-container'),
-      leaderboard: document.getElementById('leaderboard'),
-      soloBtn: document.getElementById('btn-solo'),
-      multiBtn: document.getElementById('btn-multi'),
-      hostBtn: document.getElementById('btn-host'),
-      playerName: document.getElementById('player-name'),
-      mobileControls: document.getElementById('mobile-controls'),
-      controlsTip: document.getElementById('controls-tip')
-    };
-
-    const gameState = {
-      mode: null,
-      role: null,
-      myUid: null,
-      phase: 0,
-      startTime: 0,
-      isPhysicsHost: false,
-      currentSessionId: null,
-      authReady: false,
-      hasShownControlsTip: false,
-      scoreSubmitted: false,
-      phase1AutoStarted: false,
-      lastHudPhaseText: 'Waiting for host...'
-    };
-    window.gameState = gameState;
-
-    let pScene = null;
-    let myShip = null;
-    let otherShips = {};
-    let asteroids = {};
-    let hazards = [];
-    let keyboard = null;
-    let lassoLine = null;
-    let inputState = { up: false, down: false, left: false, right: false, lasso: false };
-    let isLassoing = null;
-    let stunUntil = 0;
-    let phaserBooted = false;
-    let timerInterval = null;
-    let postUpdateHookBound = false;
-    let latestPlayersSnapshot = {};
-
-    const dropZones = {
-      earth: { x: 350, y: 300 },
-      mars: { x: 650, y: 300 }
-    };
-
-    function setStatus(message, isError = false) {
-      ui.teacherStatus.style.color = isError ? '#ef4444' : '#94a3b8';
-      ui.teacherStatus.textContent = message || '';
-    }
-
-    function logError(context, error) {
-      console.error(context, error);
-      const message = error?.code ? `${context}: ${error.code} ${error.message}` : `${context}: ${error?.message || error}`;
-      setStatus(message, true);
-    }
-
-    async function safeSet(path, value) {
-      try {
-        await set(ref(db, path), value);
-        return true;
-      } catch (error) {
-        logError(`Write failed for ${path}`, error);
-        return false;
-      }
-    }
-
-    async function safeUpdate(path, value) {
-      try {
-        await update(ref(db, path), value);
-        return true;
-      } catch (error) {
-        logError(`Update failed for ${path}`, error);
-        return false;
-      }
-    }
-
-    async function safeRemove(path) {
-      try {
-        await remove(ref(db, path));
-        return true;
-      } catch (error) {
-        logError(`Remove failed for ${path}`, error);
-        return false;
-      }
-    }
-
-    function formatTimer(msStart) {
-      if (!msStart) return '00:00';
-      const elapsed = Math.max(0, Math.floor((Date.now() - msStart) / 1000));
-      const minutes = String(Math.floor(elapsed / 60)).padStart(2, '0');
-      const seconds = String(elapsed % 60).padStart(2, '0');
-      return `${minutes}:${seconds}`;
-    }
-
-    function updateTimer() {
-      if (gameState.phase === 1 || gameState.phase === 2) {
-        ui.timer.textContent = formatTimer(gameState.startTime);
-      }
-    }
-
-    function ensureTimerLoop() {
-      if (timerInterval) return;
-      timerInterval = setInterval(updateTimer, 250);
-    }
-
-    function resetInputState() {
-      inputState.up = false;
-      inputState.down = false;
-      inputState.left = false;
-      inputState.right = false;
-      inputState.lasso = false;
-      document.querySelectorAll('.m-btn, #lasso-btn').forEach(el => el.classList.remove('active'));
-    }
-
-    window.addEventListener('blur', resetInputState);
-    document.addEventListener('visibilitychange', () => {
-      if (document.hidden) resetInputState();
-    });
-
-    function showStudentUi() {
-      ui.startScreen.style.display = 'none';
-      ui.teacherDash.style.display = gameState.role === 'teacher' ? 'block' : 'none';
-      ui.hud.style.display = gameState.role === 'student' ? 'flex' : 'none';
-      updateControlsVisibility();
-    }
-
-    function updateControlsVisibility() {
-      const shouldShow = gameState.role === 'student';
-      ui.mobileControls.classList.toggle('show', shouldShow);
-      ui.controlsTip.classList.toggle('show', shouldShow);
-      if (shouldShow && !gameState.hasShownControlsTip) {
-        gameState.hasShownControlsTip = true;
-        setTimeout(() => ui.controlsTip.classList.remove('show'), 7000);
-      }
-    }
-
-    function getPlayerName() {
-      return (ui.playerName.value || '').trim().slice(0, 12) || 'Astronaut';
-    }
-
-    function buildSessionId() {
-      return `session_${Date.now()}`;
-    }
-
-    function buildAsteroidState(item, phase) {
-      const isPhase2 = phase === 2;
-      const x = isPhase2 ? Phaser.Math.Between(160, 840) : Phaser.Math.Between(120, 880);
-      const y = isPhase2 ? Phaser.Math.Between(120, 320) : Phaser.Math.Between(110, 490);
-      return {
-        id: item.id,
-        text: item.text,
-        correct: item.correct,
-        solved: false,
-        x,
-        y,
-        vx: Phaser.Math.Between(-40, 40),
-        vy: Phaser.Math.Between(-40, 40),
-        phase,
-        type: isPhase2 ? 'word' : 'fact'
-      };
-    }
-
-    function buildPhaseAsteroids(phase) {
-      const dataSet = phase === 2 ? PHASE_WORDS : PHASE_FACTS;
-      const next = {};
-      dataSet.forEach(item => {
-        next[item.id] = buildAsteroidState(item, phase);
-      });
-      return next;
-    }
-
-    function clearLocalAsteroids() {
-      Object.values(asteroids).forEach(ast => {
-        ast.sprite?.destroy();
-        ast.text?.destroy();
-      });
-      asteroids = {};
-      isLassoing = null;
-      if (lassoLine) lassoLine.setVisible(false);
-    }
-
-    function createShipTexture(scene, key, color) {
-      if (scene.textures.exists(key)) return key;
-      const g = scene.add.graphics();
-      g.fillStyle(color, 1);
-      g.fillTriangle(15, 0, 30, 30, 0, 30);
-      g.fillStyle(0xffffff, 1);
-      g.fillRect(10, 20, 10, 10);
-      g.generateTexture(key, 30, 30);
-      g.destroy();
-      return key;
-    }
-
-    function createRockTexture(scene, key, tint = 0x475569, radius = 40) {
-      if (scene.textures.exists(key)) return key;
-      const g = scene.add.graphics();
-      g.fillStyle(tint, 1);
-      g.fillCircle(radius, radius, radius);
-      g.lineStyle(2, 0x94a3b8, 1);
-      g.strokeCircle(radius, radius, radius);
-      g.generateTexture(key, radius * 2, radius * 2);
-      g.destroy();
-      return key;
-    }
-
-    function createAsteroidSprite(scene, state) {
-      const texture = state.type === 'word'
-        ? createRockTexture(scene, 'wordTex', 0x0f766e, 36)
-        : createRockTexture(scene, 'factTex', 0x475569, 40);
-
-      const sprite = scene.physics.add.image(state.x, state.y, texture);
-      sprite.setCollideWorldBounds(true);
-      sprite.setBounce(0.45);
-      sprite.setDrag(110);
-      sprite.setMass(state.type === 'word' ? 4 : 5);
-      sprite.setMaxVelocity(260);
-      sprite.setVelocity(state.vx || 0, state.vy || 0);
-
-      const text = scene.add.text(state.x, state.y - 30, state.text, {
-        fontSize: '14px',
-        fill: '#ffffff',
-        backgroundColor: '#000000',
-        padding: { left: 6, right: 6, top: 4, bottom: 4 }
-      }).setOrigin(0.5);
-
-      if (state.solved) {
-        sprite.setTint(0x10b981);
-        text.setColor('#10b981');
-      }
-
-      return { sprite, text, data: state, solved: !!state.solved };
-    }
-
-    function syncAsteroidsFromState(scene, asteroidStateMap) {
-      const incoming = asteroidStateMap || {};
-      const incomingIds = new Set(Object.keys(incoming));
-
-      Object.keys(asteroids).forEach(id => {
-        if (!incomingIds.has(id)) {
-          asteroids[id].sprite.destroy();
-          asteroids[id].text.destroy();
-          delete asteroids[id];
-        }
-      });
-
-      Object.keys(incoming).forEach(id => {
-        const state = incoming[id];
-        if (!asteroids[id]) {
-          asteroids[id] = createAsteroidSprite(scene, state);
-        }
-
-        const local = asteroids[id];
-        local.data = state;
-        local.solved = !!state.solved;
-
-        if (!gameState.isPhysicsHost || gameState.mode === 'solo') {
-          local.sprite.x += (state.x - local.sprite.x) * 0.35;
-          local.sprite.y += (state.y - local.sprite.y) * 0.35;
-          if (local.sprite.body) {
-            local.sprite.body.velocity.x = state.vx || 0;
-            local.sprite.body.velocity.y = state.vy || 0;
-          }
-        }
-
-        if (state.solved) {
-          local.sprite.setTint(0x10b981);
-          local.text.setColor('#10b981');
-        } else {
-          local.sprite.clearTint();
-          local.text.setColor('#ffffff');
-        }
-      });
-    }
-
-    function updatePhaseUi(phase) {
-      if (phase === 0) {
-        gameState.lastHudPhaseText = gameState.role === 'student' ? 'Waiting for host...' : 'Host ready';
-        ui.phaseText.textContent = gameState.lastHudPhaseText;
-        ui.sentenceContainer.style.display = 'none';
-        ['s1','s2','s3'].forEach(id => document.getElementById(id).style.display = 'none');
-        return;
-      }
-
-      if (phase === 1) {
-        gameState.lastHudPhaseText = 'Phase 1: Sorting';
-        ui.phaseText.textContent = gameState.lastHudPhaseText;
-        ui.sentenceContainer.style.display = 'none';
-        ['s1','s2','s3'].forEach(id => document.getElementById(id).style.display = 'none');
-      } else if (phase === 2) {
-        gameState.lastHudPhaseText = 'Phase 2: Transition Words';
-        ui.phaseText.textContent = gameState.lastHudPhaseText;
-        ui.sentenceContainer.style.display = 'block';
-        ['s1','s2','s3'].forEach(id => document.getElementById(id).style.display = 'block');
-      } else if (phase === 3) {
-        gameState.lastHudPhaseText = 'Mission complete';
-        ui.phaseText.textContent = gameState.lastHudPhaseText;
-        ui.sentenceContainer.style.display = 'none';
-      }
-    }
-
-    function markBlankFilled(blankId, filled) {
-      const el = document.getElementById(blankId);
-      if (!el) return;
-      el.style.borderBottomColor = filled ? '#10b981' : '#facc15';
-      el.style.opacity = filled ? '0.75' : '1';
-    }
-
-    function refreshPhase2Blanks() {
-      ['b1','b2','b3'].forEach(id => markBlankFilled(id, false));
-      Object.values(asteroids).forEach(ast => {
-        if (ast.solved && ast.data?.correct && ast.data.correct.startsWith('b')) {
-          markBlankFilled(ast.data.correct, true);
-        }
-      });
-    }
-
-    function startLocalSoloPhase1IfNeeded(scene) {
-      if (gameState.mode !== 'solo' || gameState.phase1AutoStarted) return;
-      gameState.phase1AutoStarted = true;
-      gameState.phase = 1;
-      gameState.startTime = Date.now();
-      updatePhaseUi(1);
-      syncAsteroidsFromState(scene, buildPhaseAsteroids(1));
-      updateTimer();
-    }
-
-    function createHazards(scene) {
-      hazards.forEach(h => h.destroy());
-      hazards = [];
-      const count = gameState.mode === 'solo' ? 7 : 5;
-      for (let i = 0; i < count; i++) {
-        const texture = createRockTexture(scene, `hazardTex_${i}`, 0x7c5b00, 24);
-        const h = scene.physics.add.image(Phaser.Math.Between(50, 950), Phaser.Math.Between(50, 550), texture);
-        h.setTint(0xf59e0b);
-        h.setBounce(1);
-        h.setCollideWorldBounds(true);
-        h.setVelocity(Phaser.Math.Between(-130, 130), Phaser.Math.Between(-130, 130));
-        hazards.push(h);
-        if (myShip) {
-          scene.physics.add.overlap(myShip, h, hitHazard, null, scene);
-        }
-      }
-    }
-
-    function hitHazard() {
-      if (Date.now() < stunUntil) return;
-      stunUntil = Date.now() + 10000;
-      isLassoing = null;
-      if (navigator.vibrate) navigator.vibrate(180);
-      pScene?.cameras?.main?.shake(220, 0.02);
-    }
-
-    function initPhaser() {
-      if (phaserBooted) return;
-      phaserBooted = true;
-      ensureTimerLoop();
-
-      const config = {
-        type: Phaser.AUTO,
-        parent: 'game-container',
-        width: 1000,
-        height: 600,
-        backgroundColor: '#0b0f19',
-        physics: {
-          default: 'arcade',
-          arcade: { gravity: { y: 0 }, debug: false }
-        },
-        input: { gamepad: true },
-        scene: { preload, create, update: updateScene },
-        scale: {
-          mode: Phaser.Scale.FIT,
-          autoCenter: Phaser.Scale.CENTER_BOTH
-        }
-      };
-
-      window.game = new Phaser.Game(config);
-    }
-
-    function preload() {
-      pScene = this;
-    }
-
-    function create() {
-      pScene = this;
-      drawBoard(this);
-      setupKeyboard(this);
-      bindScreenControls();
-
-      if (gameState.role === 'student') {
-        myShip = this.physics.add.image(500, 500, createShipTexture(this, 'myShipTex', 0x00ffcc));
-        myShip.setCollideWorldBounds(true);
-        myShip.setDrag(300);
-        myShip.setMaxVelocity(260);
-        lassoLine = this.add.line(0, 0, 0, 0, 0, 0, 0x00ffcc).setOrigin(0, 0).setLineWidth(3);
-        lassoLine.setVisible(false);
-      }
-
-      createHazards(this);
-      listenToGameData(this);
-      if (gameState.mode === 'solo') {
-        startLocalSoloPhase1IfNeeded(this);
-      }
-
-      if (!postUpdateHookBound) {
-        postUpdateHookBound = true;
-        this.events.on('postupdate', () => {
-          Object.values(asteroids).forEach(ast => {
-            ast.text.setPosition(ast.sprite.x, ast.sprite.y - 30);
-          });
-          Object.values(otherShips).forEach(other => {
-            other.label.setPosition(other.sprite.x, other.sprite.y - 22);
-          });
-        });
-      }
-    }
-
-    function drawBoard(scene) {
-      const grid = scene.add.graphics();
-      grid.lineStyle(1, 0x1e293b, 1);
-      for (let i = 0; i <= 1000; i += 50) {
-        grid.moveTo(i, 0);
-        grid.lineTo(i, 600);
-      }
-      for (let i = 0; i <= 600; i += 50) {
-        grid.moveTo(0, i);
-        grid.lineTo(1000, i);
-      }
-      grid.strokePath();
-
-      const venn = scene.add.graphics();
-      venn.lineStyle(4, 0x3b82f6, 0.82);
-      venn.strokeCircle(350, 300, 200);
-      venn.lineStyle(4, 0xef4444, 0.82);
-      venn.strokeCircle(650, 300, 200);
-      scene.add.text(200, 95, 'EARTH', { fontSize: '24px', fill: '#3b82f6', fontStyle: 'bold' });
-      scene.add.text(460, 95, 'BOTH', { fontSize: '24px', fill: '#10b981', fontStyle: 'bold' });
-      scene.add.text(700, 95, 'MARS', { fontSize: '24px', fill: '#ef4444', fontStyle: 'bold' });
-    }
-
-    function setupKeyboard(scene) {
-      keyboard = scene.input.keyboard.addKeys({
-        up: Phaser.Input.Keyboard.KeyCodes.W,
-        down: Phaser.Input.Keyboard.KeyCodes.S,
-        left: Phaser.Input.Keyboard.KeyCodes.A,
-        right: Phaser.Input.Keyboard.KeyCodes.D,
-        altUp: Phaser.Input.Keyboard.KeyCodes.UP,
-        altDown: Phaser.Input.Keyboard.KeyCodes.DOWN,
-        altLeft: Phaser.Input.Keyboard.KeyCodes.LEFT,
-        altRight: Phaser.Input.Keyboard.KeyCodes.RIGHT,
-        lasso: Phaser.Input.Keyboard.KeyCodes.SPACE
-      });
-
-      scene.input.keyboard.addCapture([
-        Phaser.Input.Keyboard.KeyCodes.W,
-        Phaser.Input.Keyboard.KeyCodes.A,
-        Phaser.Input.Keyboard.KeyCodes.S,
-        Phaser.Input.Keyboard.KeyCodes.D,
-        Phaser.Input.Keyboard.KeyCodes.UP,
-        Phaser.Input.Keyboard.KeyCodes.DOWN,
-        Phaser.Input.Keyboard.KeyCodes.LEFT,
-        Phaser.Input.Keyboard.KeyCodes.RIGHT,
-        Phaser.Input.Keyboard.KeyCodes.SPACE
-      ]);
-    }
-
-    let controlsBound = false;
-    function bindScreenControls() {
-      if (controlsBound) return;
-      controlsBound = true;
-
-      const bindDirectional = (id, key) => {
-        const el = document.getElementById(id);
-        if (!el) return;
-        const activate = (evt) => {
-          evt.preventDefault();
-          inputState[key] = true;
-          el.classList.add('active');
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { getDatabase, ref, set, onValue, push, remove, update, get, onDisconnect } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBXgT_LxFUar6FcfFqKJsuY2YIOjG5JLtM",
+            authDomain: "symmetry-and-nets.firebaseapp.com",
+            databaseURL: "https://symmetry-and-nets-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "symmetry-and-nets",
+            storageBucket: "symmetry-and-nets.firebasestorage.app",
+            messagingSenderId: "250211420064",
+            appId: "1:250211420064:web:fe4a064715042bedf546c5"
         };
-        const deactivate = (evt) => {
-          evt.preventDefault();
-          inputState[key] = false;
-          el.classList.remove('active');
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getDatabase(app);
+
+        const ROOT = 'learningLibrary/cosmic_roundup';
+
+        window.gameState = {
+            mode: null,
+            role: null,
+            myUid: null,
+            phase: 0,
+            startTime: 0,
+            isHost: false,
+            playerName: 'Astronaut',
+            roundCheckTimer: null,
+            lastItemsHash: '',
+            inputReady: false
         };
-        ['pointerdown', 'mousedown', 'touchstart'].forEach(eventName => el.addEventListener(eventName, activate, { passive: false }));
-        ['pointerup', 'pointercancel', 'pointerleave', 'mouseup', 'mouseleave', 'touchend', 'touchcancel'].forEach(eventName => el.addEventListener(eventName, deactivate, { passive: false }));
-      };
 
-      bindDirectional('btn-up', 'up');
-      bindDirectional('btn-down', 'down');
-      bindDirectional('btn-left', 'left');
-      bindDirectional('btn-right', 'right');
-      bindDirectional('lasso-btn', 'lasso');
-    }
+        const phase1Facts = [
+            { id: 'f1', text: 'Third from Sun', correct: 'earth' },
+            { id: 'f2', text: 'Fourth from Sun', correct: 'mars' },
+            { id: 'f3', text: 'Solid Rock Crust', correct: 'both' },
+            { id: 'f4', text: 'Exactly One Moon', correct: 'earth' },
+            { id: 'f5', text: 'Exactly Two Moons', correct: 'mars' },
+            { id: 'f6', text: 'Blue & Green', correct: 'earth' },
+            { id: 'f7', text: 'Red Planet', correct: 'mars' }
+        ];
+        const phase2Words = [
+            { id: 'w1', text: 'Both', correct: 'b1' },
+            { id: 'w2', text: 'However', correct: 'b2' },
+            { id: 'w3', text: 'Whereas', correct: 'b3' }
+        ];
 
-    function readGamepadInput() {
-      if (!pScene?.input?.gamepad) return { up: false, down: false, left: false, right: false, lasso: false };
-      const pads = pScene.input.gamepad.gamepads || [];
-      const pad = pads.find(Boolean);
-      if (!pad) return { up: false, down: false, left: false, right: false, lasso: false };
+        const PHASE_ITEMS = {
+            1: phase1Facts,
+            2: phase2Words
+        };
 
-      const axisX = pad.axes?.length ? pad.axes[0].getValue() : 0;
-      const axisY = pad.axes?.length > 1 ? pad.axes[1].getValue() : 0;
-      const threshold = 0.35;
+        let pScene = null;
+        let myShip = null;
+        let otherShips = {};
+        let asteroids = {};
+        let hazards = [];
+        let cursors = null;
+        let wasdKeys = null;
+        let spaceKey = null;
+        let lassoLine = null;
+        let postUpdateBound = false;
+        let controlsBound = false;
+        let gamepadButtons = [];
+        let inputState = { up:false, down:false, left:false, right:false, lasso:false };
+        let isLassoing = null;
+        let stunTimer = 0;
 
-      return {
-        left: axisX < -threshold || !!pad.left,
-        right: axisX > threshold || !!pad.right,
-        up: axisY < -threshold || !!pad.up,
-        down: axisY > threshold || !!pad.down,
-        lasso: !!pad.buttons?.[0]?.pressed || !!pad.buttons?.[2]?.pressed || !!pad.buttons?.[4]?.pressed
-      };
-    }
+        const dropZones = {
+            earth: { x: 350, y: 300, r: 200 },
+            mars: { x: 650, y: 300, r: 200 },
+            both: { x: 500, y: 300, r: 80 }
+        };
 
-    function getMovementInput() {
-      const gamepad = readGamepadInput();
-      return {
-        left: inputState.left || keyboard?.left?.isDown || keyboard?.altLeft?.isDown || gamepad.left,
-        right: inputState.right || keyboard?.right?.isDown || keyboard?.altRight?.isDown || gamepad.right,
-        up: inputState.up || keyboard?.up?.isDown || keyboard?.altUp?.isDown || gamepad.up,
-        down: inputState.down || keyboard?.down?.isDown || keyboard?.altDown?.isDown || gamepad.down,
-        lasso: inputState.lasso || keyboard?.lasso?.isDown || gamepad.lasso
-      };
-    }
-
-    function updateScene() {
-      if (gameState.isPhysicsHost) {
-        processHostPhysics();
-      }
-
-      if (gameState.role !== 'student' || !myShip) return;
-      if (gameState.phase === 0 || gameState.phase === 3) return;
-
-      const now = Date.now();
-      if (now < stunUntil) {
-        myShip.setTint(0xff0000);
-        myShip.setAcceleration(0, 0);
-        isLassoing = null;
-        if (lassoLine) lassoLine.setVisible(false);
-        return;
-      }
-      myShip.clearTint();
-
-      const move = getMovementInput();
-      const accel = 620;
-      myShip.setAcceleration(0, 0);
-
-      if (move.left) myShip.setAccelerationX(-accel);
-      else if (move.right) myShip.setAccelerationX(accel);
-
-      if (move.up) myShip.setAccelerationY(-accel);
-      else if (move.down) myShip.setAccelerationY(accel);
-
-      if (myShip.body.velocity.length() > 8) {
-        myShip.rotation = myShip.body.velocity.angle() + Math.PI / 2;
-      }
-
-      if (move.lasso && !isLassoing) {
-        let closestId = null;
-        let minDistance = 155;
-        Object.keys(asteroids).forEach(id => {
-          const asteroid = asteroids[id];
-          if (asteroid.solved) return;
-          const distance = Phaser.Math.Distance.Between(myShip.x, myShip.y, asteroid.sprite.x, asteroid.sprite.y);
-          if (distance < minDistance) {
-            minDistance = distance;
-            closestId = id;
-          }
-        });
-        if (closestId) isLassoing = closestId;
-      } else if (!move.lasso) {
-        isLassoing = null;
-      }
-
-      if (isLassoing && asteroids[isLassoing]) {
-        const target = asteroids[isLassoing].sprite;
-        lassoLine.setTo(myShip.x, myShip.y, target.x, target.y);
-        lassoLine.setVisible(true);
-      } else if (lassoLine) {
-        lassoLine.setVisible(false);
-        isLassoing = null;
-      }
-
-      if (gameState.mode === 'multi' && gameState.myUid) {
-        update(ref(db, `${DB.players}/${gameState.myUid}`), {
-          name: getPlayerName(),
-          x: myShip.x,
-          y: myShip.y,
-          angle: myShip.rotation,
-          lassoing: isLassoing,
-          stunnedUntil: stunUntil,
-          updatedAt: Date.now()
-        }).catch(error => console.error('Player sync failed', error));
-      }
-    }
-
-    function chooseFallbackPhysicsHost() {
-      if (gameState.mode !== 'multi' || gameState.role !== 'student') return false;
-      const ids = Object.keys(latestPlayersSnapshot || {}).sort();
-      if (ids.length === 0) return false;
-      return ids[0] === gameState.myUid;
-    }
-
-    function processHostPhysics() {
-      if (!pScene) return;
-
-      Object.keys(asteroids).forEach(astId => {
-        const ast = asteroids[astId];
-        const pullers = [];
-        const groupVec = new Phaser.Math.Vector2(0, 0);
-
-        if (gameState.mode === 'solo') {
-          if (isLassoing === astId && myShip) {
-            pullers.push({ x: myShip.x, y: myShip.y, isMe: true });
-          }
-        } else {
-          if (myShip && isLassoing === astId) {
-            pullers.push({ x: myShip.x, y: myShip.y, isMe: true });
-          }
-          Object.entries(otherShips).forEach(([pid, ship]) => {
-            if (ship.lassoing === astId) {
-              pullers.push({ x: ship.sprite.x, y: ship.sprite.y, pid, isMe: false });
-            }
-          });
+        function showError(err) {
+            console.error(err);
+            const message = err && err.message ? err.message : String(err || 'Unknown error');
+            const statusEl = document.getElementById('teacher-status');
+            if (statusEl) statusEl.innerText = message;
         }
 
-        if (pullers.length > 0) {
-          pullers.forEach(puller => {
-            const vec = new Phaser.Math.Vector2(puller.x - ast.sprite.x, puller.y - ast.sprite.y);
-            if (vec.lengthSq() > 0) {
-              vec.normalize().scale(105);
-              groupVec.add(vec);
-            }
-          });
-          ast.sprite.setAcceleration(groupVec.x, groupVec.y);
-        } else {
-          ast.sprite.setAcceleration(0, 0);
-          ast.sprite.setDrag(120);
-        }
-
-        if (pullers.length === 0 && ast.sprite.body.velocity.length() < 14) {
-          checkDrop(astId, ast);
-        }
-
-        ast.data.x = ast.sprite.x;
-        ast.data.y = ast.sprite.y;
-        ast.data.vx = ast.sprite.body.velocity.x;
-        ast.data.vy = ast.sprite.body.velocity.y;
-      });
-
-      if (gameState.mode === 'multi') {
-        const payload = {};
-        Object.keys(asteroids).forEach(id => {
-          payload[id] = {
-            ...asteroids[id].data,
-            solved: asteroids[id].solved,
-            x: asteroids[id].sprite.x,
-            y: asteroids[id].sprite.y,
-            vx: asteroids[id].sprite.body.velocity.x,
-            vy: asteroids[id].sprite.body.velocity.y
-          };
-        });
-        set(ref(db, DB.asteroids), payload).catch(error => console.error('Asteroid sync failed', error));
-      } else if (gameState.mode === 'solo') {
-        let allSolved = Object.values(asteroids).length > 0 && Object.values(asteroids).every(ast => ast.solved);
-        if (allSolved) {
-          if (gameState.phase === 1) {
-            startSoloPhase2();
-          } else if (gameState.phase === 2) {
-            finishSoloGame();
-          }
-        }
-      }
-    }
-
-    function checkDrop(astId, ast) {
-      if (ast.solved) return;
-      let droppedZone = null;
-
-      const dEarth = Phaser.Math.Distance.Between(ast.sprite.x, ast.sprite.y, dropZones.earth.x, dropZones.earth.y);
-      const dMars = Phaser.Math.Distance.Between(ast.sprite.x, ast.sprite.y, dropZones.mars.x, dropZones.mars.y);
-
-      if (gameState.phase === 1) {
-        if (dEarth < 150 && dMars < 150) droppedZone = 'both';
-        else if (dEarth < 150) droppedZone = 'earth';
-        else if (dMars < 150) droppedZone = 'mars';
-      } else if (gameState.phase === 2 && ast.sprite.y > 430) {
-        if (ast.sprite.x < 330) droppedZone = 'b1';
-        else if (ast.sprite.x < 660) droppedZone = 'b2';
-        else droppedZone = 'b3';
-      }
-
-      if (!droppedZone) return;
-
-      if (droppedZone === ast.data.correct) {
-        ast.solved = true;
-        ast.data.solved = true;
-        ast.sprite.setTint(0x10b981);
-        ast.text.setColor('#10b981');
-        refreshPhase2Blanks();
-      } else {
-        ast.sprite.setVelocity(Phaser.Math.Between(-420, 420), Phaser.Math.Between(-420, -180));
-        ast.sprite.setAngularVelocity?.(0);
-        document.getElementById('game-container').classList.add('shake');
-        setTimeout(() => document.getElementById('game-container').classList.remove('shake'), 450);
-      }
-    }
-
-    async function startSoloPhase2() {
-      if (gameState.phase !== 1) return;
-      gameState.phase = 2;
-      updatePhaseUi(2);
-      clearLocalAsteroids();
-      syncAsteroidsFromState(pScene, buildPhaseAsteroids(2));
-    }
-
-    async function finishSoloGame() {
-      if (gameState.phase === 3) return;
-      gameState.phase = 3;
-      updatePhaseUi(3);
-      showLeaderboard();
-    }
-
-    function updatePhysicsHostFlag(roomMeta = {}) {
-      if (gameState.mode === 'solo') {
-        gameState.isPhysicsHost = true;
-        return;
-      }
-      if (gameState.role === 'teacher') {
-        gameState.isPhysicsHost = true;
-        return;
-      }
-      const teacherOnline = !!roomMeta.roomOpen;
-      gameState.isPhysicsHost = !teacherOnline && chooseFallbackPhysicsHost();
-    }
-
-    function listenToGameData(scene) {
-      onValue(ref(db, DB.roomMeta), snap => {
-        const roomMeta = snap.val() || {};
-
-        if (roomMeta.sessionId) {
-          gameState.currentSessionId = roomMeta.sessionId;
-        }
-
-        if (gameState.authReady) {
-          const inSession = !!roomMeta.roomOpen;
-          ui.soloBtn.disabled = inSession;
-          ui.multiBtn.disabled = false;
-          ui.hostBtn.disabled = false;
-          if (inSession && gameState.role == null) {
-            setStatus('Class is in session. Join Class.', false);
-          } else if (gameState.role == null) {
-            setStatus('', false);
-          }
-        }
-
-        updatePhysicsHostFlag(roomMeta);
-      });
-
-      onValue(ref(db, DB.phaseData), snap => {
-        const data = snap.val() || {};
-        if (!data || !data.phase) return;
-
-        const previousPhase = gameState.phase;
-        gameState.phase = data.phase || 0;
-        gameState.startTime = data.startTime || gameState.startTime || Date.now();
-        if (data.sessionId) gameState.currentSessionId = data.sessionId;
-        updatePhaseUi(gameState.phase);
-        updateTimer();
-
-        if (gameState.phase === 3 && previousPhase !== 3) {
-          showLeaderboard();
-        }
-      });
-
-      onValue(ref(db, DB.asteroids), snap => {
-        const data = snap.val() || {};
-        syncAsteroidsFromState(scene, data);
-        refreshPhase2Blanks();
-      });
-
-      if (gameState.mode === 'multi') {
-        onValue(ref(db, DB.players), snap => {
-          latestPlayersSnapshot = snap.val() || {};
-          const ids = Object.keys(latestPlayersSnapshot);
-
-          ids.forEach(id => {
-            if (id === gameState.myUid) return;
-            const pd = latestPlayersSnapshot[id];
-            if (typeof pd?.x !== 'number' || typeof pd?.y !== 'number') return;
-
-            if (!otherShips[id]) {
-              const sprite = scene.physics.add.image(pd.x, pd.y, createShipTexture(scene, `ship_${id}`, 0x3b82f6));
-              sprite.setCollideWorldBounds(true);
-              const line = scene.add.line(0, 0, 0, 0, 0, 0, 0x3b82f6).setOrigin(0, 0).setLineWidth(2);
-              line.setVisible(false);
-              const label = scene.add.text(pd.x, pd.y - 22, pd.name || 'Player', { fontSize: '12px', fill: '#ffffff' }).setOrigin(0.5);
-              otherShips[id] = { sprite, line, label, lassoing: null };
-            }
-
-            const other = otherShips[id];
-            other.sprite.setPosition(pd.x, pd.y);
-            other.sprite.rotation = pd.angle || 0;
-            other.label.setText(pd.name || 'Player');
-            other.lassoing = pd.lassoing || null;
-
-            if (other.lassoing && asteroids[other.lassoing]) {
-              const target = asteroids[other.lassoing].sprite;
-              other.line.setTo(pd.x, pd.y, target.x, target.y);
-              other.line.setVisible(true);
+        function setStudentControlsVisible(visible) {
+            const controls = document.getElementById('mobile-controls');
+            const hint = document.getElementById('controls-hint');
+            if (visible) {
+                controls.classList.add('visible');
+                hint.style.display = 'block';
             } else {
-              other.line.setVisible(false);
+                controls.classList.remove('visible');
+                hint.style.display = 'none';
             }
-          });
+        }
 
-          Object.keys(otherShips).forEach(id => {
-            if (!latestPlayersSnapshot[id]) {
-              otherShips[id].sprite.destroy();
-              otherShips[id].line.destroy();
-              otherShips[id].label.destroy();
-              delete otherShips[id];
+        function resetInputState() {
+            inputState.up = false;
+            inputState.down = false;
+            inputState.left = false;
+            inputState.right = false;
+            inputState.lasso = false;
+            isLassoing = null;
+        }
+
+        function bindControlButton(id, key) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            const press = (e) => { e.preventDefault(); inputState[key] = true; };
+            const release = (e) => { e.preventDefault(); inputState[key] = false; };
+            ['pointerdown', 'touchstart', 'mousedown'].forEach(evt => el.addEventListener(evt, press, { passive: false }));
+            ['pointerup', 'pointercancel', 'pointerleave', 'touchend', 'touchcancel', 'mouseup', 'mouseleave'].forEach(evt => el.addEventListener(evt, release, { passive: false }));
+        }
+
+        function bindControls() {
+            if (controlsBound) return;
+            controlsBound = true;
+            bindControlButton('btn-up', 'up');
+            bindControlButton('btn-down', 'down');
+            bindControlButton('btn-left', 'left');
+            bindControlButton('btn-right', 'right');
+            bindControlButton('lasso-btn', 'lasso');
+            window.addEventListener('blur', resetInputState);
+        }
+
+        function sanitizeName(name) {
+            return (name || 'Astronaut').trim().slice(0, 12) || 'Astronaut';
+        }
+
+        function roundMetaRef() { return ref(db, `${ROOT}/roomMeta`); }
+        function playersRef() { return ref(db, `${ROOT}/players`); }
+        function playerRef(uid) { return ref(db, `${ROOT}/players/${uid}`); }
+        function asteroidsRef() { return ref(db, `${ROOT}/asteroids`); }
+        function asteroidRef(id) { return ref(db, `${ROOT}/asteroids/${id}`); }
+        function leaderboardRef() { return ref(db, `${ROOT}/leaderboard`); }
+
+        function hashItems(items) {
+            return JSON.stringify((items || []).map(item => ({ id: item.id, x: item.x, y: item.y, solved: !!item.solved })));
+        }
+
+        function buildRoundItems(phase) {
+            const dataSet = PHASE_ITEMS[phase] || [];
+            return dataSet.map(item => ({
+                id: item.id,
+                text: item.text,
+                correct: item.correct,
+                x: Phaser.Math.Between(120, 880),
+                y: Phaser.Math.Between(110, 500),
+                solved: false
+            }));
+        }
+
+        async function startPhase(phase) {
+            if (!window.gameState.isHost) return;
+            const now = Date.now();
+            const payload = { phase, startTime: phase === 1 ? now : window.gameState.startTime || now };
+            const updates = {};
+            updates[`${ROOT}/roomMeta/phase`] = phase;
+            updates[`${ROOT}/roomMeta/startTime`] = payload.startTime;
+            updates[`${ROOT}/roomMeta/items`] = buildRoundItems(phase);
+            updates[`${ROOT}/roomMeta/updatedAt`] = now;
+            updates[`${ROOT}/asteroids`] = null;
+            await update(ref(db), updates).catch(showError);
+        }
+
+        window.startPhase1 = () => startPhase(1);
+        window.startPhase2 = () => startPhase(2);
+        window.endGame = async function() {
+            await update(roundMetaRef(), { phase: 3, updatedAt: Date.now() }).catch(showError);
+        };
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                window.gameState.myUid = user.uid;
+                document.getElementById('btn-solo').disabled = false;
+                document.getElementById('btn-solo').innerText = 'Play Solo';
+                document.getElementById('btn-multi').disabled = false;
+                document.getElementById('btn-multi').innerText = 'Join Class';
+                document.getElementById('btn-host').disabled = false;
+                document.getElementById('teacher-status').innerText = '';
+
+                onValue(ref(db, `${ROOT}/roomMeta/hostOnline`), (snap) => {
+                    const hostOnline = !!snap.val();
+                    document.getElementById('btn-solo').disabled = hostOnline;
+                    document.getElementById('teacher-status').innerText = hostOnline ? 'Class is in session. Join Class.' : '';
+                });
+            } else {
+                signInAnonymously(auth).catch(showError);
             }
-          });
-
-          updatePhysicsHostFlag();
         });
-      }
-    }
 
-    async function createTeacherSession() {
-      const sessionId = buildSessionId();
-      gameState.currentSessionId = sessionId;
-      gameState.scoreSubmitted = false;
+        window.checkTeacher = async function() {
+            if (prompt('Enter Teacher Password:') !== 'IWS') {
+                alert('Incorrect');
+                return;
+            }
+            window.gameState.role = 'teacher';
+            window.gameState.mode = 'multi';
+            window.gameState.isHost = true;
+            document.getElementById('start-screen').style.display = 'none';
+            document.getElementById('teacher-dash').style.display = 'block';
+            document.getElementById('hud').style.display = 'flex';
+            document.getElementById('phase-text').innerText = 'Waiting to start...';
 
-      const ok1 = await safeSet(DB.hostUid, gameState.myUid);
-      if (!ok1) return false;
+            const hostOnlineRef = ref(db, `${ROOT}/roomMeta/hostOnline`);
+            const phaseRef = ref(db, `${ROOT}/roomMeta/phase`);
+            const startRef = ref(db, `${ROOT}/roomMeta/startTime`);
+            await set(hostOnlineRef, true).catch(showError);
+            onDisconnect(hostOnlineRef).set(false).catch(showError);
+            await set(phaseRef, 0).catch(showError);
+            await set(startRef, 0).catch(showError);
+            await remove(playersRef()).catch(showError);
+            await remove(asteroidsRef()).catch(showError);
+            await set(ref(db, `${ROOT}/roomMeta/items`), []).catch(showError);
+            initPhaser();
+        };
 
-      const metaOk = await safeUpdate(DB.roomMeta, {
-        roomOpen: true,
-        sessionId,
-        sessionStartedAt: Date.now(),
-        statusText: 'Host online'
-      });
-      if (!metaOk) return false;
+        window.joinGame = async function(mode) {
+            const name = sanitizeName(document.getElementById('player-name').value);
+            window.gameState.playerName = name;
+            window.gameState.mode = mode;
+            window.gameState.role = 'student';
+            window.gameState.isHost = (mode === 'solo');
+            document.getElementById('start-screen').style.display = 'none';
+            document.getElementById('hud').style.display = 'flex';
+            document.getElementById('phase-text').innerText = mode === 'solo' ? 'Starting solo round...' : 'Waiting for host...';
+            setStudentControlsVisible(true);
+            bindControls();
 
-      try {
-        await onDisconnect(ref(db, DB.roomOpen)).set(false);
-        await onDisconnect(ref(db, DB.hostUid)).remove();
-        await onDisconnect(ref(db, DB.sessionId)).remove();
-        await onDisconnect(ref(db, DB.statusText)).remove();
-      } catch (error) {
-        logError('Failed to register disconnect handlers', error);
-      }
+            if (mode === 'multi') {
+                const pRef = playerRef(window.gameState.myUid);
+                await set(pRef, { name, x: 500, y: 500, lassoing: null, angle: 0, stunnedUntil: 0, updatedAt: Date.now() }).catch(showError);
+                onDisconnect(pRef).remove().catch(showError);
+            }
 
-      await safeRemove(DB.gameRoot);
-      return true;
-    }
+            initPhaser();
+        };
 
-    window.checkTeacher = async function() {
-      if (!gameState.authReady || !gameState.myUid) {
-        setStatus('Authentication not ready yet.', true);
-        return;
-      }
-
-      if (prompt('Enter Teacher Password:') !== 'IWS') {
-        alert('Incorrect');
-        return;
-      }
-
-      gameState.role = 'teacher';
-      gameState.mode = 'multi';
-      updateControlsVisibility();
-
-      const ready = await createTeacherSession();
-      if (!ready) return;
-
-      ui.startScreen.style.display = 'none';
-      ui.teacherDash.style.display = 'block';
-      ui.hud.style.display = 'none';
-      setStatus('Host connected.', false);
-      initPhaser();
-    };
-
-    window.joinGame = async function(mode) {
-      if (!gameState.authReady || !gameState.myUid) {
-        setStatus('Authentication not ready yet.', true);
-        return;
-      }
-
-      const name = getPlayerName();
-      gameState.mode = mode;
-      gameState.role = 'student';
-      gameState.scoreSubmitted = false;
-      gameState.phase1AutoStarted = false;
-
-      showStudentUi();
-
-      if (mode === 'multi') {
-        const playerRef = `${DB.players}/${gameState.myUid}`;
-        const playerOk = await safeSet(playerRef, {
-          name,
-          x: 500,
-          y: 500,
-          angle: 0,
-          lassoing: null,
-          stunnedUntil: 0,
-          updatedAt: Date.now()
-        });
-        if (!playerOk) return;
-
-        try {
-          await onDisconnect(ref(db, playerRef)).remove();
-        } catch (error) {
-          logError('Failed to register player disconnect cleanup', error);
+        function initPhaser() {
+            if (window.game) {
+                window.game.destroy(true);
+                window.game = null;
+            }
+            const config = {
+                type: Phaser.AUTO,
+                parent: 'game-container',
+                width: 1000,
+                height: 600,
+                backgroundColor: '#0b0f19',
+                scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
+                input: { gamepad: true },
+                physics: { default: 'arcade', arcade: { gravity: { y: 0 }, debug: false } },
+                scene: { preload, create, update: updateScene }
+            };
+            window.game = new Phaser.Game(config);
         }
-      }
 
-      initPhaser();
-    };
+        function preload() { pScene = this; }
 
-    async function startMultiplayerPhase(phase) {
-      if (gameState.role !== 'teacher') return;
-      const sessionId = gameState.currentSessionId || buildSessionId();
-      gameState.currentSessionId = sessionId;
-      const startTime = phase === 1 ? Date.now() : (gameState.startTime || Date.now());
-      const asteroidsState = buildPhaseAsteroids(phase);
+        function create() {
+            resetRuntimeCollections();
+            drawArena(this);
+            createHazards(this);
+            createPlayerShip(this);
+            setupKeyboard(this);
+            bindControls();
+            listenToGameData(this);
 
-      const payload = {
-        phase,
-        startTime,
-        sessionId,
-        updatedAt: Date.now()
-      };
-
-      const phaseOk = await safeSet(DB.phaseData, payload);
-      if (!phaseOk) return;
-      const asteroidsOk = await safeSet(DB.asteroids, asteroidsState);
-      if (!asteroidsOk) return;
-
-      gameState.phase = phase;
-      gameState.startTime = startTime;
-      updatePhaseUi(phase);
-      syncAsteroidsFromState(pScene, asteroidsState);
-      refreshPhase2Blanks();
-    }
-
-    window.startPhase1 = async function() {
-      if (gameState.mode === 'solo') {
-        startLocalSoloPhase1IfNeeded(pScene);
-        return;
-      }
-      await startMultiplayerPhase(1);
-    };
-
-    window.startPhase2 = async function() {
-      if (gameState.mode === 'solo') {
-        await startSoloPhase2();
-        return;
-      }
-      await startMultiplayerPhase(2);
-    };
-
-    window.endGame = async function() {
-      if (gameState.mode === 'solo') {
-        await finishSoloGame();
-        return;
-      }
-      const ok = await safeUpdate(DB.phaseData, { phase: 3, updatedAt: Date.now() });
-      if (!ok) return;
-      gameState.phase = 3;
-      updatePhaseUi(3);
-      showLeaderboard();
-    };
-
-    function renderBoardEntries(boardData, elementId) {
-      const list = document.getElementById(elementId);
-      const entries = Object.values(boardData || {})
-        .sort((a, b) => (a.text || '').localeCompare(b.text || ''))
-        .slice(0, 10);
-
-      if (entries.length === 0) {
-        list.innerHTML = '<li><span>No scores yet</span><span>--:--</span></li>';
-        return;
-      }
-
-      list.innerHTML = entries.map((entry, index) => (
-        `<li><span>${index + 1}. ${entry.authorName || 'Player'}</span><span>${entry.text || '--:--'}</span></li>`
-      )).join('');
-    }
-
-    async function maybeSubmitScore() {
-      if (gameState.scoreSubmitted || gameState.role !== 'student') return;
-      if (gameState.mode === 'multi' && gameState.isPhysicsHost !== true) return;
-      if (gameState.mode === 'solo' && !gameState.phase1AutoStarted) return;
-
-      const name = getPlayerName();
-      const boardId = gameState.mode === 'solo' ? 'cosmic_solo' : 'cosmic_multi';
-      const payload = {
-        authorUid: gameState.myUid,
-        authorName: name,
-        text: ui.timer.textContent,
-        createdAt: Date.now()
-      };
-
-      try {
-        await push(ref(db, `${DB.boards}/${boardId}`), payload);
-        gameState.scoreSubmitted = true;
-      } catch (error) {
-        console.error('Score submit failed', error);
-      }
-    }
-
-    async function showLeaderboard() {
-      ui.hud.style.display = 'none';
-      ui.sentenceContainer.style.display = 'none';
-      ui.mobileControls.classList.remove('show');
-      ui.controlsTip.classList.remove('show');
-      ui.leaderboard.style.display = 'flex';
-
-      await maybeSubmitScore();
-
-      try {
-        const snap = await get(ref(db, DB.boards));
-        const data = snap.val() || {};
-        renderBoardEntries(data.cosmic_solo, 'lb-solo');
-        renderBoardEntries(data.cosmic_multi, 'lb-multi');
-      } catch (error) {
-        console.error('Leaderboard load failed', error);
-        renderBoardEntries({}, 'lb-solo');
-        renderBoardEntries({}, 'lb-multi');
-      }
-    }
-
-    onAuthStateChanged(auth, async user => {
-      if (!user) {
-        try {
-          await signInAnonymously(auth);
-        } catch (error) {
-          logError('Anonymous sign-in failed', error);
+            if (window.gameState.mode === 'solo') {
+                window.gameState.startTime = Date.now();
+                window.gameState.phase = 1;
+                document.getElementById('phase-text').innerText = 'Phase 1: Sort Facts';
+                renderSentencePhase(false);
+                spawnAsteroids(this, buildRoundItems(1));
+                startRoundCompletionWatcher();
+            }
         }
-        return;
-      }
 
-      gameState.myUid = user.uid;
-      gameState.authReady = true;
-      ui.soloBtn.disabled = false;
-      ui.multiBtn.disabled = false;
-      ui.hostBtn.disabled = false;
-      ui.soloBtn.textContent = 'Solo';
-      ui.multiBtn.textContent = 'Join Class';
-      setStatus('', false);
-    });
-  </script>
+        function resetRuntimeCollections() {
+            otherShips = {};
+            asteroids = {};
+            hazards = [];
+            postUpdateBound = false;
+            isLassoing = null;
+            stunTimer = 0;
+            lassoLine = null;
+            myShip = null;
+            window.gameState.lastItemsHash = '';
+        }
+
+        function drawArena(scene) {
+            const grid = scene.add.graphics();
+            grid.lineStyle(1, 0x1e293b, 1);
+            for (let i = 0; i < 1000; i += 50) { grid.moveTo(i, 0); grid.lineTo(i, 600); }
+            for (let i = 0; i < 600; i += 50) { grid.moveTo(0, i); grid.lineTo(1000, i); }
+            grid.strokePath();
+
+            const venn = scene.add.graphics();
+            venn.lineStyle(4, 0x3b82f6, 0.85); venn.strokeCircle(350, 300, 200);
+            venn.lineStyle(4, 0xef4444, 0.85); venn.strokeCircle(650, 300, 200);
+            scene.add.text(205, 100, 'EARTH', { fontSize: '24px', fill: '#3b82f6', fontStyle: 'bold' });
+            scene.add.text(705, 100, 'MARS', { fontSize: '24px', fill: '#ef4444', fontStyle: 'bold' });
+            scene.add.text(460, 100, 'BOTH', { fontSize: '24px', fill: '#10b981', fontStyle: 'bold' });
+        }
+
+        function createPlayerShip(scene) {
+            if (window.gameState.role !== 'student') return;
+            myShip = scene.physics.add.image(500, 500, createShipTexture(scene, 'myShipTex', 0x00ffcc));
+            myShip.setCollideWorldBounds(true);
+            myShip.setDrag(300);
+            myShip.setMaxVelocity(260);
+            lassoLine = scene.add.line(0, 0, 0, 0, 0, 0, 0x00ffcc).setOrigin(0, 0);
+            lassoLine.setLineWidth(3);
+        }
+
+        function setupKeyboard(scene) {
+            cursors = scene.input.keyboard.createCursorKeys();
+            wasdKeys = scene.input.keyboard.addKeys({ up: 'W', left: 'A', down: 'S', right: 'D' });
+            spaceKey = scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+            scene.input.keyboard.addCapture([
+                Phaser.Input.Keyboard.KeyCodes.UP,
+                Phaser.Input.Keyboard.KeyCodes.DOWN,
+                Phaser.Input.Keyboard.KeyCodes.LEFT,
+                Phaser.Input.Keyboard.KeyCodes.RIGHT,
+                Phaser.Input.Keyboard.KeyCodes.W,
+                Phaser.Input.Keyboard.KeyCodes.A,
+                Phaser.Input.Keyboard.KeyCodes.S,
+                Phaser.Input.Keyboard.KeyCodes.D,
+                Phaser.Input.Keyboard.KeyCodes.SPACE
+            ]);
+            window.gameState.inputReady = true;
+        }
+
+        function createShipTexture(scene, key, color) {
+            if (scene.textures.exists(key)) return key;
+            const g = scene.add.graphics();
+            g.fillStyle(color, 1);
+            g.fillTriangle(15, 0, 30, 30, 0, 30);
+            g.fillStyle(0xffffff, 1);
+            g.fillRect(10, 20, 10, 10);
+            g.generateTexture(key, 30, 30);
+            g.destroy();
+            return key;
+        }
+
+        function createAsteroidTexture(scene, key) {
+            if (scene.textures.exists(key)) return key;
+            const g = scene.add.graphics();
+            g.fillStyle(0x475569, 1);
+            g.fillCircle(40, 40, 40);
+            g.lineStyle(2, 0x94a3b8, 1);
+            g.strokeCircle(40, 40, 40);
+            g.generateTexture(key, 80, 80);
+            g.destroy();
+            return key;
+        }
+
+        function createHazards(scene) {
+            const numHazards = window.gameState.mode === 'solo' ? 7 : 5;
+            for (let i = 0; i < numHazards; i++) {
+                const h = scene.physics.add.image(Math.random() * 1000, Math.random() * 600, createAsteroidTexture(scene, 'hazardTex' + i));
+                h.setScale(0.5);
+                h.setTint(0xf59e0b);
+                h.setBounce(1).setCollideWorldBounds(true);
+                h.setVelocity((Math.random() - 0.5) * 180, (Math.random() - 0.5) * 180);
+                hazards.push(h);
+                if (window.gameState.role === 'student' && myShip) {
+                    scene.physics.add.overlap(myShip, h, hitHazard, null, scene);
+                }
+            }
+        }
+
+        function hitHazard() {
+            if (stunTimer >= Date.now()) return;
+            stunTimer = Date.now() + 10000;
+            if (navigator.vibrate) navigator.vibrate(150);
+            if (pScene) pScene.cameras.main.shake(180, 0.015);
+        }
+
+        function getGamepadState() {
+            const pads = navigator.getGamepads ? Array.from(navigator.getGamepads()).filter(Boolean) : [];
+            let state = { up: false, down: false, left: false, right: false, lasso: false };
+            for (const pad of pads) {
+                const [ax0 = 0, ax1 = 0] = pad.axes || [];
+                if (ax0 < -0.3) state.left = true;
+                if (ax0 > 0.3) state.right = true;
+                if (ax1 < -0.3) state.up = true;
+                if (ax1 > 0.3) state.down = true;
+                if ((pad.buttons && pad.buttons[0] && pad.buttons[0].pressed) || (pad.buttons && pad.buttons[7] && pad.buttons[7].pressed)) {
+                    state.lasso = true;
+                }
+            }
+            return state;
+        }
+
+        function updateScene() {
+            if (window.gameState.phase === 0 || window.gameState.phase === 3) return;
+
+            if (window.gameState.isHost) processHostPhysics();
+            if (window.gameState.role !== 'student' || !myShip) return;
+
+            if (Date.now() < stunTimer) {
+                myShip.setTint(0xff0000);
+                myShip.setAcceleration(0, 0);
+                isLassoing = null;
+                if (lassoLine) lassoLine.setVisible(false);
+                syncMyPlayerState();
+                return;
+            }
+            myShip.clearTint();
+
+            const pad = getGamepadState();
+            const moveLeft = (cursors && cursors.left.isDown) || (wasdKeys && wasdKeys.left.isDown) || inputState.left || pad.left;
+            const moveRight = (cursors && cursors.right.isDown) || (wasdKeys && wasdKeys.right.isDown) || inputState.right || pad.right;
+            const moveUp = (cursors && cursors.up.isDown) || (wasdKeys && wasdKeys.up.isDown) || inputState.up || pad.up;
+            const moveDown = (cursors && cursors.down.isDown) || (wasdKeys && wasdKeys.down.isDown) || inputState.down || pad.down;
+            const tryingToLasso = (spaceKey && spaceKey.isDown) || inputState.lasso || pad.lasso;
+
+            const accel = 600;
+            myShip.setAcceleration(0, 0);
+            if (moveLeft) myShip.setAccelerationX(-accel);
+            else if (moveRight) myShip.setAccelerationX(accel);
+            if (moveUp) myShip.setAccelerationY(-accel);
+            else if (moveDown) myShip.setAccelerationY(accel);
+
+            if (myShip.body.velocity.length() > 10) {
+                myShip.rotation = myShip.body.velocity.angle() + Math.PI / 2;
+            }
+
+            if (tryingToLasso && !isLassoing) {
+                let closest = null;
+                let minDistance = 150;
+                for (const id in asteroids) {
+                    const ast = asteroids[id];
+                    if (!ast || ast.solved) continue;
+                    const d = Phaser.Math.Distance.Between(myShip.x, myShip.y, ast.sprite.x, ast.sprite.y);
+                    if (d < minDistance) {
+                        minDistance = d;
+                        closest = id;
+                    }
+                }
+                if (closest) isLassoing = closest;
+            } else if (!tryingToLasso) {
+                isLassoing = null;
+            }
+
+            if (isLassoing && asteroids[isLassoing]) {
+                const target = asteroids[isLassoing].sprite;
+                lassoLine.setTo(myShip.x, myShip.y, target.x, target.y);
+                lassoLine.setVisible(true);
+            } else if (lassoLine) {
+                lassoLine.setVisible(false);
+                isLassoing = null;
+            }
+
+            syncMyPlayerState();
+        }
+
+        function syncMyPlayerState() {
+            if (window.gameState.mode !== 'multi' || !window.gameState.myUid || !myShip) return;
+            update(playerRef(window.gameState.myUid), {
+                name: window.gameState.playerName,
+                x: Math.round(myShip.x),
+                y: Math.round(myShip.y),
+                lassoing: isLassoing || null,
+                angle: myShip.rotation || 0,
+                stunnedUntil: stunTimer || 0,
+                updatedAt: Date.now()
+            }).catch(showError);
+        }
+
+        function processHostPhysics() {
+            for (const astId in asteroids) {
+                const ast = asteroids[astId];
+                if (!ast || !ast.sprite || !ast.sprite.body) continue;
+                const pullers = [];
+                const groupVec = new Phaser.Math.Vector2(0, 0);
+
+                if (window.gameState.mode === 'solo') {
+                    if (myShip && isLassoing === astId) {
+                        pullers.push({ x: myShip.x, y: myShip.y, isMe: true });
+                    }
+                } else {
+                    for (const pid in otherShips) {
+                        const ship = otherShips[pid];
+                        if (ship.lassoing === astId) pullers.push({ x: ship.x, y: ship.y });
+                    }
+                    if (myShip && isLassoing === astId) {
+                        pullers.push({ x: myShip.x, y: myShip.y, isMe: true });
+                    }
+                }
+
+                if (pullers.length > 0) {
+                    for (const puller of pullers) {
+                        const vec = new Phaser.Math.Vector2(puller.x - ast.sprite.x, puller.y - ast.sprite.y);
+                        if (vec.lengthSq() > 0) vec.normalize().scale(100);
+                        groupVec.add(vec);
+                    }
+                    groupVec.scale(Math.max(1, pullers.length * 0.5));
+                    ast.sprite.setAcceleration(groupVec.x, groupVec.y);
+                } else {
+                    ast.sprite.setAcceleration(0, 0);
+                    ast.sprite.setDrag(120);
+                }
+
+                if (pullers.length === 0 && ast.sprite.body.velocity.length() < 10) {
+                    checkDrop(astId, ast);
+                }
+
+                if (window.gameState.mode === 'multi') {
+                    update(asteroidRef(astId), {
+                        x: Math.round(ast.sprite.x),
+                        y: Math.round(ast.sprite.y),
+                        solved: !!ast.solved,
+                        updatedAt: Date.now()
+                    }).catch(showError);
+                }
+            }
+        }
+
+        function checkDrop(astId, ast) {
+            if (ast.solved) return;
+            let droppedZone = null;
+            const dEarth = Phaser.Math.Distance.Between(ast.sprite.x, ast.sprite.y, dropZones.earth.x, dropZones.earth.y);
+            const dMars = Phaser.Math.Distance.Between(ast.sprite.x, ast.sprite.y, dropZones.mars.x, dropZones.mars.y);
+            if (dEarth < 150 && dMars < 150) droppedZone = 'both';
+            else if (dEarth < 150) droppedZone = 'earth';
+            else if (dMars < 150) droppedZone = 'mars';
+
+            if (window.gameState.phase === 2 && ast.sprite.y > 450) {
+                if (ast.sprite.x < 300) droppedZone = 'b1';
+                else if (ast.sprite.x < 600) droppedZone = 'b2';
+                else droppedZone = 'b3';
+            }
+
+            if (!droppedZone) return;
+            if (droppedZone === ast.data.correct) {
+                ast.solved = true;
+                ast.sprite.setTint(0x10b981);
+                ast.text.setColor('#10b981');
+                if (window.gameState.mode === 'multi') {
+                    update(asteroidRef(astId), { solved: true, x: Math.round(ast.sprite.x), y: Math.round(ast.sprite.y) }).catch(showError);
+                }
+            } else {
+                ast.sprite.setVelocity((Math.random() - 0.5) * 1000, -500);
+                document.getElementById('game-container').classList.add('shake');
+                setTimeout(() => document.getElementById('game-container').classList.remove('shake'), 500);
+            }
+        }
+
+        function listenToGameData(scene) {
+            onValue(roundMetaRef(), (snap) => {
+                const data = snap.val() || {};
+                const nextPhase = Number(data.phase || 0);
+                const nextStartTime = Number(data.startTime || 0);
+                const items = Array.isArray(data.items) ? data.items : [];
+                const itemsHash = hashItems(items);
+
+                if (window.gameState.mode === 'multi') {
+                    if (nextPhase !== window.gameState.phase) {
+                        window.gameState.phase = nextPhase;
+                        window.gameState.startTime = nextStartTime;
+                        applyPhaseUI(nextPhase);
+                    }
+                    if ((nextPhase === 1 || nextPhase === 2) && items.length > 0 && itemsHash !== window.gameState.lastItemsHash) {
+                        window.gameState.lastItemsHash = itemsHash;
+                        spawnAsteroids(scene, items);
+                        startRoundCompletionWatcher();
+                    }
+                    if (nextPhase === 3 && window.gameState.phase !== 3) {
+                        window.gameState.phase = 3;
+                        showLeaderboard();
+                    }
+                }
+            });
+
+            if (window.gameState.mode === 'multi') {
+                onValue(playersRef(), (snap) => {
+                    const pData = snap.val() || {};
+                    const allIds = Object.keys(pData).sort();
+                    window.gameState.isHost = window.gameState.role === 'teacher' || (window.gameState.role === 'student' && allIds[0] === window.gameState.myUid);
+
+                    for (const id in pData) {
+                        if (id === window.gameState.myUid) continue;
+                        const pd = pData[id];
+                        if (!pd || typeof pd.x !== 'number' || typeof pd.y !== 'number') continue;
+                        if (!otherShips[id]) {
+                            const sprite = scene.physics.add.image(pd.x, pd.y, createShipTexture(scene, 'ship_' + id, 0x3b82f6));
+                            const line = scene.add.line(0, 0, 0, 0, 0, 0, 0x3b82f6).setOrigin(0, 0).setLineWidth(2);
+                            const label = scene.add.text(pd.x, pd.y - 20, pd.name || 'Astronaut', { fontSize: '12px', fill: '#fff' }).setOrigin(0.5);
+                            otherShips[id] = { sprite, line, label, x: pd.x, y: pd.y, lassoing: pd.lassoing || null };
+                        }
+                        const ship = otherShips[id];
+                        ship.x = pd.x;
+                        ship.y = pd.y;
+                        ship.lassoing = pd.lassoing || null;
+                        ship.sprite.setPosition(pd.x, pd.y);
+                        ship.sprite.rotation = pd.angle || 0;
+                        ship.label.setText(pd.name || 'Astronaut');
+                        ship.label.setPosition(pd.x, pd.y - 20);
+                        if (ship.lassoing && asteroids[ship.lassoing]) {
+                            const target = asteroids[ship.lassoing].sprite;
+                            ship.line.setTo(pd.x, pd.y, target.x, target.y);
+                            ship.line.setVisible(true);
+                        } else {
+                            ship.line.setVisible(false);
+                        }
+                    }
+
+                    for (const id in otherShips) {
+                        if (!pData[id]) {
+                            otherShips[id].sprite.destroy();
+                            otherShips[id].line.destroy();
+                            otherShips[id].label.destroy();
+                            delete otherShips[id];
+                        }
+                    }
+                });
+
+                onValue(asteroidsRef(), (snap) => {
+                    if (window.gameState.isHost) return;
+                    const aData = snap.val() || {};
+                    for (const id in aData) {
+                        if (!asteroids[id]) continue;
+                        const remote = aData[id];
+                        if (typeof remote.x === 'number') asteroids[id].sprite.x += (remote.x - asteroids[id].sprite.x) * 0.35;
+                        if (typeof remote.y === 'number') asteroids[id].sprite.y += (remote.y - asteroids[id].sprite.y) * 0.35;
+                        if (remote.solved && !asteroids[id].solved) {
+                            asteroids[id].solved = true;
+                            asteroids[id].sprite.setTint(0x10b981);
+                            asteroids[id].text.setColor('#10b981');
+                        }
+                    }
+                });
+            }
+        }
+
+        function applyPhaseUI(phase) {
+            if (phase === 0) {
+                document.getElementById('phase-text').innerText = 'Waiting for host...';
+                renderSentencePhase(false);
+                clearAsteroids();
+                return;
+            }
+            if (phase === 1) {
+                document.getElementById('phase-text').innerText = 'Phase 1: Sort Facts';
+                renderSentencePhase(false);
+                return;
+            }
+            if (phase === 2) {
+                document.getElementById('phase-text').innerText = 'Phase 2: Transition Words';
+                renderSentencePhase(true);
+                return;
+            }
+            if (phase === 3) {
+                showLeaderboard();
+            }
+        }
+
+        function renderSentencePhase(show) {
+            document.getElementById('sentence-container').style.display = show ? 'block' : 'none';
+            document.getElementById('s1').style.display = show ? 'block' : 'none';
+            document.getElementById('s2').style.display = show ? 'block' : 'none';
+            document.getElementById('s3').style.display = show ? 'block' : 'none';
+        }
+
+        function clearAsteroids() {
+            for (const id in asteroids) {
+                asteroids[id].sprite.destroy();
+                asteroids[id].text.destroy();
+            }
+            asteroids = {};
+        }
+
+        function spawnAsteroids(scene, items) {
+            clearAsteroids();
+            items.forEach((item) => {
+                const textureKey = createAsteroidTexture(scene, 'factAsteroidTex');
+                const a = scene.physics.add.image(item.x, item.y, textureKey);
+                a.setCollideWorldBounds(true);
+                a.setBounce(0.5);
+                a.setDrag(100);
+                a.setMass(5);
+                const t = scene.add.text(item.x, item.y - 30, item.text, {
+                    fontSize: '14px',
+                    fill: '#fff',
+                    backgroundColor: 'rgba(0,0,0,0.7)',
+                    padding: { x: 6, y: 4 }
+                }).setOrigin(0.5);
+                asteroids[item.id] = {
+                    sprite: a,
+                    text: t,
+                    data: { id: item.id, text: item.text, correct: item.correct },
+                    solved: !!item.solved
+                };
+                if (item.solved) {
+                    a.setTint(0x10b981);
+                    t.setColor('#10b981');
+                }
+            });
+
+            if (!postUpdateBound) {
+                postUpdateBound = true;
+                scene.events.on('postupdate', () => {
+                    for (const id in asteroids) {
+                        asteroids[id].text.setPosition(asteroids[id].sprite.x, asteroids[id].sprite.y - 30);
+                    }
+                });
+            }
+        }
+
+        function startRoundCompletionWatcher() {
+            if (window.gameState.roundCheckTimer) clearInterval(window.gameState.roundCheckTimer);
+            window.gameState.roundCheckTimer = setInterval(() => {
+                if (window.gameState.phase !== 1 && window.gameState.phase !== 2) return;
+                const allSolved = Object.keys(asteroids).length > 0 && Object.values(asteroids).every(a => a.solved);
+                if (!allSolved) return;
+
+                clearInterval(window.gameState.roundCheckTimer);
+                window.gameState.roundCheckTimer = null;
+                if (window.gameState.isHost) {
+                    if (window.gameState.phase === 1) setTimeout(() => window.startPhase2(), 1500);
+                    else if (window.gameState.phase === 2) setTimeout(() => window.endGame(), 1500);
+                }
+            }, 800);
+        }
+
+        setInterval(() => {
+            if (window.gameState.phase === 1 || window.gameState.phase === 2) {
+                const elapsed = Math.floor((Date.now() - (window.gameState.startTime || Date.now())) / 1000);
+                const m = String(Math.floor(elapsed / 60)).padStart(2, '0');
+                const s = String(elapsed % 60).padStart(2, '0');
+                document.getElementById('timer').innerText = `${m}:${s}`;
+            }
+        }, 1000);
+
+        function showLeaderboard() {
+            document.getElementById('hud').style.display = 'none';
+            document.getElementById('sentence-container').style.display = 'none';
+            document.getElementById('leaderboard').style.display = 'flex';
+            setStudentControlsVisible(false);
+
+            const finalTimeStr = document.getElementById('timer').innerText;
+            if (window.gameState.role === 'student' && window.gameState.isHost) {
+                const list = window.gameState.mode === 'solo' ? 'solo' : 'multi';
+                push(ref(db, `${ROOT}/leaderboard/${list}`), {
+                    name: window.gameState.playerName || 'Class',
+                    time: finalTimeStr,
+                    timestamp: Date.now()
+                }).catch(showError);
+            }
+
+            get(leaderboardRef()).then((snap) => {
+                const data = snap.val() || { solo: {}, multi: {} };
+                const renderCol = (obj, elId) => {
+                    const arr = Object.values(obj || {}).sort((a, b) => String(a.time).localeCompare(String(b.time))).slice(0, 10);
+                    document.getElementById(elId).innerHTML = arr.map((entry, i) => `<li><span>${i + 1}. ${entry.name}</span><span>${entry.time}</span></li>`).join('');
+                };
+                renderCol(data.solo, 'lb-solo');
+                renderCol(data.multi, 'lb-multi');
+            }).catch(showError);
+        }
+    </script>
 </body>
 </html>
