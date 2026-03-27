@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Cosmic Fact-Roundup</title>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
+    <style>
+        body { margin: 0; padding: 0; background: #0b0f19; color: white; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; overflow: hidden; }
+        #game-container { position: relative; width: 100vw; height: 100vh; display: flex; justify-content: center; align-items: center; }
+        canvas { box-shadow: 0 0 20px rgba(0,255,204,0.2); border: 2px solid #1e293b; border-radius: 8px; }
+        
+        /* UI Overlays */
+        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .panel { pointer-events: auto; background: rgba(15, 23, 42, 0.95); border: 2px solid #3b82f6; border-radius: 8px; padding: 20px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.8); }
+        
+        #start-screen { width: 400px; max-width: 90%; }
+        h1 { margin-top: 0; color: #00ffcc; text-transform: uppercase; letter-spacing: 2px; text-shadow: 0 0 10px rgba(0,255,204,0.5); }
+        input { width: 80%; padding: 10px; margin: 10px 0; background: #1e293b; border: 1px solid #3b82f6; color: white; border-radius: 4px; text-align: center; }
+        .btn { background: #3b82f6; color: white; border: none; padding: 10px 20px; font-weight: bold; border-radius: 4px; cursor: pointer; margin: 5px; transition: 0.2s; }
+        .btn:hover { background: #2563eb; transform: translateY(-2px); }
+        .btn:disabled { background: #475569; cursor: not-allowed; transform: none; }
+        .btn-gold { background: #d97706; } .btn-gold:hover { background: #b45309; }
+
+        #teacher-dash { display: none; position: absolute; top: 10px; left: 10px; width: 250px; text-align: left; padding: 10px; }
+        #teacher-dash h3 { margin: 0 0 10px 0; font-size: 14px; color: #fbbf24; border-bottom: 1px solid #fbbf24; padding-bottom: 5px; }
+        
+        #hud { display: none; position: absolute; top: 10px; width: 100%; justify-content: space-between; padding: 0 20px; box-sizing: border-box; font-size: 20px; font-weight: bold; text-shadow: 0 0 5px black; }
+        #timer { color: #facc15; }
+        
+        /* Sentence Frames (Phase 2) */
+        #sentence-container { display: none; position: absolute; bottom: 80px; width: 80%; background: rgba(0,0,0,0.8); border: 2px solid #facc15; padding: 15px; border-radius: 8px; font-size: 20px; text-align: center; pointer-events: none; }
+        .blank { display: inline-block; width: 120px; height: 30px; border-bottom: 3px dashed #facc15; margin: 0 10px; vertical-align: bottom; }
+
+        /* Leaderboard */
+        #leaderboard { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 600px; display: flex; gap: 20px; }
+        .lb-col { flex: 1; background: rgba(0,0,0,0.9); border: 2px solid #3b82f6; border-radius: 8px; padding: 15px; }
+        .lb-col h3 { color: #00ffcc; text-align: center; margin-top: 0; }
+        .lb-list { list-style: none; padding: 0; margin: 0; font-size: 14px; }
+        .lb-list li { padding: 5px 0; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; }
+
+        /* Mobile Controls */
+        #mobile-controls { display: none; position: absolute; bottom: 20px; width: 100%; pointer-events: none; }
+        #lasso-btn { pointer-events: auto; position: absolute; left: 30px; bottom: 10px; width: 70px; height: 70px; border-radius: 50%; background: rgba(59,130,246,0.5); border: 3px solid #3b82f6; color: white; font-weight: bold; text-shadow: 0 0 5px black; }
+        #lasso-btn:active { background: rgba(59,130,246,0.8); }
+        .d-pad { pointer-events: auto; position: absolute; right: 30px; bottom: 10px; display: grid; grid-template-columns: repeat(3, 50px); grid-template-rows: repeat(3, 50px); gap: 5px; }
+        .m-btn { background: rgba(255,255,255,0.2); border: 2px solid rgba(255,255,255,0.4); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; color: white; user-select: none; }
+        .m-btn:active { background: rgba(255,255,255,0.5); }
+        @media (max-width: 768px) { #mobile-controls { display: block; } }
+
+        /* Effects */
+        .shake { animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both; }
+        @keyframes shake { 10%, 90% { transform: translate3d(-1px, 0, 0); } 20%, 80% { transform: translate3d(2px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-4px, 0, 0); } 40%, 60% { transform: translate3d(4px, 0, 0); } }
+    </style>
+</head>
+<body>
+
+    <div id="game-container"></div>
+
+    <div id="ui-layer">
+        <div id="start-screen" class="panel">
+            <h1>Cosmic Roundup</h1>
+            <p style="color:#94a3b8; font-size:14px;">Lasso the facts and tow them to the correct planet!</p>
+            <input type="text" id="player-name" placeholder="Enter Your Name" maxlength="12">
+            <div>
+                <button class="btn" id="btn-solo" onclick="joinGame('solo')">Play Solo</button>
+                <button class="btn" id="btn-multi" onclick="joinGame('multi')">Join Class</button>
+                <button class="btn btn-gold" onclick="checkTeacher()">Host (Teacher)</button>
+            </div>
+            <div id="teacher-status" style="margin-top:10px; font-size:12px; color:#ef4444;"></div>
+        </div>
+
+        <div id="teacher-dash" class="panel">
+            <h3>Mission Control (Host)</h3>
+            <button class="btn" onclick="startPhase1()" style="width:100%; margin-bottom:5px;">Start Phase 1 (Sorting)</button>
+            <button class="btn" onclick="startPhase2()" style="width:100%; margin-bottom:5px;">Trigger Phase 2 (Transitions)</button>
+            <button class="btn btn-gold" onclick="endGame()" style="width:100%;">End Game & Score</button>
+        </div>
+
+        <div id="hud">
+            <div id="phase-text">Phase 1: Sorting</div>
+            <div id="timer">00:00</div>
+        </div>
+
+        <div id="sentence-container">
+            <div id="s1" style="display:none;"><span class="blank" id="b1"></span> Earth and Mars are terrestrial planets.</div>
+            <div id="s2" style="display:none;">Earth has one moon; <span class="blank" id="b2"></span>, Mars has two.</div>
+            <div id="s3" style="display:none;">Earth is blue, <span class="blank" id="b3"></span> Mars is red.</div>
+        </div>
+
+        <div id="leaderboard" style="display:none;">
+            <div class="lb-col">
+                <h3>Top Solo Times</h3>
+                <ul class="lb-list" id="lb-solo"></ul>
+            </div>
+            <div class="lb-col">
+                <h3>Top Class Times</h3>
+                <ul class="lb-list" id="lb-multi"></ul>
+            </div>
+            <button class="btn" onclick="location.reload()" style="position:absolute; bottom:-50px; left:50%; transform:translateX(-50%);">Play Again</button>
+        </div>
+
+        <div id="mobile-controls">
+            <button id="lasso-btn">LASSO</button>
+            <div class="d-pad">
+                <div class="m-btn" id="btn-up" style="grid-column:2; grid-row:1;">▲</div>
+                <div class="m-btn" id="btn-left" style="grid-column:1; grid-row:2;">◀</div>
+                <div class="m-btn" id="btn-right" style="grid-column:3; grid-row:2;">▶</div>
+                <div class="m-btn" id="btn-down" style="grid-column:2; grid-row:3;">▼</div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-auth.js";
+        import { getDatabase, ref, set, onValue, push, remove, update, get } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBXgT_LxFUar6FcfFqKJsuY2YIOjG5JLtM",
+            authDomain: "symmetry-and-nets.firebaseapp.com",
+            databaseURL: "https://symmetry-and-nets-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "symmetry-and-nets",
+            storageBucket: "symmetry-and-nets.firebasestorage.app"
+        };
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getDatabase(app);
+
+        // --- GLOBAL GAME STATE ---
+        window.gameState = {
+            mode: null, // 'solo' or 'multi'
+            role: null, // 'student' or 'teacher'
+            myUid: null,
+            phase: 0,
+            startTime: 0,
+            isHost: false // If solo, you are host. If multi, teacher is host.
+        };
+        
+        // --- CONTENT DATA ---
+        const phase1Facts = [
+            { id: "f1", text: "Third from Sun", correct: "earth" },
+            { id: "f2", text: "Fourth from Sun", correct: "mars" },
+            { id: "f3", text: "Solid Rock Crust", correct: "both" },
+            { id: "f4", text: "Exactly One Moon", correct: "earth" },
+            { id: "f5", text: "Exactly Two Moons", correct: "mars" },
+            { id: "f6", text: "Blue & Green", correct: "earth" },
+            { id: "f7", text: "Red Planet", correct: "mars" }
+        ];
+        const phase2Words = [
+            { id: "w1", text: "Both", correct: "b1" },
+            { id: "w2", text: "However", correct: "b2" },
+            { id: "w3", text: "Whereas", correct: "b3" }
+        ];
+
+        // --- LOBBY LOGIC ---
+        // Check if teacher is online to disable Solo mode
+        onValue(ref(db, 'learningLibrary/cosmic_roundup/roomMeta/hostOnline'), (snap) => {
+            const hostOnline = snap.val();
+            document.getElementById('btn-solo').disabled = hostOnline;
+            if(hostOnline) document.getElementById('teacher-status').innerText = "Class is in session! Join Class.";
+            else document.getElementById('teacher-status').innerText = "";
+        });
+
+        window.checkTeacher = function() {
+            if(prompt("Enter Teacher Password:") === "IWS") {
+                window.gameState.role = 'teacher';
+                window.gameState.mode = 'multi';
+                window.gameState.isHost = true;
+                document.getElementById('start-screen').style.display = 'none';
+                document.getElementById('teacher-dash').style.display = 'block';
+                
+                signInAnonymously(auth).then(() => {
+                    window.gameState.myUid = auth.currentUser.uid;
+                    const hostRef = ref(db, 'learningLibrary/cosmic_roundup/roomMeta/hostOnline');
+                    set(hostRef, true);
+                    onDisconnect(hostRef).set(false);
+                    // Clear previous multiplayer data
+                    remove(ref(db, 'learningLibrary/cosmic_roundup/players'));
+                    remove(ref(db, 'learningLibrary/cosmic_roundup/asteroids'));
+                    // Init Phaser but teacher doesn't play
+                    initPhaser();
+                });
+            } else alert("Incorrect");
+        }
+
+        window.joinGame = function(mode) {
+            let name = document.getElementById('player-name').value.trim() || "Astronaut";
+            window.gameState.mode = mode;
+            window.gameState.role = 'student';
+            window.gameState.isHost = (mode === 'solo'); // Solo players host their own local physics
+            
+            document.getElementById('start-screen').style.display = 'none';
+            document.getElementById('hud').style.display = 'flex';
+            
+            signInAnonymously(auth).then(() => {
+                window.gameState.myUid = auth.currentUser.uid;
+                if(mode === 'multi') {
+                    const pRef = ref(db, `learningLibrary/cosmic_roundup/players/${window.gameState.myUid}`);
+                    set(pRef, { name: name, x: 400, y: 300, lassoing: null, stunnedUntil: 0 });
+                    onDisconnect(pRef).remove();
+                }
+                initPhaser();
+            });
+        }
+
+        // Host controls
+        window.startPhase1 = function() { set(ref(db, 'learningLibrary/cosmic_roundup/roomMeta/phase'), 1); set(ref(db, 'learningLibrary/cosmic_roundup/roomMeta/startTime'), Date.now()); }
+        window.startPhase2 = function() { set(ref(db, 'learningLibrary/cosmic_roundup/roomMeta/phase'), 2); }
+        window.endGame = function() { set(ref(db, 'learningLibrary/cosmic_roundup/roomMeta/phase'), 3); }
+
+        // --- PHASER 3 GAME ENGINE ---
+        function initPhaser() {
+            const config = {
+                type: Phaser.AUTO,
+                parent: 'game-container',
+                width: 1000,
+                height: 600,
+                backgroundColor: '#0b0f19',
+                physics: { default: 'arcade', arcade: { gravity: { y: 0 }, debug: false } },
+                scene: { preload: preload, create: create, update: updateScene }
+            };
+            window.game = new Phaser.Game(config);
+        }
+
+        // --- SCENE LOGIC ---
+        let pScene;
+        let myShip;
+        let otherShips = {};
+        let asteroids = {}; // DOM/Physics objects for facts
+        let hazards = []; // Bouncing rocks
+        let cursors;
+        let spaceKey;
+        let lassoLine;
+        
+        let dropZones = {
+            earth: { x: 300, y: 300, r: 150 },
+            mars: { x: 700, y: 300, r: 150 },
+            both: { x: 500, y: 300, r: 80 } // Interaction area
+        };
+
+        // Inputs for Mobile
+        let inputState = { up:false, down:false, left:false, right:false, lasso:false };
+
+        function preload() { pScene = this; }
+
+        function create() {
+            // Draw Background Grids
+            let grid = this.add.graphics();
+            grid.lineStyle(1, 0x1e293b, 1);
+            for(let i=0; i<1000; i+=50) { grid.moveTo(i,0); grid.lineTo(i,600); }
+            for(let i=0; i<600; i+=50) { grid.moveTo(0,i); grid.lineTo(1000,i); }
+            grid.strokePath();
+
+            // Draw Venn Diagram
+            let venn = this.add.graphics();
+            venn.lineStyle(4, 0x3b82f6, 0.8); venn.strokeCircle(350, 300, 200); // Earth
+            venn.lineStyle(4, 0xef4444, 0.8); venn.strokeCircle(650, 300, 200); // Mars
+            this.add.text(200, 100, "EARTH", { fontSize: '24px', fill: '#3b82f6', fontStyle: 'bold' });
+            this.add.text(700, 100, "MARS", { fontSize: '24px', fill: '#ef4444', fontStyle: 'bold' });
+            this.add.text(460, 100, "BOTH", { fontSize: '24px', fill: '#10b981', fontStyle: 'bold' });
+
+            // Create My Ship (if student)
+            if(window.gameState.role === 'student') {
+                myShip = this.physics.add.image(500, 500, createShipTexture(this, 'myShipTex', 0x00ffcc));
+                myShip.setCollideWorldBounds(true);
+                myShip.setDrag(300);
+                myShip.setMaxVelocity(250);
+                lassoLine = this.add.line(0,0,0,0,0,0, 0x00ffcc).setOrigin(0,0);
+                lassoLine.setLineWidth(3);
+            }
+
+            cursors = this.input.keyboard.createCursorKeys();
+            spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+
+            // Bind Mobile
+            const bind = (id, key) => {
+                document.getElementById(id).addEventListener('touchstart', (e)=>{ e.preventDefault(); inputState[key]=true; });
+                document.getElementById(id).addEventListener('touchend', (e)=>{ e.preventDefault(); inputState[key]=false; });
+            };
+            bind('btn-up','up'); bind('btn-down','down'); bind('btn-left','left'); bind('btn-right','right');
+            bind('lasso-btn','lasso');
+            document.getElementById('lasso-btn').addEventListener('mousedown', ()=>inputState.lasso=true);
+            document.getElementById('lasso-btn').addEventListener('mouseup', ()=>inputState.lasso=false);
+
+            // Create Hazards (Server-driven in Multi, Local in Solo)
+            createHazards(this);
+
+            // Listen to Firebase State
+            listenToGameData(this);
+        }
+
+        // Programmatic Textures
+        function createShipTexture(scene, key, color) {
+            let g = scene.add.graphics();
+            g.fillStyle(color, 1); g.fillTriangle(15,0, 30,30, 0,30);
+            g.fillStyle(0xffffff, 1); g.fillRect(10,20, 10,10);
+            g.generateTexture(key, 30, 30); g.destroy(); return key;
+        }
+
+        function createAsteroidTexture(scene, key) {
+            let g = scene.add.graphics();
+            g.fillStyle(0x475569, 1); g.fillCircle(40,40,40);
+            g.lineStyle(2, 0x94a3b8, 1); g.strokeCircle(40,40,40);
+            g.generateTexture(key, 80, 80); g.destroy(); return key;
+        }
+
+        let isLassoing = null;
+        let stunTimer = 0;
+
+        function updateScene() {
+            if(window.gameState.role !== 'student') return; // Teacher just watches
+            if(window.gameState.phase === 0 || window.gameState.phase === 3) return; // Waiting or Ended
+
+            let now = Date.now();
+
+            // 1. Check Stun State
+            if(now < stunTimer) {
+                myShip.setTint(0xff0000);
+                myShip.setAcceleration(0,0);
+                isLassoing = null; // Drop lasso
+                lassoLine.setVisible(false);
+                return;
+            } else {
+                myShip.clearTint();
+            }
+
+            // 2. Handle Movement Input
+            let accel = 600;
+            myShip.setAcceleration(0);
+            if(cursors.left.isDown || inputState.left) myShip.setAccelerationX(-accel);
+            else if(cursors.right.isDown || inputState.right) myShip.setAccelerationX(accel);
+            if(cursors.up.isDown || inputState.up) myShip.setAccelerationY(-accel);
+            else if(cursors.down.isDown || inputState.down) myShip.setAccelerationY(accel);
+
+            // Angle ship
+            if(myShip.body.velocity.length() > 10) {
+                myShip.rotation = myShip.body.velocity.angle() + Math.PI/2;
+            }
+
+            // 3. Handle Lasso Logic
+            let tryingToLasso = spaceKey.isDown || inputState.lasso;
+            
+            if(tryingToLasso && !isLassoing) {
+                // Find closest asteroid
+                let closest = null; let minD = 150; // Range
+                for(let id in asteroids) {
+                    let ast = asteroids[id];
+                    let d = Phaser.Math.Distance.Between(myShip.x, myShip.y, ast.sprite.x, ast.sprite.y);
+                    if(d < minD) { minD = d; closest = id; }
+                }
+                if(closest) isLassoing = closest;
+            } else if (!tryingToLasso) {
+                isLassoing = null;
+            }
+
+            // Draw Lasso
+            if(isLassoing && asteroids[isLassoing]) {
+                let target = asteroids[isLassoing].sprite;
+                lassoLine.setTo(myShip.x, myShip.y, target.x, target.y);
+                lassoLine.setVisible(true);
+            } else {
+                lassoLine.setVisible(false);
+                isLassoing = null;
+            }
+
+            // Sync My State to Firebase
+            if(window.gameState.mode === 'multi') {
+                update(ref(db, `learningLibrary/cosmic_roundup/players/${window.gameState.myUid}`), {
+                    x: myShip.x, y: myShip.y, lassoing: isLassoing, angle: myShip.rotation
+                });
+            }
+
+            // --- PHYSICS HOST LOGIC ---
+            // If Solo, local client processes all asteroid physics.
+            // If Multi, the Teacher's client normally processes physics, BUT to ensure no lag for students, 
+            // we will let the 'First Player' (lowest UID) run the physics.
+            if(window.gameState.isHost) {
+                processHostPhysics();
+            }
+        }
+
+        // --- HAZARDS & COLLISIONS ---
+        function createHazards(scene) {
+            let numHazards = window.gameState.mode === 'solo' ? 7 : 5;
+            for(let i=0; i<numHazards; i++) {
+                let h = scene.physics.add.image(Math.random()*1000, Math.random()*600, createAsteroidTexture(scene, 'hazardTex'+i));
+                h.setScale(0.5); h.setTint(0xf59e0b); h.setBounce(1).setCollideWorldBounds(true);
+                h.setVelocity((Math.random()-0.5)*200, (Math.random()-0.5)*200);
+                hazards.push(h);
+                // Collision with player
+                if(window.gameState.role === 'student') {
+                    scene.physics.add.overlap(myShip, h, hitHazard, null, scene);
+                }
+            }
+        }
+
+        function hitHazard(ship, hazard) {
+            if(stunTimer < Date.now()) {
+                stunTimer = Date.now() + 10000; // 10 seconds stun!
+                if(navigator.vibrate) navigator.vibrate(200);
+                pScene.cameras.main.shake(200, 0.02);
+            }
+        }
+
+        // --- PHYSICS CALCULATION (Run by Host/Solo) ---
+        function processHostPhysics() {
+            // Apply pulls to asteroids
+            for(let astId in asteroids) {
+                let ast = asteroids[astId];
+                let pullers = [];
+                let groupVec = new Phaser.Math.Vector2(0,0);
+
+                // Find who is pulling
+                if(window.gameState.mode === 'solo') {
+                    if(isLassoing === astId) pullers.push({ x: myShip.x, y: myShip.y });
+                } else {
+                    for(let pid in otherShips) {
+                        if(otherShips[pid].lassoing === astId) pullers.push(otherShips[pid]);
+                    }
+                    if(isLassoing === astId) pullers.push({ x: myShip.x, y: myShip.y, isMe: true });
+                }
+
+                // Calculate Vector Forces
+                if(pullers.length > 0) {
+                    pullers.forEach(p => {
+                        let vec = new Phaser.Math.Vector2(p.x - ast.sprite.x, p.y - ast.sprite.y);
+                        vec.normalize().scale(100); // Base pull strength
+                        groupVec.add(vec);
+                        
+                        // ANTI-TROLL LOGIC (Only works in Multi)
+                        if(pullers.length > 1 && p.isMe) {
+                            let avgAngle = groupVec.clone().subtract(vec).angle(); // Angle of everyone else
+                            let diff = Math.abs(Phaser.Math.Angle.ShortestBetween(vec.angle(), avgAngle));
+                            if(diff > 45 * Math.PI/180) {
+                                // Trolling detected! Make nearest hazard home in on player
+                                let nearest = null; let nd = 9999;
+                                hazards.forEach(h => { let d = Phaser.Math.Distance.Between(h.x,h.y, myShip.x, myShip.y); if(d<nd){nd=d;nearest=h;} });
+                                if(nearest) pScene.physics.moveToObject(nearest, myShip, 150);
+                            }
+                        }
+                    });
+                    
+                    // Multiply pull by number of pullers (Co-op Bonus)
+                    groupVec.scale(pullers.length * 0.5); 
+                    ast.sprite.setAcceleration(groupVec.x, groupVec.y);
+                } else {
+                    ast.sprite.setAcceleration(0,0);
+                    ast.sprite.setDrag(100); // Slow down when released
+                }
+
+                // Check Drop Zones (Only Host evaluates drops)
+                if(pullers.length === 0 && ast.sprite.body.velocity.length() < 10) {
+                    checkDrop(astId, ast);
+                }
+
+                // Sync to Firebase if Multi
+                if(window.gameState.mode === 'multi') {
+                    update(ref(db, `learningLibrary/cosmic_roundup/asteroids/${astId}`), { x: ast.sprite.x, y: ast.sprite.y });
+                }
+            }
+        }
+
+        function checkDrop(astId, ast) {
+            if(ast.solved) return;
+            let droppedZone = null;
+            
+            // Venn Diagram Math
+            let dEarth = Phaser.Math.Distance.Between(ast.sprite.x, ast.sprite.y, dropZones.earth.x, dropZones.earth.y);
+            let dMars = Phaser.Math.Distance.Between(ast.sprite.x, ast.sprite.y, dropZones.mars.x, dropZones.mars.y);
+            
+            if(dEarth < 150 && dMars < 150) droppedZone = "both";
+            else if(dEarth < 150) droppedZone = "earth";
+            else if(dMars < 150) droppedZone = "mars";
+
+            // Sentence Blanks (Phase 2)
+            if(window.gameState.phase === 2) {
+                // Approximate blank locations based on UI (Simplified logic for demo)
+                if(ast.sprite.y > 450) {
+                    if(ast.sprite.x < 300) droppedZone = "b1";
+                    else if(ast.sprite.x > 300 && ast.sprite.x < 600) droppedZone = "b2";
+                    else droppedZone = "b3";
+                }
+            }
+
+            if(droppedZone) {
+                if(droppedZone === ast.data.correct) {
+                    // Correct!
+                    ast.solved = true;
+                    ast.sprite.setTint(0x10b981); // Turn green
+                    ast.text.setColor('#10b981');
+                    // Alert Firebase
+                    if(window.gameState.mode === 'multi') update(ref(db, `learningLibrary/cosmic_roundup/asteroids/${astId}`), { solved: true });
+                } else {
+                    // Incorrect Penalty! Bounce it out violently.
+                    ast.sprite.setVelocity((Math.random()-0.5)*1000, -500);
+                    // UI Error feedback
+                    document.getElementById('game-container').classList.add('shake');
+                    setTimeout(()=>document.getElementById('game-container').classList.remove('shake'), 500);
+                }
+            }
+        }
+
+        // --- FIREBASE SYNC LISTENERS ---
+        function listenToGameData(scene) {
+            // Room Phase & Timer
+            onValue(ref(db, 'learningLibrary/cosmic_roundup/roomMeta'), (snap) => {
+                let data = snap.val() || {};
+                
+                if(data.phase === 1 && window.gameState.phase !== 1) {
+                    window.gameState.phase = 1;
+                    window.gameState.startTime = data.startTime;
+                    spawnAsteroids(scene, phase1Facts);
+                    document.getElementById('phase-text').innerText = "Phase 1: Sort Facts";
+                } 
+                else if(data.phase === 2 && window.gameState.phase !== 2) {
+                    window.gameState.phase = 2;
+                    spawnAsteroids(scene, phase2Words); // Clear old, spawn new
+                    document.getElementById('phase-text').innerText = "Phase 2: Transition Words";
+                    document.getElementById('sentence-container').style.display = 'block';
+                    document.getElementById('s1').style.display = 'block';
+                    document.getElementById('s2').style.display = 'block';
+                    document.getElementById('s3').style.display = 'block';
+                }
+                else if(data.phase === 3 && window.gameState.phase !== 3) {
+                    window.gameState.phase = 3;
+                    showLeaderboard();
+                }
+
+                // Determine Physics Host dynamically if Multiplayer (Teacher is true host, but if offline, pick first player)
+                if(window.gameState.mode === 'multi' && window.gameState.role === 'student') {
+                    let firstUid = Object.keys(otherShips).sort()[0];
+                    window.gameState.isHost = (window.gameState.myUid === firstUid); // First to join handles physics
+                }
+            });
+
+            // Players
+            if(window.gameState.mode === 'multi') {
+                onValue(ref(db, 'learningLibrary/cosmic_roundup/players'), (snap) => {
+                    let pData = snap.val() || {};
+                    for(let id in pData) {
+                        if(id === window.gameState.myUid) continue; // Don't draw self
+                        let pd = pData[id];
+                        if(!otherShips[id]) {
+                            // New player joined
+                            let s = scene.physics.add.image(pd.x, pd.y, createShipTexture(scene, 'ship_'+id, 0x3b82f6));
+                            let line = scene.add.line(0,0,0,0,0,0, 0x3b82f6).setOrigin(0,0).setLineWidth(2);
+                            let label = scene.add.text(pd.x, pd.y-20, pd.name, {fontSize:'12px', fill:'#fff'}).setOrigin(0.5);
+                            otherShips[id] = { sprite: s, line: line, label: label, lassoing: pd.lassoing, x: pd.x, y: pd.y };
+                        } else {
+                            // Update existing
+                            otherShips[id].sprite.setPosition(pd.x, pd.y);
+                            otherShips[id].sprite.rotation = pd.angle || 0;
+                            otherShips[id].label.setPosition(pd.x, pd.y-20);
+                            otherShips[id].lassoing = pd.lassoing;
+                            otherShips[id].x = pd.x; otherShips[id].y = pd.y;
+                            
+                            // Draw remote lasso
+                            if(pd.lassoing && asteroids[pd.lassoing]) {
+                                let t = asteroids[pd.lassoing].sprite;
+                                otherShips[id].line.setTo(pd.x, pd.y, t.x, t.y);
+                                otherShips[id].line.setVisible(true);
+                            } else {
+                                otherShips[id].line.setVisible(false);
+                            }
+                        }
+                    }
+                    // Remove disconnected
+                    for(let id in otherShips) {
+                        if(!pData[id]) {
+                            otherShips[id].sprite.destroy(); otherShips[id].line.destroy(); otherShips[id].label.destroy();
+                            delete otherShips[id];
+                        }
+                    }
+                });
+
+                // Asteroids Sync (Clients receive host physics)
+                onValue(ref(db, 'learningLibrary/cosmic_roundup/asteroids'), (snap) => {
+                    if(window.gameState.isHost) return; // Host sets it, doesn't read it
+                    let aData = snap.val() || {};
+                    for(let id in aData) {
+                        if(asteroids[id]) {
+                            // Soft interpolation for smoothness
+                            asteroids[id].sprite.x += (aData[id].x - asteroids[id].sprite.x) * 0.2;
+                            asteroids[id].sprite.y += (aData[id].y - asteroids[id].sprite.y) * 0.2;
+                            if(aData[id].solved && !asteroids[id].solved) {
+                                asteroids[id].solved = true;
+                                asteroids[id].sprite.setTint(0x10b981);
+                                asteroids[id].text.setColor('#10b981');
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        function spawnAsteroids(scene, dataSet) {
+            // Clear old
+            for(let id in asteroids) { asteroids[id].sprite.destroy(); asteroids[id].text.destroy(); }
+            asteroids = {};
+
+            dataSet.forEach(item => {
+                let x = Phaser.Math.Between(100, 900); let y = Phaser.Math.Between(100, 500);
+                let a = scene.physics.add.image(x, y, 'hazardTex0'); // Reuse texture
+                a.setCollideWorldBounds(true); a.setBounce(0.5); a.setDrag(100); a.setMass(5);
+                
+                let t = scene.add.text(x, y, item.text, { fontSize: '14px', fill: '#fff', backgroundColor: 'rgba(0,0,0,0.7)', padding: 5 }).setOrigin(0.5);
+                
+                asteroids[item.id] = { sprite: a, text: t, data: item, solved: false };
+            });
+
+            // Update Text positions
+            scene.events.on('postupdate', () => {
+                for(let id in asteroids) {
+                    asteroids[id].text.setPosition(asteroids[id].sprite.x, asteroids[id].sprite.y - 30);
+                }
+            });
+
+            // Solo Mode auto-progression check
+            if(window.gameState.mode === 'solo') {
+                let checkTimer = setInterval(() => {
+                    let allSolved = true;
+                    for(let id in asteroids) if(!asteroids[id].solved) allSolved = false;
+                    
+                    if(allSolved) {
+                        clearInterval(checkTimer);
+                        if(window.gameState.phase === 1) {
+                            setTimeout(()=>{ window.startPhase2(); }, 2000);
+                        } else if(window.gameState.phase === 2) {
+                            setTimeout(()=>{ window.endGame(); }, 2000);
+                        }
+                    }
+                }, 1000);
+            }
+        }
+
+        // --- TIMER & SCORING ---
+        setInterval(() => {
+            if(window.gameState.phase === 1 || window.gameState.phase === 2) {
+                let elapsed = Math.floor((Date.now() - window.gameState.startTime) / 1000);
+                let m = String(Math.floor(elapsed / 60)).padStart(2, '0');
+                let s = String(elapsed % 60).padStart(2, '0');
+                document.getElementById('timer').innerText = `${m}:${s}`;
+            }
+        }, 1000);
+
+        function showLeaderboard() {
+            document.getElementById('hud').style.display = 'none';
+            document.getElementById('sentence-container').style.display = 'none';
+            document.getElementById('leaderboard').style.display = 'flex';
+            
+            let finalTimeStr = document.getElementById('timer').innerText;
+
+            // Save Score
+            if(window.gameState.role === 'student' && window.gameState.isHost) { // Only save once (Solo player, or Host of Multi)
+                let name = document.getElementById('player-name').value || "Class";
+                let list = window.gameState.mode === 'solo' ? 'solo' : 'multi';
+                push(ref(db, `learningLibrary/cosmic_roundup/leaderboard/${list}`), { name: name, time: finalTimeStr, timestamp: Date.now() });
+            }
+
+            // Fetch and display
+            get(ref(db, 'learningLibrary/cosmic_roundup/leaderboard')).then(snap => {
+                let data = snap.val() || { solo: {}, multi: {} };
+                
+                const renderCol = (obj, elId) => {
+                    let arr = Object.values(obj || {}).sort((a,b) => a.time.localeCompare(b.time)).slice(0, 10);
+                    let html = '';
+                    arr.forEach((entry, i) => { html += `<li><span>${i+1}. ${entry.name}</span> <span>${entry.time}</span></li>`; });
+                    document.getElementById(elId).innerHTML = html;
+                };
+                
+                renderCol(data.solo, 'lb-solo');
+                renderCol(data.multi, 'lb-multi');
+            });
+        }
+    </script>
+</body>
+</html>
